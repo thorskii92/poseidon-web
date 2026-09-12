@@ -1,0 +1,1010 @@
+.print-root {
+  padding: 16px;
+  background: #f2f4f6;
+}
+
+.print-toolbar {
+  display: flex;
+  /* Four signatory dropdowns plus a hint will not fit one line on a laptop,
+     and a toolbar that overflows puts the last picker off-screen. */
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.print-hint {
+  margin-left: auto;
+}
+
+.per-page {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.per-page select {
+  padding: 4px 6px;
+}
+
+/* One .bill-page per sheet of paper. Chunking in the component and breaking
+   between the chunks is more predictable than asking the browser to fragment
+   a single long grid — Chrome's grid pagination is unreliable, and a bill cut
+   in half across a page boundary is unusable. */
+.bill-sheet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.bill-page {
+  display: flex;
+  flex-direction: column;
+  width: 8.5in;
+  background: #fff;
+}
+
+.bill-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: min-content;
+  gap: 0;
+}
+
+/* Sits under the last row of slips rather than pinned to the foot of the
+   sheet. A fixed page height would put it flush at the bottom, but it would
+   also overflow into a blank extra page on any printer whose usable area is
+   under 12.4in — not worth it for a batch of a few hundred bills. */
+.page-number {
+  margin-top: auto;
+  padding: 5px 0 2px;
+  text-align: center;
+  font-family: Calibri, "Segoe UI", sans-serif;
+  font-size: 7.5pt;
+  color: #000;
+}
+
+.bill {
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border: 1px solid #000;
+  font-family: Calibri, "Segoe UI", sans-serif;
+  font-size: 8pt;
+  line-height: 1.2;
+  color: #000;
+  break-inside: avoid;
+  /* The shaded name row, the yellow due date and the grey value cells are how
+     the clerk reads the bill at a glance. Chrome drops backgrounds when
+     printing unless it is told not to. */
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* Seal, header text, seal — the desktop bill's masthead. */
+.bill-head {
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  padding-bottom: 3px;
+}
+
+.bill-seal {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.bill-republic {
+  font-size: 7pt;
+}
+
+.bill-org {
+  font-size: 7.5pt;
+}
+
+.bill-system {
+  font-size: 10pt;
+  font-weight: 700;
+  color: #1f4e9c;
+}
+
+.bill-address {
+  font-size: 6.5pt;
+}
+
+.bill table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8pt;
+}
+
+.bill td {
+  border: 1px solid #000;
+  padding: 1px 3px;
+  vertical-align: middle;
+  overflow-wrap: break-word;
+}
+
+/* Keep the labels tight so the values get the room, as on the desktop bill.
+   Only this table is fixed-layout — the reading and amount tables still size
+   themselves to their content. */
+.bill-meta {
+  table-layout: fixed;
+}
+
+.bill-meta col.c-lbl {
+  width: 21%;
+}
+
+.bill-meta td.lbl {
+  border: none;
+  white-space: nowrap;
+}
+
+.bill-meta td.val {
+  background: #e8e8e8;
+}
+
+.bill-meta td.name {
+  background: #cfe4ef;
+  text-align: center;
+  font-weight: 700;
+  font-size: 10pt;
+}
+
+.bill-meta td.covered {
+  background: #cfe4ef;
+}
+
+/* SENIOR CITIZEN/PWD is the longest value on the slip and the only one that
+   wrapped to two lines, which pushed the DUE DATE row out of alignment with
+   the desktop bill. There is room for it at a slightly smaller size. */
+.bill-meta td.acct-type {
+  font-size: 7.5pt;
+  white-space: nowrap;
+  letter-spacing: -0.1pt;
+}
+
+.bill-meta td.due {
+  background: #ffff00;
+  font-weight: 700;
+}
+
+.bill .center {
+  text-align: center;
+}
+.bill .bold,
+.bill tr.bold td {
+  font-weight: 700;
+}
+.bill .amt {
+  text-align: right;
+}
+
+.bill-reading {
+  margin-top: 4px;
+}
+.bill-reading td.blank {
+  border-left: 1px solid #000;
+}
+
+.bill-amounts {
+  margin-top: 0;
+}
+
+.bill-amounts tr.spacer td {
+  border: none;
+  height: 8px;
+}
+
+.bill-amounts tr.total-due td {
+  color: #cc0000;
+}
+
+.unpaid-months {
+  margin-left: 10px;
+  font-weight: 400;
+}
+
+/* Sits directly under the OTHER PARTICULARS header, so it shares the amounts
+   table's geometry rather than starting a new one visually. */
+.bill-particulars {
+  margin-top: 0;
+}
+
+.bill-other {
+  padding: 1px 3px;
+  background: #d9d9d9;
+  border: 1px solid #000;
+  border-top: none;
+}
+
+.bill-note {
+  min-height: 84px;
+  padding: 3px 4px;
+  border: 1px solid #000;
+  border-top: none;
+  font-size: 7.5pt;
+  text-align: justify;
+}
+
+.bill-note.highlight {
+  background: #ffff00;
+  text-align: left;
+}
+
+.bill-note h3 {
+  margin: 2px 0;
+  font-size: 10pt;
+  text-align: center;
+}
+
+.bill-foot {
+  padding-top: 3px;
+  font-size: 6.5pt;
+  text-align: center;
+}
+
+@media print {
+  @page {
+    size: 8.5in 13in;
+    margin: 0.25in;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .print-root {
+    padding: 0;
+    background: #fff;
+  }
+
+  .print-toolbar {
+    display: none;
+  }
+
+  .bill-sheet {
+    display: block;
+  }
+
+  .bill-page {
+    width: auto;
+    gap: 0;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .bill-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .bill {
+    height: 6.1in;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Pending disconnection list
+ *
+ * Long bond, portrait, one continuous table. The rightmost column is left
+ * empty on purpose — the crew writes the reading and their initials at the
+ * tap, and that sheet is what the Confirm dialog is filled in from.
+ * ------------------------------------------------------------------ */
+
+.disc-sheet {
+  width: 8.5in;
+  margin: 0 auto;
+  padding: 0.4in 0.45in;
+  background: #fff;
+  font-family: Calibri, "Segoe UI", sans-serif;
+  font-size: 10pt;
+  color: #000;
+}
+
+.disc-head {
+  text-align: center;
+  line-height: 1.3;
+}
+
+.disc-office {
+  margin-top: 2px;
+  font-size: 13pt;
+  font-weight: 700;
+  color: #1f4e9c;
+}
+
+.disc-address {
+  font-size: 9pt;
+}
+
+.disc-title {
+  margin: 16px 0 2px;
+  font-size: 13pt;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.disc-scope {
+  margin: 0 0 12px;
+  text-align: center;
+  font-size: 10pt;
+}
+
+.disc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+}
+
+.disc-table th,
+.disc-table td {
+  padding: 3px 5px;
+  border: 1px solid #000;
+  text-align: left;
+  vertical-align: top;
+}
+
+.disc-table thead th {
+  background: #e8e8e8;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Repeat the header on every sheet of a long route. */
+.disc-table thead {
+  display: table-header-group;
+}
+
+.disc-table tr {
+  break-inside: avoid;
+}
+
+.disc-no { width: 3%; text-align: center; }
+.disc-amt { width: 10%; text-align: right; }
+.disc-blank { width: 14%; }
+
+.disc-total-label {
+  text-align: right;
+  font-weight: 700;
+}
+
+@media print {
+  .no-print { display: none !important; }
+
+  .disc-sheet {
+    width: auto;
+    margin: 0;
+    padding: 0;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Statement of Account
+ *
+ * Long bond, portrait, one sheet per statement. The desktop generated this
+ * as a VB HTML string in its own blue (#1a56a0) with its own table styling;
+ * here it shares the masthead and the bordered-table conventions of the bill
+ * and the disconnection list, so everything the office hands out looks like
+ * it came from the same office.
+ * ------------------------------------------------------------------ */
+
+.soa-sheet {
+  width: 8.5in;
+  margin: 0 auto;
+  padding: 0.4in 0.45in;
+  background: #fff;
+  font-family: Calibri, "Segoe UI", sans-serif;
+  font-size: 10pt;
+  color: #000;
+}
+
+.soa-head {
+  display: grid;
+  grid-template-columns: 58px 1fr 58px;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.soa-seal {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+}
+
+.soa-office {
+  margin-top: 2px;
+  font-size: 13pt;
+  font-weight: 700;
+  color: #0d3b66;
+}
+
+.soa-address {
+  font-size: 9pt;
+}
+
+.soa-title {
+  margin: 18px 0 2px;
+  font-size: 14pt;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.4pt;
+}
+
+.soa-issued {
+  margin: 0 0 14px;
+  text-align: center;
+  font-size: 9.5pt;
+}
+
+/* The account header. Fixed layout so the label column stays narrow and the
+   name gets the room, the same proportion the bill slip uses. */
+.soa-meta {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+  font-size: 9.5pt;
+}
+
+.soa-meta td {
+  padding: 3px 6px;
+  border: 1px solid #000;
+  vertical-align: middle;
+  overflow-wrap: break-word;
+}
+
+.soa-meta td.lbl {
+  width: 16%;
+  background: #e8f1f8;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.soa-meta td.name {
+  font-weight: 700;
+  font-size: 11pt;
+}
+
+.soa-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+}
+
+.soa-table th,
+.soa-table td {
+  padding: 3px 5px;
+  border: 1px solid #000;
+  text-align: left;
+  vertical-align: top;
+}
+
+.soa-table thead th {
+  background: #0d3b66;
+  color: #fff;
+  font-weight: 700;
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Repeat the header if a long statement runs onto a second sheet. */
+.soa-table thead {
+  display: table-header-group;
+}
+
+.soa-table tr {
+  break-inside: avoid;
+}
+
+.soa-num { text-align: center; }
+.soa-amt { text-align: right; }
+.soa-table thead th.soa-amt,
+.soa-table thead th.soa-num { text-align: center; }
+
+/* "incl. penalty" under the WSF heading when the penalty has been folded in.
+   Without it the column is silently a different figure from the bill. */
+.soa-col-note {
+  display: block;
+  font-size: 7pt;
+  font-weight: 400;
+  font-style: italic;
+  opacity: 0.85;
+}
+
+/* A paid bill shown as history sits inside the same table but must never be
+   mistaken for something owed. */
+.soa-paid td {
+  background: #f4f6f8;
+  color: #444;
+}
+
+.soa-tag {
+  margin-left: 6px;
+  padding: 0 4px;
+  font-size: 7pt;
+  text-transform: uppercase;
+  border: 1px solid #9ca3af;
+  border-radius: 3px;
+}
+
+.soa-total-row td {
+  background: #e8f1f8;
+  font-weight: 700;
+}
+
+.soa-total-label {
+  text-align: right;
+}
+
+/* The one figure the consumer looks for. */
+.soa-due {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 10px;
+  padding: 7px 12px;
+  background: #0d3b66;
+  color: #fff;
+  font-size: 11pt;
+  font-weight: 700;
+  letter-spacing: 0.3pt;
+}
+
+.soa-due b {
+  font-size: 13pt;
+}
+
+.soa-due-after {
+  margin-top: 3px;
+  background: #fff;
+  color: #b02a22;
+  border: 1px solid #b02a22;
+}
+
+.soa-remark {
+  margin: 8px 0 0;
+  font-size: 9pt;
+  font-style: italic;
+}
+
+.soa-history {
+  margin-top: 20px;
+  break-inside: avoid;
+}
+
+.soa-history h2 {
+  margin: 0 0 6px;
+  font-size: 11pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3pt;
+  color: #0d3b66;
+}
+
+.soa-table-compact {
+  font-size: 8.5pt;
+}
+
+.soa-analytics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.soa-stat {
+  padding: 7px 9px;
+  border: 1px solid #d4d8dd;
+  background: #f7f9fb;
+  text-align: center;
+}
+
+.soa-stat span {
+  display: block;
+  font-size: 8pt;
+  text-transform: uppercase;
+  letter-spacing: 0.2pt;
+  color: #445;
+}
+
+.soa-stat b {
+  display: block;
+  margin: 2px 0 1px;
+  font-size: 12pt;
+  color: #0d3b66;
+}
+
+.soa-stat em {
+  display: block;
+  font-size: 7.5pt;
+  font-style: normal;
+  color: #6b7280;
+}
+
+.soa-foot {
+  margin-top: 18px;
+  padding-top: 4px;
+  border-top: 1px solid #d4d8dd;
+  font-size: 8pt;
+  text-align: center;
+  color: #444;
+}
+
+@media print {
+  .soa-sheet {
+    width: auto;
+    margin: 0;
+    padding: 0;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
+
+/* ---- Account Transaction History ----------------------------------- *
+ * Shares the statement's sheet, masthead, tables and signature block, so the
+ * two documents read as one record. Only the section headings, the gap rows
+ * and the two-column signature foot are its own.
+ * -------------------------------------------------------------------- */
+
+.txn-section {
+  margin: 18px 0 6px;
+  font-size: 11pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3pt;
+  color: #0d3b66;
+}
+
+.txn-none {
+  margin: 0 0 4px;
+  padding: 6px 8px;
+  font-size: 9pt;
+  font-style: italic;
+  background: #f7f9fb;
+  border: 1px solid #d4d8dd;
+}
+
+/* A bill marked paid with nothing recorded against it. Shaded rather than
+   hidden — a missing month reads as a lost payment at the counter, and this
+   says plainly that the gap is in the record. */
+.txn-gap td {
+  background: #fdf9f1;
+  color: #6a5320;
+  font-style: italic;
+}
+
+.txn-footnote {
+  margin: 6px 0 0;
+  font-size: 8.5pt;
+  font-style: italic;
+  color: #444;
+}
+
+/* ------------------------------------------------------------------ *
+ * Signature block — shared by every report
+ *
+ * Four slots, any of which may be dropped, so the layout is driven by how
+ * many actually print. One row up to three; a 2x2 grid at four, because four
+ * names across a long bond leaves about 1.9in each and a title like
+ * "Municipal Economic Enterprise and Development Officer" will not sit on one
+ * line in that width.
+ *
+ * A slot set to a blank rule still prints its label and its rule — that is
+ * the point of it. The non-breaking space in the name span is what keeps the
+ * empty rule at full height.
+ * ------------------------------------------------------------------ */
+
+.sign-block {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px 36px;
+  margin-top: 36px;
+  break-inside: avoid;
+}
+
+.sign-cell {
+  flex: 1 1 0;
+  min-width: 1.7in;
+  font-size: 9.5pt;
+}
+
+/* Two rows of two rather than four cramped columns. */
+.sign-block-4 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px 48px;
+}
+
+/* One signatory should not stretch the rule across the whole sheet. */
+.sign-block-1 {
+  max-width: 3in;
+}
+
+.sign-label {
+  display: block;
+  margin-bottom: 26px;
+}
+
+.sign-name {
+  display: block;
+  padding-top: 2px;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-top: 1px solid #000;
+}
+
+.sign-title {
+  display: block;
+  font-size: 8.5pt;
+  line-height: 1.25;
+}
+
+/* ------------------------------------------------------------------ *
+ * Request for Billing Adjustment
+ *
+ * Replaces crtBillAdjustmentForm. Printed at every stage, so the blocks fill
+ * in as the request moves — the blanks are for the crew at the tap and the
+ * consumer at the counter, not gaps in the data.
+ * ------------------------------------------------------------------ */
+
+.adjf-sheet {
+  width: 8.5in;
+  margin: 0 auto;
+  padding: 0.4in 0.45in;
+  background: #fff;
+  font-family: Calibri, "Segoe UI", sans-serif;
+  font-size: 9.5pt;
+  color: #000;
+}
+
+.adjf-head {
+  text-align: center;
+  line-height: 1.25;
+}
+
+.adjf-office {
+  font-size: 12pt;
+  font-weight: 700;
+}
+
+.adjf-mun {
+  font-size: 9pt;
+}
+
+.adjf-title {
+  margin: 8px 0 0;
+  padding: 3px 0;
+  background: #0d3b66;
+  color: #fff;
+  font-size: 11pt;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.3pt;
+}
+
+.adjf-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9.5pt;
+}
+
+.adjf-table td {
+  padding: 3px 5px;
+  border: 1px solid #000;
+  vertical-align: top;
+}
+
+.adjf-lbl {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.adjf-right {
+  text-align: right;
+}
+
+.adjf-inline {
+  margin-left: 22px;
+  font-weight: 700;
+}
+
+.adjf-findings {
+  line-height: 1.6;
+}
+
+.adjf-finding {
+  margin-right: 16px;
+  white-space: nowrap;
+}
+
+/* A drawn box rather than a character, so an unticked one is a box and not a
+   gap, and a ticked one lines up with it. */
+.adjf-box {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  margin-right: 3px;
+  line-height: 11px;
+  text-align: center;
+  font-size: 9pt;
+  border: 1px solid #000;
+  vertical-align: -1px;
+}
+
+/* Where the inspector writes when the finding is "Others". */
+.adjf-freetext {
+  height: 30px;
+}
+
+.adjf-signrow {
+  display: flex;
+  gap: 40px;
+  padding: 8px 5px 14px;
+  border: 1px solid #000;
+  border-top: none;
+}
+
+.adjf-signrow > div {
+  flex: 1;
+}
+
+.adjf-rule {
+  display: block;
+  margin: 18px 12px 0;
+  padding-top: 2px;
+  border-top: 1px solid #000;
+  text-align: center;
+  font-weight: 700;
+}
+
+.adjf-rule-tall {
+  margin-top: 34px;
+}
+
+.adjf-band {
+  margin: 0;
+  padding: 2px 6px;
+  background: #cfe4ef;
+  border: 1px solid #000;
+  border-top: none;
+  font-size: 10pt;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.adjf-band em {
+  font-size: 8.5pt;
+  font-weight: 400;
+  text-transform: none;
+}
+
+.adjf-approval {
+  display: flex;
+  border: 1px solid #000;
+  border-top: none;
+}
+
+.adjf-approval-left {
+  flex: 1;
+  padding: 6px 8px;
+  border-right: 1px solid #000;
+}
+
+.adjf-approval-right {
+  width: 46%;
+  padding: 6px 8px;
+}
+
+.adjf-choice {
+  margin-bottom: 4px;
+}
+
+.adjf-approver {
+  margin-top: 26px;
+  text-align: center;
+}
+
+.adjf-approver-name {
+  display: block;
+  font-weight: 700;
+  text-transform: uppercase;
+  text-decoration: underline;
+}
+
+.adjf-approver-title {
+  display: block;
+  font-size: 8.5pt;
+}
+
+.adjf-details-title {
+  font-weight: 700;
+  text-align: center;
+}
+
+.adjf-details {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+}
+
+.adjf-details th,
+.adjf-details td {
+  padding: 1px 4px;
+  text-align: right;
+}
+
+.adjf-details td:first-child,
+.adjf-details th:first-child {
+  text-align: left;
+}
+
+.adjf-details th {
+  font-weight: 700;
+}
+
+.adjf-center {
+  text-align: center !important;
+}
+
+.adjf-reco {
+  margin: 0;
+  padding: 3px 6px;
+  border: 1px solid #000;
+  border-top: none;
+  font-size: 8.5pt;
+  font-style: italic;
+}
+
+.adjf-foot {
+  display: flex;
+  border: 1px solid #000;
+  border-top: none;
+}
+
+.adjf-comments {
+  flex: 1;
+  padding: 5px 8px;
+  border-right: 1px solid #000;
+}
+
+.adjf-comments-box {
+  min-height: 52px;
+  padding-top: 3px;
+}
+
+.adjf-conforme {
+  width: 46%;
+  padding: 5px 8px;
+  text-align: center;
+}
+
+.adjf-conforme .adjf-lbl {
+  display: block;
+  text-align: left;
+}
+
+.adjf-conforme em {
+  font-size: 8.5pt;
+}
+
+@media print {
+  .adjf-sheet {
+    width: auto;
+    margin: 0;
+    padding: 0;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

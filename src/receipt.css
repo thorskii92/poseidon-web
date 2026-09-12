@@ -1,0 +1,178 @@
+/* The Official Receipt.
+   Print output is values only — the paper is a pre-printed accountable form.
+   The scan, the O.R. number and the serial are screen aids and never print. */
+
+.receipt-root {
+  padding: 16px;
+  background: #f2f4f6;
+  min-height: 100vh;
+}
+
+.or-toolbar {
+  flex-wrap: wrap;
+}
+
+.toolbar-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.or-sheet {
+  position: relative;
+  margin: 0 auto;
+  background: #fff;
+  box-shadow: 0 6px 24px rgba(13, 59, 102, 0.16);
+  font-family: Arial, Helvetica, sans-serif;
+  color: #000;
+  overflow: hidden;
+}
+
+.or-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  opacity: 0.5;
+  pointer-events: none;
+  user-select: none;
+}
+
+.or-field {
+  position: absolute;
+  white-space: pre;
+  line-height: 1.05;
+}
+
+.or-lines {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+}
+
+.or-line {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.or-nature {
+  white-space: pre;
+}
+
+.or-amount {
+  white-space: pre;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- calibration ---- */
+
+.receipt-root.calibrating .or-target {
+  outline: 1px dashed rgba(22, 104, 168, 0.55);
+  cursor: grab;
+  min-width: 0.35in;
+  min-height: 0.14in;
+}
+
+.receipt-root.calibrating .or-target:hover {
+  outline-color: var(--blue, #1668a8);
+  background: rgba(22, 104, 168, 0.08);
+}
+
+.receipt-root.calibrating .or-target.selected {
+  outline: 2px solid #b00020;
+  background: rgba(176, 0, 32, 0.08);
+}
+
+.receipt-root.calibrating .or-target.selected::after {
+  content: attr(data-label);
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  padding: 1px 4px;
+  background: #b00020;
+  color: #fff;
+  font-size: 9px;
+  font-family: system-ui, sans-serif;
+  white-space: nowrap;
+}
+
+.receipt-root.calibrating .or-screen-only {
+  color: #b00020;
+}
+
+.calibrate-panel {
+  max-width: 8.5in;
+  margin: 0 auto 14px;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid #e2e8ee;
+  border-radius: 10px;
+}
+
+.calibrate-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin: 10px 0;
+}
+
+.calibrate-row .field-input.narrow {
+  max-width: 150px;
+}
+
+.calibrate-name {
+  align-self: center;
+  padding: 3px 9px;
+  background: #b00020;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ---- print: values only ---- */
+
+@media print {
+  body {
+    margin: 0;
+    background: #fff;
+  }
+
+  .receipt-root {
+    padding: 0;
+    background: #fff;
+    min-height: 0;
+  }
+
+  .print-toolbar,
+  .calibrate-panel,
+  .or-backdrop,
+  .or-screen-only {
+    display: none !important;
+  }
+
+  /* Pin the form to the top-left of the page box, then apply the offset.
+     Never centre it — the paper edge is the reference the clerk lines up to. */
+  .or-sheet {
+    margin: var(--or-offset-y, 0in) 0 0 var(--or-offset-x, 0in);
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  /* Nothing that only helps on screen may leave a mark on the form. */
+  .or-target {
+    outline: none !important;
+    background: none !important;
+  }
+
+  .or-target::after {
+    content: none !important;
+  }
+}
