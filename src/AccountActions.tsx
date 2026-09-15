@@ -36,7 +36,7 @@ type Actions = {
 
 type Key =
   | "details" | "meter" | "appFee" | "classification" | "location"
-  | "transferMeter" | "transferOwner" | "meterReplacement"
+  | "transferMeter" | "transferOwner" | "meterReplacement" | "tempCloseRequest"
   | "temporaryClose" | "forceDisconnect" | "forceConnect" | "cancelApply";
 
 const GROUPS: { title: string; note: string; items: { key: Key; label: string; admin?: boolean }[] }[] = [
@@ -58,13 +58,14 @@ const GROUPS: { title: string; note: string; items: { key: Key; label: string; a
       { key: "transferMeter", label: "Transfer meter" },
       { key: "transferOwner", label: "Transfer owner" },
       { key: "meterReplacement", label: "Meter replacement" },
+      { key: "tempCloseRequest", label: "Request temporary closure" },
     ],
   },
   {
     title: "Override",
     note: "Changes the account's state directly. Every one is logged.",
     items: [
-      { key: "temporaryClose", label: "Temporary closure", admin: true },
+      { key: "temporaryClose", label: "Temporary closure (skip approval)", admin: true },
       { key: "forceDisconnect", label: "Force disconnect", admin: true },
       { key: "forceConnect", label: "Force connect", admin: true },
     ],
@@ -192,6 +193,7 @@ function ActionDialog({
     case "transferMeter": return <LocationForm {...props} kind="transfer" />;
     case "transferOwner": return <OwnerForm {...props} />;
     case "meterReplacement": return <ReplacementForm {...props} />;
+    case "tempCloseRequest": return <TempCloseRequestForm {...props} />;
     case "temporaryClose": return <TempCloseForm {...props} />;
     case "forceDisconnect": return <ForceForm {...props} to="disconnect" />;
     case "forceConnect": return <ForceForm {...props} to="connect" />;
@@ -1030,6 +1032,60 @@ function ReplacementForm({ info, onClose, onDone }: FormProps) {
         The serial and reading above are recorded now, as the meter stands.
         Once the replacement fee is receipted the account appears under
         Pendings → Meter replacement, where the swap is recorded.
+      </div>
+    </Shell>
+  );
+}
+
+/* ---- 8b. Request temporary closure ---------------------------------- */
+
+/** The formal Request for Temporary/Voluntary Disconnection — waits on an
+ *  approver (see the Approvals page's Temporary Closure tab) rather than
+ *  acting immediately, unlike the admin-gated override below it. */
+function TempCloseRequestForm({ info, onClose, onDone }: FormProps) {
+  const [date, setDate] = useState(today());
+  const [reason, setReason] = useState("");
+  const [requestedBy, setRequestedBy] = useState("");
+  const { busy, error, send } = useSave(onDone);
+
+  return (
+    <Shell
+      title="Request temporary closure"
+      info={info}
+      error={error}
+      busy={busy}
+      onClose={onClose}
+      canSave={!!reason.trim()}
+      saveLabel="Submit request"
+      onSave={() =>
+        send(
+          `/api/temp-closure/${info.id}/request`,
+          { date, reason, requestedBy },
+          () => "Request submitted — waiting on an approver.",
+          "POST",
+        )
+      }
+    >
+      <label className="field-input" style={{ marginBottom: 12 }}>
+        <span>Date applied</span>
+        <input type="date" value={date} autoFocus onChange={(e) => setDate(e.target.value)} />
+      </label>
+
+      <Reason
+        value={reason}
+        onChange={setReason}
+        hint="Why the consumer is closing — travelling, building work, vacant."
+      />
+
+      <label className="field-input" style={{ marginBottom: 12 }}>
+        <span>Requested by</span>
+        <input value={requestedBy} onChange={(e) => setRequestedBy(e.target.value)} />
+      </label>
+
+      <div className="form-notice">
+        This does not change the account yet. Once an approver signs off in
+        Approvals → Temporary Closure, the account moves to pending closure
+        and appears under Job Orders.
       </div>
     </Shell>
   );

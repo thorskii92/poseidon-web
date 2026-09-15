@@ -4,8 +4,11 @@ import { apiGet } from "./api";
 /**
  * The signatory block every printed report shares.
  *
- * Four slots, typed PREP, PREP, CHECK, APPR. Each is set to a person, to a
- * blank ruled line, or to nothing:
+ * The standard sheet has four slots, typed PREP, PREP, CHECK, APPR — but a
+ * report that only ever needs one or two (a job order's Prepared by /
+ * Approved by, a daily collection report's Prepared by) passes its own,
+ * shorter `slotTypes` instead of carrying three unused ones. Whatever the
+ * list, each slot is set to a person, to a blank ruled line, or to nothing:
  *
  *   a person     name and title print above the rule
  *   Blank line   the rule prints empty — whoever signs writes their own name
@@ -14,10 +17,10 @@ import { apiGet } from "./api";
  * Labels belong to the report, not to this component: a statement's third
  * slot is "Checked by", a transaction history's is "Certified correct by",
  * and a disconnection list's is "Recommending approval". Pass whatever the
- * sheet says. Only the four types are fixed.
+ * sheet says. Only the slot types (PREP/CHECK/APPR) are fixed.
  *
  * Choices are remembered per report in localStorage, because these pages open
- * in a new tab and re-picking four names for every statement at a counter is
+ * in a new tab and re-picking names for every statement at a counter is
  * the kind of friction that gets a feature abandoned. They stay visible in the
  * toolbar, so a remembered choice is never a hidden one.
  */
@@ -71,12 +74,12 @@ function pickerLabel(labels: string[], i: number) {
 
 const STORE_PREFIX = "poseidon.signatories.";
 
-function loadSaved(reportKey: string): string[] | null {
+function loadSaved(reportKey: string, expectedLength: number): string[] | null {
   try {
     const raw = localStorage.getItem(STORE_PREFIX + reportKey);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length === 4) {
+    if (Array.isArray(parsed) && parsed.length === expectedLength) {
       return parsed.map((v) => String(v));
     }
   } catch {
@@ -94,23 +97,26 @@ function save(reportKey: string, values: string[]) {
 }
 
 /**
- * First of each type, as the desktop did — except the second preparer, which
- * starts at None so a report looks like the three-signatory sheet the office
- * already knows until someone deliberately adds a fourth.
+ * First of each type, as the desktop did — except a type's second slot
+ * (the second preparer, on the standard sheet), which starts at None so a
+ * report looks like the shorter sheet the office already knows until
+ * someone deliberately adds another of the same type.
  */
-function defaults(people: SignatoryOption[]): string[] {
-  const first = (type: string) => people.find((p) => p.type === type);
-  return [
-    String(first("PREP")?.id ?? "blank"),
-    "none",
-    String(first("CHECK")?.id ?? "blank"),
-    String(first("APPR")?.id ?? "blank"),
-  ];
+function defaults(people: SignatoryOption[], slotTypes: readonly string[]): string[] {
+  const seen = new Set<string>();
+  return slotTypes.map((type) => {
+    const first = !seen.has(type);
+    seen.add(type);
+    if (!first) return "none";
+    const person = people.find((p) => p.type === type);
+    return String(person?.id ?? "blank");
+  });
 }
 
-export function useSignatories(reportKey: string) {
+export function useSignatories(reportKey: string, slotTypes: readonly string[] = SLOT_TYPES) {
   const [people, setPeople] = useState<SignatoryOption[]>([]);
   const [values, setValues] = useState<string[]>([]);
+  const key = slotTypes.join(",");
 
   useEffect(() => {
     let cancelled = false;
@@ -118,17 +124,20 @@ export function useSignatories(reportKey: string) {
       .then((r) => {
         if (cancelled) return;
         setPeople(r.signatories);
-        setValues(loadSaved(reportKey) ?? defaults(r.signatories));
+        setValues(loadSaved(reportKey, slotTypes.length) ?? defaults(r.signatories, slotTypes));
       })
       .catch(() => {
         // Blank rules are a perfectly good sheet; a signatory list that will
         // not load should not stop a clerk printing.
-        if (!cancelled) setValues(["blank", "none", "blank", "blank"]);
+        if (!cancelled) setValues(slotTypes.map(() => "blank"));
       });
     return () => {
       cancelled = true;
     };
-  }, [reportKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- slotTypes is a
+    // literal array the caller passes fresh each render; `key` is its stable
+    // identity for this effect.
+  }, [reportKey, key]);
 
   function setValue(index: number, value: string) {
     setValues((prev) => {
@@ -145,7 +154,7 @@ export function useSignatories(reportKey: string) {
    * signatories and overwriting it a moment later — which is exactly how the
    * first version printed blank rules under names the clerk had chosen.
    */
-  const ready = values.length === 4;
+  const ready = values.length === slotTypes.length;
   const query = ready
     ? values.map((v, i) => `sig${i + 1}=${encodeURIComponent(v)}`).join("&")
     : "";
@@ -153,23 +162,25 @@ export function useSignatories(reportKey: string) {
   return { people, values, setValue, query, ready };
 }
 
-/** The four dropdowns, for a print page's toolbar. */
+/** The dropdowns, for a print page's toolbar — one per slotTypes entry. */
 export function SignatoryPickers({
   labels = DEFAULT_SIGNATORY_LABELS,
+  slotTypes = SLOT_TYPES,
   people,
   values,
   onChange,
 }: {
   labels?: string[];
+  slotTypes?: readonly string[];
   people: SignatoryOption[];
   values: string[];
   onChange: (index: number, value: string) => void;
 }) {
-  if (values.length !== 4) return null;
+  if (values.length !== slotTypes.length) return null;
 
   return (
     <>
-      {SLOT_TYPES.map((type, i) => (
+      {slotTypes.map((type, i) => (
         <label className="field-input" key={i}>
           <span>{pickerLabel(labels, i)}</span>
           <select value={values[i]} onChange={(e) => onChange(i, e.target.value)}>

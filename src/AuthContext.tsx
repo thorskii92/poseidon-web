@@ -11,6 +11,12 @@ type User = {
   role: string | null;
   roleId: number | null;
   typeId: number | null;
+  /** Page and capability keys this user's role grants — see permissions.ts
+   *  on the API side. Empty until a role has been given any at all. */
+  permissions: string[];
+  /** Set by an admin password reset — the app blocks on ForcedPasswordChange
+   *  until this clears, which /api/me/password does on any successful change. */
+  mustChangePassword: boolean;
 };
 
 type AuthState = {
@@ -18,6 +24,15 @@ type AuthState = {
   loading: boolean;
   signIn: (username: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  can: (permission: string) => boolean;
+  /** Merge a local change (profile edit, password change clearing the
+   *  forced-change flag) without a round trip back to /api/auth/me. */
+  patchUser: (patch: Partial<User>) => void;
+  /** /api/avatar/:id is a stable URL, so the browser would keep showing a
+   *  stale cached image after an upload/delete without a cache-busting
+   *  query param — bump this and rebuild the <img> src with it. */
+  avatarVersion: number;
+  bumpAvatarVersion: () => void;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -31,6 +46,7 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [avatarVersion, setAvatarVersion] = useState(0);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -86,8 +102,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryClient.clear();
   }
 
+  function can(permission: string) {
+    return user?.permissions?.includes(permission) ?? false;
+  }
+
+  function patchUser(patch: Partial<User>) {
+    setUser((prev) => (prev ? { ...prev, ...patch } : prev));
+  }
+
+  function bumpAvatarVersion() {
+    setAvatarVersion((v) => v + 1);
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
+    <AuthContext.Provider
+      value={{ user, loading, signIn, signOut, can, patchUser, avatarVersion, bumpAvatarVersion }}
+    >
       {children}
     </AuthContext.Provider>
   );

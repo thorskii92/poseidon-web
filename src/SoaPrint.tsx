@@ -35,8 +35,18 @@ const peso = new Intl.NumberFormat("en-PH", {
 });
 
 const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 function longDate(value: string | null) {
@@ -54,7 +64,9 @@ function Seal({ which }: { which: keyof typeof LOGO_SRC }) {
   function hide(e: SyntheticEvent<HTMLImageElement>) {
     e.currentTarget.style.visibility = "hidden";
   }
-  return <img className="soa-seal" src={LOGO_SRC[which]} alt="" onError={hide} />;
+  return (
+    <img className="soa-seal" src={LOGO_SRC[which]} alt="" onError={hide} />
+  );
 }
 
 type Row = {
@@ -187,7 +199,11 @@ export default function SoaPrint() {
 
         <span className="print-hint count">
           {totals.bills} unpaid bill{totals.bills === 1 ? "" : "s"}
-          {opt.waive ? " · penalty waived" : opt.fold ? " · penalty folded in" : ""}
+          {opt.waive
+            ? " · penalty waived"
+            : opt.fold
+              ? " · penalty folded in"
+              : ""}
         </span>
       </div>
 
@@ -196,7 +212,9 @@ export default function SoaPrint() {
           <Seal which="municipal" />
           <div className="soa-head-text">
             <div>Republic of the Philippines</div>
-            {data.office.municipalHeader && <div>{data.office.municipalHeader}</div>}
+            {data.office.municipalHeader && (
+              <div>{data.office.municipalHeader}</div>
+            )}
             {data.office.officeHeader && <div>{data.office.officeHeader}</div>}
             <div className="soa-office">{data.office.officeName}</div>
             {data.office.officeAddress && (
@@ -225,7 +243,9 @@ export default function SoaPrint() {
             </tr>
             <tr>
               <td className="lbl">Address</td>
-              <td className="val" colSpan={3}>{data.account.address}</td>
+              <td className="val" colSpan={3}>
+                {data.account.address}
+              </td>
             </tr>
             <tr>
               <td className="lbl">Meter Serial</td>
@@ -250,10 +270,7 @@ export default function SoaPrint() {
               <th className="soa-num">Previous</th>
               <th className="soa-num">Present</th>
               <th className="soa-num">Cu.m.</th>
-              <th className="soa-amt">
-                Water Service Fee
-                {opt.fold && <span className="soa-col-note">incl. penalty</span>}
-              </th>
+              <th className="soa-amt">Water Service Fee</th>
               <th className="soa-amt">PES</th>
               <th className="soa-amt">Discount</th>
               {opt.maintenanceEnabled && <th className="soa-amt">Maint.</th>}
@@ -294,7 +311,8 @@ export default function SoaPrint() {
           <tfoot>
             <tr className="soa-total-row">
               <td colSpan={4} className="soa-total-label">
-                Total — {totals.bills} unpaid bill{totals.bills === 1 ? "" : "s"}
+                Total — {totals.bills} unpaid bill
+                {totals.bills === 1 ? "" : "s"}
               </td>
               <td className="soa-num">{totals.consumption}</td>
               <td className="soa-amt">{peso.format(totals.waterServiceFee)}</td>
@@ -305,14 +323,18 @@ export default function SoaPrint() {
                   : peso.format(0)}
               </td>
               {opt.maintenanceEnabled && (
-                <td className="soa-amt">{peso.format(totals.maintenanceFee)}</td>
+                <td className="soa-amt">
+                  {peso.format(totals.maintenanceFee)}
+                </td>
               )}
               <td className="soa-amt">{peso.format(totals.amount)}</td>
               {showPenaltyColumns && (
                 <td className="soa-amt">{peso.format(totals.penalty)}</td>
               )}
               {showPenaltyColumns && (
-                <td className="soa-amt">{peso.format(totals.amountAfterDue)}</td>
+                <td className="soa-amt">
+                  {peso.format(totals.amountAfterDue)}
+                </td>
               )}
             </tr>
           </tfoot>
@@ -341,7 +363,7 @@ export default function SoaPrint() {
             <table className="soa-table soa-table-compact">
               <thead>
                 <tr>
-                  <th>Bill Period</th>
+                  <th className="soa-col-period">Bill Period</th>
                   <th className="soa-num">Previous</th>
                   <th className="soa-num">Present</th>
                   <th className="soa-num">Cu.m.</th>
@@ -352,7 +374,7 @@ export default function SoaPrint() {
               <tbody>
                 {data.history.map((r) => (
                   <tr key={r.billId}>
-                    <td>{r.period}</td>
+                    <td className="soa-col-period">{r.period || "—"}</td>
                     <td className="soa-num">{r.prevRead}</td>
                     <td className="soa-num">{r.presRead}</td>
                     <td className="soa-num">{r.consumption}</td>

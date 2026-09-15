@@ -73,7 +73,7 @@ export default function AccountDetail() {
 
   return (
     <div>
-      <Link to="/" className="back-button">
+      <Link to="/accounts" className="back-button">
         ← All accounts
       </Link>
 

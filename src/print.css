@@ -365,9 +365,17 @@
   break-inside: avoid;
 }
 
-.disc-no { width: 3%; text-align: center; }
-.disc-amt { width: 10%; text-align: right; }
-.disc-blank { width: 14%; }
+.disc-no {
+  width: 3%;
+  text-align: center;
+}
+.disc-amt {
+  width: 10%;
+  text-align: right;
+}
+.disc-blank {
+  width: 14%;
+}
 
 .disc-total-label {
   text-align: right;
@@ -375,7 +383,9 @@
 }
 
 @media print {
-  .no-print { display: none !important; }
+  .no-print {
+    display: none !important;
+  }
 
   .disc-sheet {
     width: auto;
@@ -486,7 +496,7 @@
 .soa-table td {
   padding: 3px 5px;
   border: 1px solid #000;
-  text-align: left;
+  text-align: right;
   vertical-align: top;
 }
 
@@ -506,11 +516,15 @@
 .soa-table tr {
   break-inside: avoid;
 }
+.soa-table td.soa-num,
+.soa-table td.soa-amt {
+  text-align: right;
+}
 
-.soa-num { text-align: center; }
-.soa-amt { text-align: right; }
-.soa-table thead th.soa-amt,
-.soa-table thead th.soa-num { text-align: center; }
+.soa-table thead th.soa-num,
+.soa-table thead th.soa-amt {
+  text-align: center;
+}
 
 /* "incl. penalty" under the WSF heading when the penalty has been folded in.
    Without it the column is silently a different figure from the bill. */
@@ -1007,4 +1021,26 @@
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
+}
+
+.soa-col-period {
+  width: 90px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.soa-col-reading {
+  width: 70px;
+}
+
+.soa-table-fixed {
+  table-layout: fixed;
+}
+
+.soa-table-fixed td,
+.soa-table-fixed th {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }

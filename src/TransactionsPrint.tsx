@@ -28,9 +28,39 @@ const peso = new Intl.NumberFormat("en-PH", {
 });
 
 const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
+
+const MONTH_ABBR: Record<string, string> = {
+  January: "Jan",
+  February: "Feb",
+  March: "Mar",
+  April: "Apr",
+  May: "May",
+  June: "Jun",
+  July: "Jul",
+  August: "Aug",
+  September: "Sep",
+  October: "Oct",
+  November: "Nov",
+  December: "Dec",
+};
+
+function shortPeriod(period: string) {
+  const [month, year] = period.split(" ");
+  return MONTH_ABBR[month] ? `${MONTH_ABBR[month]} ${year}` : period;
+}
 
 function longDate(value: string | null) {
   if (!value) return "";
@@ -53,7 +83,9 @@ function Seal({ which }: { which: keyof typeof LOGO_SRC }) {
   function hide(e: SyntheticEvent<HTMLImageElement>) {
     e.currentTarget.style.visibility = "hidden";
   }
-  return <img className="soa-seal" src={LOGO_SRC[which]} alt="" onError={hide} />;
+  return (
+    <img className="soa-seal" src={LOGO_SRC[which]} alt="" onError={hide} />
+  );
 }
 
 type BillPayment = {
@@ -194,7 +226,9 @@ export default function TransactionsPrint() {
           <Seal which="municipal" />
           <div className="soa-head-text">
             <div>Republic of the Philippines</div>
-            {data.office.municipalHeader && <div>{data.office.municipalHeader}</div>}
+            {data.office.municipalHeader && (
+              <div>{data.office.municipalHeader}</div>
+            )}
             {data.office.officeHeader && <div>{data.office.officeHeader}</div>}
             <div className="soa-office">{data.office.officeName}</div>
             {data.office.officeAddress && (
@@ -226,7 +260,9 @@ export default function TransactionsPrint() {
             </tr>
             <tr>
               <td className="lbl">Address</td>
-              <td className="val" colSpan={3}>{data.account.address}</td>
+              <td className="val" colSpan={3}>
+                {data.account.address}
+              </td>
             </tr>
             <tr>
               <td className="lbl">Meter Serial</td>
@@ -241,15 +277,27 @@ export default function TransactionsPrint() {
         {data.bills.length === 0 ? (
           <p className="txn-none">No water bills were paid in this period.</p>
         ) : (
-          <table className="soa-table">
+          <table className="soa-table soa-table-fixed">
+            <colgroup>
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "8%" }} />
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "13%" }} />
+            </colgroup>
             <thead>
               <tr>
                 <th>Date Paid</th>
                 <th>O.R. No.</th>
                 <th>Bill Period</th>
-                <th className="soa-num">Prev</th>
-                <th className="soa-num">Present</th>
-                <th className="soa-num">Cu.m.</th>
+                <th className="soa-num soa-col-reading">Previous</th>
+                <th className="soa-num soa-col-reading">Present</th>
+                <th className="soa-num soa-col-reading">Cu.m.</th>
                 <th className="soa-amt">Bill Amount</th>
                 <th className="soa-amt">Penalty</th>
                 <th className="soa-amt">Discount</th>
@@ -269,14 +317,18 @@ export default function TransactionsPrint() {
                       <span className="soa-tag">no O.R. on file</span>
                     )}
                   </td>
-                  <td>{r.period || "—"}</td>
-                  <td className="soa-num">{r.prevRead}</td>
-                  <td className="soa-num">{r.presRead}</td>
-                  <td className="soa-num">{r.consumption}</td>
+                  <td className="soa-col-period">
+                    {r.period ? shortPeriod(r.period) : "—"}
+                  </td>
+                  <td className="soa-num soa-col-reading">{r.prevRead}</td>
+                  <td className="soa-num soa-col-reading">{r.presRead}</td>
+                  <td className="soa-num soa-col-reading">{r.consumption}</td>
                   <td className="soa-amt">{peso.format(r.billAmount)}</td>
                   <td className="soa-amt">{peso.format(r.penalty)}</td>
                   <td className="soa-amt">
-                    {r.discount ? `(${peso.format(r.discount)})` : peso.format(0)}
+                    {r.discount
+                      ? `(${peso.format(r.discount)})`
+                      : peso.format(0)}
                   </td>
                   <td className="soa-amt">
                     {r.noRecord ? "—" : peso.format(r.amountPaid)}
@@ -308,17 +360,17 @@ export default function TransactionsPrint() {
           <p className="txn-footnote">
             {totals.billsWithoutRecord} bill
             {totals.billsWithoutRecord === 1 ? " is" : "s are"} recorded as paid
-            with no official receipt on file, and {totals.billsWithoutRecord === 1
-              ? "is"
-              : "are"}{" "}
-            listed above for completeness. Amounts paid for these are not
-            included in the totals.
+            with no official receipt on file, and{" "}
+            {totals.billsWithoutRecord === 1 ? "is" : "are"} listed above for
+            completeness. Amounts paid for these are not included in the totals.
           </p>
         )}
 
         <h2 className="txn-section">Other payments</h2>
         {data.others.length === 0 ? (
-          <p className="txn-none">No other payments were made in this period.</p>
+          <p className="txn-none">
+            No other payments were made in this period.
+          </p>
         ) : (
           <table className="soa-table">
             <thead>

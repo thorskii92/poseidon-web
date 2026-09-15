@@ -95,7 +95,7 @@ export default function NewApplication() {
 
   return (
     <div>
-      <Link to="/" className="back-button">
+      <Link to="/accounts" className="back-button">
         ← All accounts
       </Link>
 
@@ -317,7 +317,7 @@ export default function NewApplication() {
         >
           {createAccount.isPending ? "Saving…" : "Create application"}
         </button>
-        <Link to="/" className="back-button">
+        <Link to="/accounts" className="back-button">
           Cancel
         </Link>
       </div>
