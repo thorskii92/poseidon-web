@@ -316,6 +316,16 @@ thead th:last-child {
   background: #fdf1de;
   color: #8a5a05;
 }
+
+/* Activity feed type badges — same palette as the badges above, kept as
+   their own classes so retagging an activity type never shifts the meaning
+   of an unrelated status pill elsewhere in the app. */
+.badge.act-green { background: #e3f4e9; color: #1d6b3f; }
+.badge.act-red { background: #fdeaea; color: #a82b23; }
+.badge.act-blue { background: #e5eff8; color: #14547f; }
+.badge.act-orange { background: #fdf1de; color: #8a5a05; }
+.badge.act-purple { background: #ece9f7; color: #4a3f8c; }
+.badge.act-gray { background: #f1f3f5; color: #6b7885; }
 .unpaid {
   display: inline-block;
   min-width: 18px;
@@ -1401,6 +1411,11 @@ tbody tr.row-warning td {
   outline: none;
   border-color: var(--blue);
   box-shadow: 0 0 0 3px rgba(22, 104, 168, 0.15);
+}
+
+.reading-input.needs-review {
+  border-color: #d38f00;
+  background: #fff8e6;
 }
 
 .cons {
@@ -3979,4 +3994,128 @@ button.primary.big {
   justify-content: center;
   gap: 16px;
   margin-top: 16px;
+}
+
+/* ---- Reports menu ---- */
+
+.reports-category {
+  margin-bottom: 28px;
+}
+
+.reports-category-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  color: var(--navy);
+}
+
+.reports-category-head h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.reports-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.report-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.report-card:hover:not(.disabled) {
+  border-color: var(--blue-soft);
+  box-shadow: 0 2px 10px rgba(13, 59, 102, 0.1);
+}
+
+.report-card.disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.report-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  color: var(--blue);
+  background: var(--tint);
+  border-radius: 8px;
+}
+
+.report-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.report-card-note {
+  margin-top: -4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.report-card-soon {
+  align-self: flex-start;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  background: var(--line-soft);
+  border-radius: 4px;
+}
+
+/* ---- Printing a page that lives inside the normal app shell ----
+ * The dedicated print routes (receipts, job orders, ...) are their own
+ * documents with no sidebar to begin with; a page like the Dashboard is
+ * rendered inside Layout, so printing it has to hide the chrome around it
+ * instead. `.no-print` marks anything — a button, a toolbar — that should
+ * vanish on paper but stays visible on screen. */
+@media print {
+  .sidebar {
+    display: none !important;
+  }
+  .content {
+    padding: 0 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  /* Browsers drop background fills and colors by default when printing;
+     without this every KPI tile and chart bar comes out white-on-white. */
+  .dash-kpi,
+  .record-section,
+  .avatar-circle,
+  svg * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* A multi-column grid can crop a wide chart at the page edge — one
+     column per row prints cleanly regardless of paper size. */
+  .dash-kpis,
+  .dash-charts {
+    grid-template-columns: 1fr !important;
+  }
+  .record-section {
+    break-inside: avoid;
+  }
 }

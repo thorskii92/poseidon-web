@@ -92,6 +92,11 @@ export default function DashboardPage() {
           <h1>Dashboard</h1>
           <p className="account-no">Where collections, receivables and pending work stand right now.</p>
         </div>
+        <div className="head-actions no-print">
+          <button className="clear-filters" onClick={() => window.print()} disabled={!data}>
+            Print
+          </button>
+        </div>
       </div>
 
       {isLoading && <p className="count">Loading…</p>}

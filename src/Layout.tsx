@@ -20,12 +20,12 @@ const NAV: { label: string; to: string; perm: string | null }[] = [
   { label: "Approvals", to: "/approvals", perm: "approvals" },
   { label: "Disconnection", to: "/disconnection", perm: "disconnection" },
   { label: "ECPay", to: "/ecpay", perm: "ecpay" },
+  { label: "Reports", to: "/reports", perm: "reports" },
   { label: "User Management", to: "/users", perm: "users" },
   { label: "Settings", to: "/settings", perm: "settings" },
 ];
 
 const SOON = [
-  "Reports",
   "Meter Manager",
   "Cluster Manager",
   "Sequencing",

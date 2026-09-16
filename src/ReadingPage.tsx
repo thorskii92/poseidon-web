@@ -40,6 +40,8 @@ export type Row = {
   presentReading: number;
   entered: boolean;
   excluded: boolean;
+  /** Set once a scanned-reading upload prefilled this row; cleared on manual edit. */
+  scanReason?: string;
   applicationFee: number;
   arrearCount: number;
   unpaidMonths: string;

@@ -51,10 +51,14 @@ export default function ReadingGrid({
   const [expanded, setExpanded] = useState<number | null>(null);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [saveError, setSaveError] = useState("");
+  const [scanning, setScanning] = useState(false);
+  const [scanSummary, setScanSummary] = useState<{ found: number; review: number; unmatched: string[] } | null>(null);
+  const [scanError, setScanError] = useState("");
 
   // Accounts edited since the last flush.
   const dirty = useRef(new Set<number>());
   const inputs = useRef(new Map<number, HTMLInputElement | null>());
+  const scanInput = useRef<HTMLInputElement | null>(null);
 
   const counts = useMemo(() => {
     let entered = 0,
@@ -182,6 +186,70 @@ export default function ReadingGrid({
     );
   }
 
+  /**
+   * Upload a photo of a printed Reading List and prefill present readings
+   * from it. This only ever proposes values through the same `edit` path
+   * a clerk's own typing uses — nothing here saves or bills on its own;
+   * "Review and generate bills" still requires the clerk to look at it.
+   */
+  async function scanFile(file: File) {
+    setScanning(true);
+    setScanError("");
+    setScanSummary(null);
+    try {
+      const form = new FormData();
+      form.append("scan", file);
+      form.append(
+        "accounts",
+        JSON.stringify(
+          rows.map((r) => ({
+            acctId: r.acctId,
+            accountNo: r.accountNo,
+            previousReading: r.previousReading,
+          })),
+        ),
+      );
+
+      const res = await fetch("/api/reading/scan", { method: "POST", body: form });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(body?.error ?? "Could not read that scan");
+
+      type ScanMatch = { acctId: number; value: number | null; needsReview: boolean; reason: string };
+      const matches: ScanMatch[] = body.matches ?? [];
+
+      let found = 0;
+      let review = 0;
+      const unmatched: string[] = [];
+
+      for (const m of matches) {
+        if (m.value == null) {
+          if (m.reason === "account number not found on the sheet") {
+            const row = rows.find((r) => r.acctId === m.acctId);
+            if (row) unmatched.push(row.accountNo);
+          }
+          continue;
+        }
+        found += 1;
+        if (m.needsReview) review += 1;
+        dirty.current.add(m.acctId);
+        setRows((prev) =>
+          prev.map((r) =>
+            r.acctId === m.acctId
+              ? { ...r, presentReading: m.value!, entered: true, scanReason: m.needsReview ? m.reason : undefined }
+              : r,
+          ),
+        );
+      }
+
+      setScanSummary({ found, review, unmatched });
+    } catch (err) {
+      setScanError((err as Error).message);
+    } finally {
+      setScanning(false);
+      if (scanInput.current) scanInput.current.value = "";
+    }
+  }
+
   /** Enter moves to the next meter that still has no reading. */
   function focusNext(acctId: number) {
     const index = visible.findIndex((r) => r.acctId === acctId);
@@ -231,6 +299,23 @@ export default function ReadingGrid({
                 ? `Saved ${savedAt.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit" })}`
                 : "Nothing entered yet"}
           </span>
+          <input
+            ref={scanInput}
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) scanFile(file);
+            }}
+          />
+          <button
+            className="clear-filters"
+            disabled={scanning}
+            onClick={() => scanInput.current?.click()}
+          >
+            {scanning ? "Reading scan…" : "Upload scanned reading"}
+          </button>
           <button
             className="clear-filters"
             onClick={async () => {
@@ -244,6 +329,26 @@ export default function ReadingGrid({
           </button>
         </div>
       </div>
+
+      {scanError && (
+        <div className="form-error" style={{ marginBottom: 12 }}>
+          {scanError}
+        </div>
+      )}
+      {scanSummary && (
+        <div className="notice">
+          <span>
+            {scanSummary.found} reading{scanSummary.found === 1 ? "" : "s"} filled in from the scan
+            {scanSummary.review > 0 && `, ${scanSummary.review} flagged for review`}.
+            {scanSummary.unmatched.length > 0 && (
+              <> Could not find on the sheet: {scanSummary.unmatched.join(", ")}.</>
+            )}
+          </span>
+          <button className="link-button" onClick={() => setScanSummary(null)}>
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <div className="run-context">
         <div className="run-context-body">
@@ -355,7 +460,8 @@ export default function ReadingGrid({
                   </td>
                   <td className="num">
                     <input
-                      className="reading-input"
+                      className={r.scanReason ? "reading-input needs-review" : "reading-input"}
+                      title={r.scanReason ? `From the scan — ${r.scanReason}` : undefined}
                       ref={(el) => {
                         inputs.current.set(r.acctId, el);
                       }}
@@ -365,6 +471,7 @@ export default function ReadingGrid({
                         edit(r.acctId, {
                           presentReading: Number(e.target.value) || 0,
                           entered: true,
+                          scanReason: undefined,
                         })
                       }
                       onKeyDown={(e) => {
@@ -375,6 +482,7 @@ export default function ReadingGrid({
                         }
                       }}
                     />
+                    {r.scanReason && <span className="cell-sub">scan: {r.scanReason}</span>}
                   </td>
                   <td className="num">
                     {r.entered ? (

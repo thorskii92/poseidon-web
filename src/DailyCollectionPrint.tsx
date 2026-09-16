@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { apiGet } from "./api";
-import { PAPERS, type PaperKey } from "./orLayout";
+import type { PaperKey } from "./orLayout";
+import { PrintLayoutControls, usePrintPageSize, scaledSheetStyle, type Orientation } from "./PrintLayoutControls";
 import {
   SignatoryBlock,
   SignatoryPickers,
@@ -10,23 +11,19 @@ import {
 } from "./Signatories";
 import "./print.css";
 
-/** This report is portrait-only, so "Form" (the receipt slip's own tiny
- *  cut sheet) doesn't belong in its paper list — only the three real pages. */
-const REPORT_PAPERS: PaperKey[] = ["letter", "legal", "a4"];
-
-const SLOT_TYPES = ["PREP"] as const;
-const LABELS = ["Prepared by"];
-
 /**
  * Daily Collection Report — Rizal's, for now (see poseidon-api's receipts.ts
  * for why: each municipality had its own bespoke Crystal Report for this,
  * and only Rizal's has been rebuilt so far).
  *
  * The O.R. range and serial are fixed once the report is opened — changing
- * them means picking a different range from Receipts Manager. Who prepared
- * it is the one thing worth changing without leaving the page, so it lives
- * here as its own dropdown, sharing the same None / Blank line / Named
- * signatory picker every other report uses (see Signatories.tsx).
+ * them means picking a different range from Receipts Manager. Signatories,
+ * paper, orientation and scale are the things worth changing without
+ * leaving the page, so they live here as their own controls — the standard
+ * 2 Prepared by / 1 Checked by / 1 Approved by (Signatories.tsx's default
+ * slate) and the standard paper/orientation/scale trio (PrintLayoutControls)
+ * every report gets except bills and O.R.s, which print onto a pre-printed
+ * form at a fixed size instead.
  */
 
 const peso = new Intl.NumberFormat("en-PH", {
@@ -85,23 +82,14 @@ export default function DailyCollectionPrint() {
   const final = params.get("final") ?? "";
   const serial = params.get("serial") ?? "";
 
-  const sig = useSignatories("daily-collection", SLOT_TYPES);
+  const sig = useSignatories("daily-collection");
   const [paper, setPaper] = useState<PaperKey>("letter");
+  const [orientation, setOrientation] = useState<Orientation>("portrait");
+  const [scale, setScale] = useState(100);
   const [data, setData] = useState<Report | null>(null);
   const [error, setError] = useState("");
 
-  // A real @page rule, injected — @page can't read CSS custom properties, and
-  // the sheet's own on-screen width has to match it or the preview lies
-  // about how much room the printed page actually has.
-  useEffect(() => {
-    const { width, height } = PAPERS[paper];
-    const style = document.createElement("style");
-    style.textContent = `@page { size: ${width}in ${height}in; margin: 0.25in; }`;
-    document.head.appendChild(style);
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, [paper]);
+  const box = usePrintPageSize(paper, orientation);
 
   useEffect(() => {
     if (!initial || !final || !serial || !sig.ready) return;
@@ -148,26 +136,24 @@ export default function DailyCollectionPrint() {
           Print
         </button>
         <SignatoryPickers
-          labels={LABELS}
-          slotTypes={SLOT_TYPES}
           people={sig.people}
           values={sig.values}
           onChange={sig.setValue}
         />
-        <label className="toolbar-check">
-          Paper
-          <select value={paper} onChange={(e) => setPaper(e.target.value as PaperKey)}>
-            {REPORT_PAPERS.map((k) => (
-              <option key={k} value={k}>{PAPERS[k].label}</option>
-            ))}
-          </select>
-        </label>
+        <PrintLayoutControls
+          paper={paper}
+          orientation={orientation}
+          scale={scale}
+          onPaper={setPaper}
+          onOrientation={setOrientation}
+          onScale={setScale}
+        />
         <span className="print-hint count">
           {data.rows.length} line{data.rows.length === 1 ? "" : "s"} · {peso.format(totals.total)}
         </span>
       </div>
 
-      <article className="soa-sheet" style={{ width: `${PAPERS[paper].width}in` }}>
+      <article className="soa-sheet" style={scaledSheetStyle(box.width, scale)}>
         <header style={{ textAlign: "center", lineHeight: 1.3 }}>
           <div>Republic of the Philippines</div>
           <div>PROVINCE OF PALAWAN</div>
@@ -241,7 +227,7 @@ export default function DailyCollectionPrint() {
         </table>
 
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <SignatoryBlock labels={LABELS} slots={data.signatories} />
+          <SignatoryBlock slots={data.signatories} />
         </div>
       </article>
     </div>

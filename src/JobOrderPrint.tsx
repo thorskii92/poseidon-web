@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { apiGet } from "./api";
+import type { PaperKey } from "./orLayout";
+import { PrintLayoutControls, usePrintPageSize, scaledSheetStyle, type Orientation } from "./PrintLayoutControls";
 import {
   SignatoryBlock,
   SignatoryPickers,
@@ -145,6 +147,10 @@ export default function JobOrderPrint() {
   const sig = useSignatories("job-order", SLOT_TYPES);
   const [data, setData] = useState<JobOrder | null>(null);
   const [error, setError] = useState("");
+  const [paper, setPaper] = useState<PaperKey>("letter");
+  const [orientation, setOrientation] = useState<Orientation>("portrait");
+  const [scale, setScale] = useState(100);
+  const box = usePrintPageSize(paper, orientation);
 
   useEffect(() => {
     if (!joId || !sig.ready) return;
@@ -191,10 +197,18 @@ export default function JobOrderPrint() {
           values={sig.values}
           onChange={sig.setValue}
         />
+        <PrintLayoutControls
+          paper={paper}
+          orientation={orientation}
+          scale={scale}
+          onPaper={setPaper}
+          onOrientation={setOrientation}
+          onScale={setScale}
+        />
         <span className="print-hint count">{data.jobOrderNo}</span>
       </div>
 
-      <article className="soa-sheet">
+      <article className="soa-sheet" style={scaledSheetStyle(box.width, scale)}>
         <header style={{ textAlign: "center", lineHeight: 1.3 }}>
           <div>Republic of the Philippines</div>
           {data.office.municipalHeader && <div>{data.office.municipalHeader}</div>}

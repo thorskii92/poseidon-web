@@ -513,6 +513,16 @@
   display: table-header-group;
 }
 
+/* A <tfoot> defaults to display: table-footer-group, which browsers print
+   by repeating it at the bottom of every page a table spans — fine for a
+   running subtotal, wrong for a single GRAND TOTAL row, which would then
+   print partway down the table (with a total that doesn't yet include the
+   rows still to come) at every page break, not just once at the true end.
+   table-row-group makes it behave like an ordinary last row instead. */
+.soa-table tfoot {
+  display: table-row-group;
+}
+
 .soa-table tr {
   break-inside: avoid;
 }
@@ -1043,4 +1053,120 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* Same table-layout: fixed fix as .soa-table-fixed, but for a table with far
+   too many columns to fit any label without wrapping (the Annual Collection
+   Report's 26+ column matrices) — cells wrap instead of ellipsizing, since
+   truncating a barangay or cluster name to fit a fixed column is worse than
+   letting it wrap to two lines. Without table-layout: fixed, a plain
+   `width: 100%` table (the .soa-table default) is only a *minimum* — the
+   browser still grows it past its container to fit unwrapped content, and
+   scaledSheetStyle's `transform: scale()` doesn't shrink that back down
+   since transforms don't affect layout width, only paint. */
+.soa-table-many-cols {
+  table-layout: fixed;
+  font-size: 6pt;
+}
+
+.soa-table-many-cols td,
+.soa-table-many-cols th {
+  padding: 1px 2px;
+  overflow-wrap: break-word;
+}
+
+/* Labels (barangay/cluster names) are the only cells allowed to wrap —
+   every number stays on one line, however narrow its fixed column ends up,
+   since a wrapped mid-number ("112,4" / "67.40") is unreadable. */
+.soa-table-many-cols td.soa-amt,
+.soa-table-many-cols th.soa-amt {
+  white-space: nowrap;
+}
+
+/* Monthly Billing Overview's per-barangay account listing — a collapsible
+   section on screen (there can be thousands of accounts), but the print
+   output never depends on what's expanded when the page happens to be
+   printed: every body is forced open under @media print regardless of its
+   on-screen .open state, the same problem the VB's own "Expand All" button
+   was a manual workaround for. */
+.brgy-accordion {
+  margin-bottom: 6px;
+  border: 1px solid #aed6f1;
+  border-radius: 4px;
+  overflow: hidden;
+  break-inside: avoid;
+}
+.brgy-header {
+  background: #0d3b66;
+  color: #fff;
+  padding: 6px 10px;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.brgy-title {
+  font-weight: 700;
+  font-size: 10pt;
+}
+.brgy-meta {
+  font-size: 8pt;
+  color: #cfe3f5;
+  margin-top: 3px;
+  line-height: 1.6;
+}
+.brgy-meta span {
+  margin-right: 10px;
+  white-space: nowrap;
+}
+.brgy-toggle {
+  font-size: 11pt;
+  margin-left: 10px;
+  flex-shrink: 0;
+}
+.brgy-body {
+  display: none;
+}
+.brgy-body.open {
+  display: block;
+}
+@media print {
+  .brgy-body {
+    display: block !important;
+  }
+  .brgy-toggle {
+    display: none;
+  }
+}
+.brgy-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8pt;
+}
+.brgy-table th {
+  background: #2e86c1;
+  color: #fff;
+  padding: 3px 5px;
+  border: 1px solid #999;
+  text-align: center;
+}
+.brgy-table td {
+  padding: 2px 5px;
+  border: 1px solid #ddd;
+  text-align: right;
+}
+.brgy-table td.left {
+  text-align: left;
+}
+.brgy-table tr:nth-child(even) {
+  background: #f2f8ff;
+}
+
+/* SCDS's table has real headroom in its columns (fewer of them than the
+   Annual Collection Report's 26-column matrices, which is what .soa-table-
+   many-cols's 6pt base is sized for), so it gets a larger override here
+   rather than raising the shared class and risking overflow there again. */
+.soa-table-many-cols.report-table-roomy {
+  font-size: 8pt;
 }

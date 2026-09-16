@@ -25,6 +25,23 @@ import LoginPage from "./LoginPage";
 import ECPayPage from "./ECPayPage";
 import UserManagementPage from "./UserManagementPage";
 import DashboardPage from "./DashboardPage";
+import ReportsPage from "./ReportsPage";
+import AbstractMonthlyCollectionPrint from "./AbstractMonthlyCollectionPrint";
+import MonthlyConsumptionPrint from "./MonthlyConsumptionPrint";
+import AnnualFinancialPerformancePrint from "./AnnualFinancialPerformancePrint";
+import AnnualCollectionPrint from "./AnnualCollectionPrint";
+import ORAccountabilityPrint from "./ORAccountabilityPrint";
+import MonthlyBillingOverviewPrint from "./MonthlyBillingOverviewPrint";
+import AnnualBillingOverviewPrint from "./AnnualBillingOverviewPrint";
+import SCDSPrint from "./SCDSPrint";
+import RevenueFromConsumptionPrint from "./RevenueFromConsumptionPrint";
+import RevenueFromConsumptionClusterPrint from "./RevenueFromConsumptionClusterPrint";
+import AccountsReceivableSummaryPrint from "./AccountsReceivableSummaryPrint";
+import ReportOfClassificationPrint from "./ReportOfClassificationPrint";
+import ReadingListPrint from "./ReadingListPrint";
+import AccountsReceivablesPrint from "./AccountsReceivablesPrint";
+import AdjustedBillsReportPrint from "./AdjustedBillsReportPrint";
+import BillEditReportPrint from "./BillEditReportPrint";
 import ForcedPasswordChangeScreen from "./ForcedPasswordChangeScreen";
 import { useAuth } from "./AuthContext";
 
@@ -65,6 +82,70 @@ export default function App() {
         />
         <Route path="/joborders/:joId/print" element={<JobOrderPrint />} />
         <Route
+          path="/reports/abstract-monthly-collection/print"
+          element={<AbstractMonthlyCollectionPrint />}
+        />
+        <Route
+          path="/reports/monthly-consumption/print"
+          element={<MonthlyConsumptionPrint />}
+        />
+        <Route
+          path="/reports/annual-financial-performance/print"
+          element={<AnnualFinancialPerformancePrint />}
+        />
+        <Route
+          path="/reports/annual-collection/print"
+          element={<AnnualCollectionPrint />}
+        />
+        <Route
+          path="/reports/or-accountability/print"
+          element={<ORAccountabilityPrint />}
+        />
+        <Route
+          path="/reports/billing-overview/monthly/print"
+          element={<MonthlyBillingOverviewPrint />}
+        />
+        <Route
+          path="/reports/billing-overview/annual/print"
+          element={<AnnualBillingOverviewPrint />}
+        />
+        <Route
+          path="/reports/scds/print"
+          element={<SCDSPrint />}
+        />
+        <Route
+          path="/reports/revenue-consumption/by-barangay/print"
+          element={<RevenueFromConsumptionPrint />}
+        />
+        <Route
+          path="/reports/revenue-consumption/by-cluster/print"
+          element={<RevenueFromConsumptionClusterPrint />}
+        />
+        <Route
+          path="/reports/accounts-receivable-summary/print"
+          element={<AccountsReceivableSummaryPrint />}
+        />
+        <Route
+          path="/reports/report-of-classification/print"
+          element={<ReportOfClassificationPrint />}
+        />
+        <Route
+          path="/reports/reading-list/print"
+          element={<ReadingListPrint />}
+        />
+        <Route
+          path="/reports/accounts-receivables/print"
+          element={<AccountsReceivablesPrint />}
+        />
+        <Route
+          path="/reports/adjusted-bills/print"
+          element={<AdjustedBillsReportPrint />}
+        />
+        <Route
+          path="/reports/bill-edits/print"
+          element={<BillEditReportPrint />}
+        />
+        <Route
           path="*"
           element={
             <Layout>
@@ -85,6 +166,7 @@ export default function App() {
                 <Route path="/approvals" element={<ApprovalsPage />} />
                 <Route path="/ecpay" element={<ECPayPage />} />
                 <Route path="/users" element={<UserManagementPage />} />
+                <Route path="/reports" element={<ReportsPage />} />
               </Routes>
             </Layout>
           }

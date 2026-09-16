@@ -106,6 +106,8 @@ function UsersTab() {
   const [resetResult, setResetResult] = useState<{ user: AppUser; password: string } | null>(null);
   const [resettingId, setResettingId] = useState<number | null>(null);
   const [resetError, setResetError] = useState("");
+  const [retiringId, setRetiringId] = useState<number | null>(null);
+  const [retireError, setRetireError] = useState("");
   const [editingType, setEditingType] = useState<
     { id: number; name: string; users: number } | "new" | null
   >(null);
@@ -136,6 +138,26 @@ function UsersTab() {
     }
   }
 
+  async function retire(u: AppUser) {
+    if (!confirm(
+      `Retire ${u.fullName}? This hides the account from User Management for good — it won't ` +
+      `come back on its own. Nothing is deleted: every past payment, O.R. and log entry stays ` +
+      `exactly as it is, and this account is also set Inactive so it can't sign in anymore.`,
+    )) return;
+    setRetiringId(u.id);
+    setRetireError("");
+    try {
+      const r = await fetch(`/api/users/${u.id}/retire`, { method: "POST" });
+      const body = await r.json().catch(() => null);
+      if (!r.ok) throw new Error(body?.error ?? "Could not retire that account");
+      refresh();
+    } catch (err) {
+      setRetireError((err as Error).message);
+    } finally {
+      setRetiringId(null);
+    }
+  }
+
   return (
     <>
       {legacy.length > 0 && (
@@ -151,6 +173,7 @@ function UsersTab() {
       )}
 
       {resetError && <div className="form-error" style={{ marginBottom: 14 }}>{resetError}</div>}
+      {retireError && <div className="form-error" style={{ marginBottom: 14 }}>{retireError}</div>}
 
       <section className="record-section">
         <div className="record-head">
@@ -220,7 +243,16 @@ function UsersTab() {
                       onClick={() => resetPassword(u)}
                     >
                       {resettingId === u.id ? "Resetting…" : "Reset"}
-                    </button>
+                    </button>{" "}
+                    {u.id !== data?.me && (
+                      <button
+                        className="link-button"
+                        disabled={retiringId === u.id}
+                        onClick={() => retire(u)}
+                      >
+                        {retiringId === u.id ? "Retiring…" : "Retire"}
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -944,7 +976,42 @@ function RoleAccessEditor({
  * Activity
  * ==================================================================== */
 
-type ActivityRow = { id: number; type: string; date: string | null; time: string; user: string };
+type ActivityRow = {
+  id: string;
+  type: string;
+  date: string | null;
+  time: string;
+  user: string;
+  description: string;
+};
+
+/** Maps an activity's evttype to a badge color — see the .badge.act-* rules
+ * in index.css. Grouped by what actually happened, not by source table. */
+function activityBadgeClass(type: string): string {
+  switch (type) {
+    case "Login":
+    case "Forced Connect":
+    case "Reconnection":
+      return "act-green";
+    case "Logout":
+    case "Forced Disconnect":
+      return "act-red";
+    case "Installation":
+    case "New Application":
+    case "Job Order":
+      return "act-blue";
+    case "Bill Update":
+    case "Bill Edit":
+      return "act-orange";
+    case "Setting Change":
+    case "Ownership Transfer":
+    case "Meter Replacement/Transfer":
+    case "Meter Number Change":
+      return "act-purple";
+    default:
+      return "act-gray";
+  }
+}
 
 function ActivityTab() {
   const { data, isLoading } = useQuery<{ rows: ActivityRow[] }>({
@@ -952,20 +1019,38 @@ function ActivityTab() {
     queryFn: () => apiGet("/api/users/activity"),
   });
   const rows = data?.rows ?? [];
+  const [typeFilter, setTypeFilter] = useState("");
+
+  const types = Array.from(new Set(rows.map((r) => r.type))).sort();
+  const shown = typeFilter ? rows.filter((r) => r.type === typeFilter) : rows;
 
   return (
     <section className="record-section">
       <div className="record-head">
         <h2>Recent activity</h2>
-        <span className="count">{rows.length}</span>
+        <span className="count">{shown.length}</span>
       </div>
       <p className="count" style={{ marginBottom: 10 }}>
-        The last 200 sign-in and account events.
+        Every sign-in, payment, bill edit, setting change, and other account
+        or service action recorded in the system — the last 250 events.
       </p>
+
+      {types.length > 0 && (
+        <div style={{ marginBottom: 10 }}>
+          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+            <option value="">All types</option>
+            {types.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {isLoading ? (
         <p className="count">Loading…</p>
-      ) : rows.length === 0 ? (
+      ) : shown.length === 0 ? (
         <p className="count">Nothing recorded yet.</p>
       ) : (
         <div className="batch-scroll">
@@ -975,16 +1060,20 @@ function ActivityTab() {
                 <th>Date</th>
                 <th>Time</th>
                 <th>User</th>
-                <th>Event</th>
+                <th>Type</th>
+                <th>Details</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {shown.map((r) => (
                 <tr key={r.id}>
                   <td>{r.date ? String(r.date).slice(0, 10) : ""}</td>
                   <td>{r.time}</td>
                   <td>{r.user}</td>
-                  <td>{r.type}</td>
+                  <td>
+                    <span className={`badge ${activityBadgeClass(r.type)}`}>{r.type}</span>
+                  </td>
+                  <td>{r.description}</td>
                 </tr>
               ))}
             </tbody>

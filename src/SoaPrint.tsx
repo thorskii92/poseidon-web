@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import type { SyntheticEvent } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { apiGet } from "./api";
+import type { PaperKey } from "./orLayout";
+import { PrintLayoutControls, usePrintPageSize, scaledSheetStyle, type Orientation } from "./PrintLayoutControls";
 import {
   SignatoryBlock,
   SignatoryPickers,
@@ -147,6 +149,10 @@ export default function SoaPrint() {
   const [data, setData] = useState<Statement | null>(null);
   const [error, setError] = useState("");
   const sig = useSignatories("soa");
+  const [paper, setPaper] = useState<PaperKey>("letter");
+  const [orientation, setOrientation] = useState<Orientation>("portrait");
+  const [scale, setScale] = useState(100);
+  const box = usePrintPageSize(paper, orientation);
 
   // A stable string: useSearchParams returns a new object on every render, so
   // depending on it directly re-runs this effect forever.
@@ -196,6 +202,14 @@ export default function SoaPrint() {
           values={sig.values}
           onChange={sig.setValue}
         />
+        <PrintLayoutControls
+          paper={paper}
+          orientation={orientation}
+          scale={scale}
+          onPaper={setPaper}
+          onOrientation={setOrientation}
+          onScale={setScale}
+        />
 
         <span className="print-hint count">
           {totals.bills} unpaid bill{totals.bills === 1 ? "" : "s"}
@@ -207,7 +221,7 @@ export default function SoaPrint() {
         </span>
       </div>
 
-      <article className="soa-sheet">
+      <article className="soa-sheet" style={scaledSheetStyle(box.width, scale)}>
         <header className="soa-head">
           <Seal which="municipal" />
           <div className="soa-head-text">

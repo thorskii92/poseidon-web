@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { apiGet } from "./api";
 import { peso } from "./collectionTypes";
+import type { PaperKey } from "./orLayout";
+import { PrintLayoutControls, usePrintPageSize, scaledSheetStyle, type Orientation } from "./PrintLayoutControls";
 import {
   SignatoryBlock,
   SignatoryPickers,
@@ -62,6 +64,10 @@ export default function DisconnectionPrint() {
   const [data, setData] = useState<PrintData | null>(null);
   const [error, setError] = useState("");
   const sig = useSignatories("disconnection");
+  const [paper, setPaper] = useState<PaperKey>("letter");
+  const [orientation, setOrientation] = useState<Orientation>("portrait");
+  const [scale, setScale] = useState(100);
+  const box = usePrintPageSize(paper, orientation);
 
   // A stable string: useSearchParams returns a new object on every render, so
   // depending on it directly re-runs this effect forever.
@@ -103,13 +109,21 @@ export default function DisconnectionPrint() {
           values={sig.values}
           onChange={sig.setValue}
         />
+        <PrintLayoutControls
+          paper={paper}
+          orientation={orientation}
+          scale={scale}
+          onPaper={setPaper}
+          onOrientation={setOrientation}
+          onScale={setScale}
+        />
 
         <span className="print-hint count">
           {data.rows.length} account{data.rows.length === 1 ? "" : "s"}
         </span>
       </div>
 
-      <article className="disc-sheet">
+      <article className="disc-sheet" style={scaledSheetStyle(box.width, scale)}>
         <header className="disc-head">
           <div>Republic of the Philippines</div>
           {data.office.municipalHeader && <div>{data.office.municipalHeader}</div>}

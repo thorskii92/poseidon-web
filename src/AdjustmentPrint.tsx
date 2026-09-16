@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { apiGet } from "./api";
+import type { PaperKey } from "./orLayout";
+import { PrintLayoutControls, usePrintPageSize, scaledSheetStyle, type Orientation } from "./PrintLayoutControls";
 import "./print.css";
 
 /**
@@ -105,6 +107,10 @@ export default function AdjustmentPrint() {
   const { adjID } = useParams();
   const [d, setD] = useState<Detail | null>(null);
   const [error, setError] = useState("");
+  const [paper, setPaper] = useState<PaperKey>("letter");
+  const [orientation, setOrientation] = useState<Orientation>("portrait");
+  const [scale, setScale] = useState(100);
+  const box = usePrintPageSize(paper, orientation);
 
   useEffect(() => {
     if (!adjID) return;
@@ -146,12 +152,20 @@ export default function AdjustmentPrint() {
         <button className="primary" onClick={() => window.print()}>
           Print
         </button>
+        <PrintLayoutControls
+          paper={paper}
+          orientation={orientation}
+          scale={scale}
+          onPaper={setPaper}
+          onOrientation={setOrientation}
+          onScale={setScale}
+        />
         <span className="print-hint count">
           Request #{d.adjID} · {d.status}
         </span>
       </div>
 
-      <article className="adjf-sheet">
+      <article className="adjf-sheet" style={scaledSheetStyle(box.width, scale)}>
         <header className="adjf-head">
           <div className="adjf-office">{d.office.officeName}</div>
           <div className="adjf-mun">
