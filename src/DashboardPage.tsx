@@ -1,8 +1,9 @@
+import { useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "./api";
 import { peso } from "./collectionTypes";
 import {
-  ComposedChart, BarChart, LineChart, Bar, Line, Cell,
+  ComposedChart, BarChart, LineChart, Bar, Line, Cell, LabelList,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 
@@ -72,10 +73,55 @@ const AXIS_TICK = { fontSize: 11, fill: "#6b7280" };
 const GRID = "#eef1f4";
 const AXIS_LINE = { stroke: "#e3e6ea" };
 
+// The chart-card surface (.record-section's own background) — used for the
+// 2px ring around line markers and the 2px gap between stacked-bar segments,
+// per the dataviz method's mark specs. Never a mismatched stroke color: that
+// reads as a border/outline (extra ink), not a gap.
+const SURFACE = "#fff";
+
+// A validated categorical pair (dataviz skill's reference palette, slots 1/2)
+// for the one chart that compares two named series rather than showing a
+// single magnitude — the app's own --blue-soft stays as Counter's identity,
+// unchanged everywhere else it's used as a single-series fill.
+const ONLINE_COLOR = "#eb6834";
+
+// Mark spec caps a bar/column at 24px so the band's leftover stays air.
+const MAX_BAR = 24;
+
 function compactPeso(v: number): string {
   if (Math.abs(v) >= 1_000_000) return `₱${(v / 1_000_000).toFixed(1)}M`;
   if (Math.abs(v) >= 1_000) return `₱${(v / 1_000).toFixed(0)}K`;
   return peso.format(v);
+}
+
+/** Ring the marker in the chart surface so it stays legible where it crosses
+ *  the line or another mark — the "surface ring" spacer, not a border. */
+const MARKER_DOT = { r: 4, stroke: SURFACE, strokeWidth: 2 };
+
+/**
+ * Every chart card gets a "View as table" toggle — the relief channel a
+ * sub-3:1 fill (the payment-channel amber, the aging warning/serious steps)
+ * needs to stay compliant, and the fallback every tooltip-gated value
+ * needs per the method ("tooltips enhance, they never gate").
+ */
+function ChartCard({
+  title, note, wide, table, children,
+}: { title: string; note?: ReactNode; wide?: boolean; table: ReactNode; children: ReactNode }) {
+  const [view, setView] = useState<"chart" | "table">("chart");
+  return (
+    <section className={wide ? "record-section dash-chart-wide" : "record-section"}>
+      <div className="record-head">
+        <h2>{title}</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {note}
+          <button className="link-button" onClick={() => setView((v) => (v === "chart" ? "table" : "chart"))}>
+            {view === "chart" ? "View as table" : "View as chart"}
+          </button>
+        </div>
+      </div>
+      {view === "chart" ? children : table}
+    </section>
+  );
 }
 
 export default function DashboardPage() {
@@ -176,11 +222,26 @@ function KpiTile({
 
 function RevenueTrendChart({ data }: { data: RevenuePoint[] }) {
   return (
-    <section className="record-section dash-chart-wide">
-      <div className="record-head">
-        <h2>Revenue — billed vs collected</h2>
-        <span className="count">last 12 months</span>
-      </div>
+    <ChartCard
+      title="Revenue — billed vs collected"
+      wide
+      note={<span className="count">last 12 months</span>}
+      table={
+        <table>
+          <thead><tr><th>Month</th><th className="num">Billed</th><th className="num">Collected</th><th className="num">Rate</th></tr></thead>
+          <tbody>
+            {data.map((p) => (
+              <tr key={p.label}>
+                <td>{p.label}{p.partial ? " (in progress)" : ""}</td>
+                <td className="num">{peso.format(p.billed)}</td>
+                <td className="num">{peso.format(p.collected)}</td>
+                <td className="num">{p.rate !== null ? `${p.rate}%` : "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      }
+    >
       <div className="chart">
         <ResponsiveContainer width="100%" height={260}>
           <ComposedChart data={data} margin={{ top: 12, right: 8, bottom: 4, left: 0 }}>
@@ -205,24 +266,33 @@ function RevenueTrendChart({ data }: { data: RevenuePoint[] }) {
               }}
             />
             <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Bar dataKey="billed" name="Billed" fill="var(--tint)" stroke="var(--border)" radius={[3, 3, 0, 0]} maxBarSize={30} />
-            <Line dataKey="collected" name="Collected" type="monotone" stroke="var(--navy)" strokeWidth={2.5} dot={{ r: 3 }} />
+            <Bar dataKey="billed" name="Billed" fill="var(--tint)" stroke="var(--border)" radius={[3, 3, 0, 0]} maxBarSize={MAX_BAR} />
+            <Line dataKey="collected" name="Collected" type="monotone" stroke="var(--navy)" strokeWidth={2.5} dot={MARKER_DOT} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
       <p className="dash-chart-note">The last bar is the current month, still in progress.</p>
-    </section>
+    </ChartCard>
   );
 }
 
 function CollectionRateChart({ data }: { data: RevenuePoint[] }) {
   const complete = data.filter((d) => !d.partial);
   return (
-    <section className="record-section">
-      <div className="record-head">
-        <h2>Collection rate</h2>
-        <span className="count">collected ÷ billed, per month</span>
-      </div>
+    <ChartCard
+      title="Collection rate"
+      note={<span className="count">collected ÷ billed, per month</span>}
+      table={
+        <table>
+          <thead><tr><th>Month</th><th className="num">Rate</th></tr></thead>
+          <tbody>
+            {complete.map((p) => (
+              <tr key={p.label}><td>{p.label}</td><td className="num">{p.rate}%</td></tr>
+            ))}
+          </tbody>
+        </table>
+      }
+    >
       <div className="chart">
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={complete} margin={{ top: 12, right: 8, bottom: 4, left: 0 }}>
@@ -242,11 +312,11 @@ function CollectionRateChart({ data }: { data: RevenuePoint[] }) {
                 );
               }}
             />
-            <Line dataKey="rate" name="Rate" type="monotone" stroke="var(--blue)" strokeWidth={2.5} dot={{ r: 3 }} />
+            <Line dataKey="rate" name="Rate" type="monotone" stroke="var(--blue)" strokeWidth={2.5} dot={MARKER_DOT} />
           </LineChart>
         </ResponsiveContainer>
       </div>
-    </section>
+    </ChartCard>
   );
 }
 
@@ -259,11 +329,23 @@ function CollectionRateChart({ data }: { data: RevenuePoint[] }) {
  */
 function ConsumptionChart({ data }: { data: ConsumptionPoint[] }) {
   return (
-    <section className="record-section">
-      <div className="record-head">
-        <h2>Water consumption</h2>
-        <span className="count">cu.m. billed, last 12 months</span>
-      </div>
+    <ChartCard
+      title="Water consumption"
+      note={<span className="count">cu.m. billed, last 12 months</span>}
+      table={
+        <table>
+          <thead><tr><th>Month</th><th className="num">Consumption (cu.m.)</th></tr></thead>
+          <tbody>
+            {data.map((p) => (
+              <tr key={p.label}>
+                <td>{p.label}{p.partial ? " (in progress)" : ""}</td>
+                <td className="num">{p.cubicMeters.toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      }
+    >
       <div className="chart">
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={data} margin={{ top: 12, right: 8, bottom: 4, left: 0 }}>
@@ -283,11 +365,11 @@ function ConsumptionChart({ data }: { data: ConsumptionPoint[] }) {
                 );
               }}
             />
-            <Line dataKey="cubicMeters" name="Consumption" type="monotone" stroke="var(--blue-soft)" strokeWidth={2.5} dot={{ r: 3 }} />
+            <Line dataKey="cubicMeters" name="Consumption" type="monotone" stroke="var(--blue-soft)" strokeWidth={2.5} dot={MARKER_DOT} />
           </LineChart>
         </ResponsiveContainer>
       </div>
-    </section>
+    </ChartCard>
   );
 }
 
@@ -298,16 +380,33 @@ function ConsumptionChart({ data }: { data: ConsumptionPoint[] }) {
  * serious sit under 3:1 contrast on a light surface by design.
  * ==================================================================== */
 
+/**
+ * Aging buckets wear the fixed status scale (good→critical), not a
+ * categorical hue — but on a light surface, warning and serious sit below
+ * 3:1 by design (the reference default's own accepted trade-off). The
+ * bucket name is already a visible axis label; a direct value label on top
+ * of each bar is the other half of the "icon + label" mitigation, so the
+ * balance itself is never gated behind a hover.
+ */
 function AgingChart({ data }: { data: AgingBucket[] }) {
   return (
-    <section className="record-section">
-      <div className="record-head">
-        <h2>Receivables aging</h2>
-        <span className="count">unpaid balance by how overdue</span>
-      </div>
+    <ChartCard
+      title="Receivables aging"
+      note={<span className="count">unpaid balance by how overdue</span>}
+      table={
+        <table>
+          <thead><tr><th>Age</th><th className="num">Balance</th><th className="num">Bills</th></tr></thead>
+          <tbody>
+            {data.map((d) => (
+              <tr key={d.label}><td>{d.label}</td><td className="num">{peso.format(d.amount)}</td><td className="num">{d.count}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      }
+    >
       <div className="chart">
         <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={data} margin={{ top: 12, right: 8, bottom: 4, left: 0 }}>
+          <BarChart data={data} margin={{ top: 24, right: 8, bottom: 4, left: 0 }}>
             <CartesianGrid stroke={GRID} vertical={false} />
             <XAxis dataKey="label" tick={AXIS_TICK} tickLine={false} axisLine={AXIS_LINE} />
             <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} width={56} tickFormatter={compactPeso} />
@@ -325,13 +424,14 @@ function AgingChart({ data }: { data: AgingBucket[] }) {
                 );
               }}
             />
-            <Bar dataKey="amount" name="Balance" radius={[3, 3, 0, 0]} maxBarSize={56}>
+            <Bar dataKey="amount" name="Balance" radius={[3, 3, 0, 0]} maxBarSize={MAX_BAR}>
               {data.map((d) => <Cell key={d.label} fill={STATUS_COLOR[d.status]} />)}
+              <LabelList dataKey="amount" position="top" formatter={(v: number) => compactPeso(v)} style={{ fill: "var(--text-muted)", fontSize: 11 }} />
             </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
-    </section>
+    </ChartCard>
   );
 }
 
@@ -345,11 +445,18 @@ function AgingChart({ data }: { data: AgingBucket[] }) {
 function PendingBreakdownChart({ data }: { data: StatusRow[] }) {
   const height = Math.max(160, data.length * 34 + 40);
   return (
-    <section className="record-section">
-      <div className="record-head">
-        <h2>Accounts needing action</h2>
-        <span className="count">{data.reduce((s, d) => s + d.count, 0)} accounts</span>
-      </div>
+    <ChartCard
+      title="Accounts needing action"
+      note={<span className="count">{data.reduce((s, d) => s + d.count, 0)} accounts</span>}
+      table={
+        <table>
+          <thead><tr><th>Status</th><th className="num">Accounts</th></tr></thead>
+          <tbody>
+            {data.map((d) => <tr key={d.status}><td>{d.status}</td><td className="num">{d.count}</td></tr>)}
+          </tbody>
+        </table>
+      }
+    >
       {data.length === 0 ? (
         <p className="count">Nothing pending right now.</p>
       ) : (
@@ -377,17 +484,24 @@ function PendingBreakdownChart({ data }: { data: StatusRow[] }) {
           </ResponsiveContainer>
         </div>
       )}
-    </section>
+    </ChartCard>
   );
 }
 
 function NewConnectionsChart({ data }: { data: MonthCount[] }) {
   return (
-    <section className="record-section">
-      <div className="record-head">
-        <h2>New connections</h2>
-        <span className="count">last 12 months</span>
-      </div>
+    <ChartCard
+      title="New connections"
+      note={<span className="count">last 12 months</span>}
+      table={
+        <table>
+          <thead><tr><th>Month</th><th className="num">New connections</th></tr></thead>
+          <tbody>
+            {data.map((p) => <tr key={p.label}><td>{p.label}</td><td className="num">{p.count}</td></tr>)}
+          </tbody>
+        </table>
+      }
+    >
       <div className="chart">
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={data} margin={{ top: 12, right: 8, bottom: 4, left: 0 }}>
@@ -407,22 +521,29 @@ function NewConnectionsChart({ data }: { data: MonthCount[] }) {
                 );
               }}
             />
-            <Bar dataKey="count" name="New connections" fill="var(--blue-soft)" radius={[3, 3, 0, 0]} maxBarSize={28} />
+            <Bar dataKey="count" name="New connections" fill="var(--blue-soft)" radius={[3, 3, 0, 0]} maxBarSize={MAX_BAR} />
           </BarChart>
         </ResponsiveContainer>
       </div>
-    </section>
+    </ChartCard>
   );
 }
 
 function TopBarangaysChart({ data }: { data: NamedAmount[] }) {
   const height = Math.max(200, data.length * 30 + 40);
   return (
-    <section className="record-section">
-      <div className="record-head">
-        <h2>Top barangays by revenue</h2>
-        <span className="count">year to date</span>
-      </div>
+    <ChartCard
+      title="Top barangays by revenue"
+      note={<span className="count">year to date</span>}
+      table={
+        <table>
+          <thead><tr><th>Barangay</th><th className="num">Collected</th></tr></thead>
+          <tbody>
+            {data.map((d) => <tr key={d.name}><td>{d.name}</td><td className="num">{peso.format(d.amount)}</td></tr>)}
+          </tbody>
+        </table>
+      }
+    >
       <div className="chart">
         <ResponsiveContainer width="100%" height={height}>
           <BarChart data={data} layout="vertical" margin={{ top: 4, right: 24, bottom: 4, left: 8 }}>
@@ -446,7 +567,7 @@ function TopBarangaysChart({ data }: { data: NamedAmount[] }) {
           </BarChart>
         </ResponsiveContainer>
       </div>
-    </section>
+    </ChartCard>
   );
 }
 
@@ -458,11 +579,18 @@ function TopBarangaysChart({ data }: { data: NamedAmount[] }) {
 function RevenueByNatureChart({ data }: { data: NamedAmount[] }) {
   const height = Math.max(200, data.length * 30 + 40);
   return (
-    <section className="record-section">
-      <div className="record-head">
-        <h2>Revenue by fee type</h2>
-        <span className="count">last 12 months</span>
-      </div>
+    <ChartCard
+      title="Revenue by fee type"
+      note={<span className="count">last 12 months</span>}
+      table={
+        <table>
+          <thead><tr><th>Fee type</th><th className="num">Collected</th></tr></thead>
+          <tbody>
+            {data.map((d) => <tr key={d.name}><td>{d.name}</td><td className="num">{peso.format(d.amount)}</td></tr>)}
+          </tbody>
+        </table>
+      }
+    >
       <div className="chart">
         <ResponsiveContainer width="100%" height={height}>
           <BarChart data={data} layout="vertical" margin={{ top: 4, right: 24, bottom: 4, left: 8 }}>
@@ -486,17 +614,26 @@ function RevenueByNatureChart({ data }: { data: NamedAmount[] }) {
           </BarChart>
         </ResponsiveContainer>
       </div>
-    </section>
+    </ChartCard>
   );
 }
 
 function PaymentChannelChart({ data, onlineShare }: { data: ChannelPoint[]; onlineShare: number }) {
   return (
-    <section className="record-section">
-      <div className="record-head">
-        <h2>Payment channel</h2>
-        <span className="count">{onlineShare}% online (ECPay)</span>
-      </div>
+    <ChartCard
+      title="Payment channel"
+      note={<span className="count">{onlineShare}% online (ECPay)</span>}
+      table={
+        <table>
+          <thead><tr><th>Month</th><th className="num">Counter</th><th className="num">Online (ECPay)</th></tr></thead>
+          <tbody>
+            {data.map((p) => (
+              <tr key={p.label}><td>{p.label}</td><td className="num">{peso.format(p.counter)}</td><td className="num">{peso.format(p.online)}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      }
+    >
       <div className="chart">
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={data} margin={{ top: 12, right: 8, bottom: 4, left: 0 }}>
@@ -518,11 +655,14 @@ function PaymentChannelChart({ data, onlineShare }: { data: ChannelPoint[]; onli
               }}
             />
             <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Bar dataKey="counter" name="Counter" stackId="ch" fill="var(--blue-soft)" maxBarSize={28} />
-            <Bar dataKey="online" name="Online (ECPay)" stackId="ch" fill="#d99000" radius={[3, 3, 0, 0]} maxBarSize={28} />
+            {/* Surface-colored stroke, not a border: it reveals the 2px gap
+                between stacked segments the mark spec calls for, rather than
+                outlining each one. */}
+            <Bar dataKey="counter" name="Counter" stackId="ch" fill="var(--blue-soft)" stroke={SURFACE} strokeWidth={2} maxBarSize={MAX_BAR} />
+            <Bar dataKey="online" name="Online (ECPay)" stackId="ch" fill={ONLINE_COLOR} stroke={SURFACE} strokeWidth={2} radius={[3, 3, 0, 0]} maxBarSize={MAX_BAR} />
           </BarChart>
         </ResponsiveContainer>
       </div>
-    </section>
+    </ChartCard>
   );
 }

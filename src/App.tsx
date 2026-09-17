@@ -42,6 +42,10 @@ import ReadingListPrint from "./ReadingListPrint";
 import AccountsReceivablesPrint from "./AccountsReceivablesPrint";
 import AdjustedBillsReportPrint from "./AdjustedBillsReportPrint";
 import BillEditReportPrint from "./BillEditReportPrint";
+import LatestConsumerStatusPrint from "./LatestConsumerStatusPrint";
+import ConnectionReportPrint from "./ConnectionReportPrint";
+import AnnualConnectionReportPrint from "./AnnualConnectionReportPrint";
+import ServiceConnectionStatsPrint from "./ServiceConnectionStatsPrint";
 import ForcedPasswordChangeScreen from "./ForcedPasswordChangeScreen";
 import { useAuth } from "./AuthContext";
 
@@ -144,6 +148,22 @@ export default function App() {
         <Route
           path="/reports/bill-edits/print"
           element={<BillEditReportPrint />}
+        />
+        <Route
+          path="/reports/consumer-status/print"
+          element={<LatestConsumerStatusPrint />}
+        />
+        <Route
+          path="/reports/monthly-connections/print"
+          element={<ConnectionReportPrint />}
+        />
+        <Route
+          path="/reports/annual-connections/print"
+          element={<AnnualConnectionReportPrint />}
+        />
+        <Route
+          path="/reports/service-connection-stats/print"
+          element={<ServiceConnectionStatsPrint />}
         />
         <Route
           path="*"

@@ -11,6 +11,10 @@ import ReadingListDialog from "./ReadingListDialog";
 import AccountsReceivablesDialog from "./AccountsReceivablesDialog";
 import AdjustedBillsReportDialog from "./AdjustedBillsReportDialog";
 import BillEditReportDialog from "./BillEditReportDialog";
+import LatestConsumerStatusDialog from "./LatestConsumerStatusDialog";
+import ConnectionReportDialog from "./ConnectionReportDialog";
+import AnnualConnectionReportDialog from "./AnnualConnectionReportDialog";
+import ServiceConnectionStatsDialog from "./ServiceConnectionStatsDialog";
 import {
   IconReceipt, IconInvoice, IconUsers, IconWrench, IconTrendUp,
   IconCalendarBars, IconDroplet, type IconProps,
@@ -39,7 +43,7 @@ type Report = { title: string; note: string; action: ReportAction; icon?: IconCo
 type Category = { title: string; icon: IconComponent; reports: Report[] };
 
 export default function ReportsPage() {
-  const [dialog, setDialog] = useState<"daily" | "consumption" | "annual-performance" | "annual-collection" | "or-accountability" | "billing-overview-monthly" | "billing-overview-annual" | "scds" | "revenue-consumption" | "accounts-receivable-summary" | "report-of-classification" | "reading-list" | "accounts-receivables" | "adjusted-bills" | "bill-edits" | null>(null);
+  const [dialog, setDialog] = useState<"daily" | "consumption" | "annual-performance" | "annual-collection" | "or-accountability" | "billing-overview-monthly" | "billing-overview-annual" | "scds" | "revenue-consumption" | "accounts-receivable-summary" | "report-of-classification" | "reading-list" | "accounts-receivables" | "adjusted-bills" | "bill-edits" | "consumer-status" | "monthly-connections" | "annual-connections" | "service-connection-stats" | null>(null);
 
   const CATEGORIES: Category[] = [
     {
@@ -80,16 +84,16 @@ export default function ReportsPage() {
       title: "Account Management Reports",
       icon: IconUsers,
       reports: [
-        { title: "Latest Consumer Status", note: "", action: { kind: "soon" } },
-        { title: "Monthly Connection Report", note: "", action: { kind: "soon" } },
-        { title: "Annual Connection Report", note: "", action: { kind: "soon" } },
+        { title: "Latest Consumer Status", note: "Active vs. disconnected accounts by classification, per barangay or per cluster.", icon: IconUsers, action: { kind: "dialog", open: () => setDialog("consumer-status") } },
+        { title: "Monthly Connection Report", note: "New service connections for one month — trend, forecast, and where they are.", icon: IconUsers, action: { kind: "dialog", open: () => setDialog("monthly-connections") } },
+        { title: "Annual Connection Report", note: "New service connections for a calendar year — monthly/quarterly spread, long-run growth.", icon: IconUsers, action: { kind: "dialog", open: () => setDialog("annual-connections") } },
       ],
     },
     {
       title: "Services Operations Reports",
       icon: IconWrench,
       reports: [
-        { title: "Service Connection Statistics", note: "", action: { kind: "soon" } },
+        { title: "Service Connection Statistics", note: "Application, installation, disconnection and transfer activity, by zone, barangay and classification.", icon: IconWrench, action: { kind: "dialog", open: () => setDialog("service-connection-stats") } },
       ],
     },
   ];
@@ -193,6 +197,18 @@ export default function ReportsPage() {
       )}
       {dialog === "bill-edits" && (
         <BillEditReportDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "consumer-status" && (
+        <LatestConsumerStatusDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "monthly-connections" && (
+        <ConnectionReportDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "annual-connections" && (
+        <AnnualConnectionReportDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "service-connection-stats" && (
+        <ServiceConnectionStatsDialog onClose={() => setDialog(null)} />
       )}
     </div>
   );
