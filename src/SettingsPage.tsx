@@ -4684,28 +4684,72 @@ function OrCounterPanel({ onClose }: { onClose: () => void }) {
 
 /* -------------------------------------------------------------------- *
  * Backup — an on-demand pg_dump, on top of the scheduled nightly one from
- * DEPLOYMENT.md. Trigger only: it writes the file to the server's own
- * backups folder and reports back the name and size, nothing more (no
- * listing, download, or restore here).
+ * DEPLOYMENT.md. A copy always lands in the server's own backups folder;
+ * the browser also gets the file so it can be saved somewhere else too
+ * (a USB drive, a network share) via Chrome/Edge's native Save dialog
+ * where supported, or a plain download otherwise.
  * -------------------------------------------------------------------- */
 
-type BackupResult = { file: string; sizeBytes: number };
+// Not yet in every TS DOM lib version — declared narrowly rather than
+// depending on lib support, and feature-detected at runtime either way.
+type SaveFilePicker = (options?: {
+  suggestedName?: string;
+  types?: { description: string; accept: Record<string, string[]> }[];
+}) => Promise<{
+  createWritable(): Promise<{
+    write(data: Blob): Promise<void>;
+    close(): Promise<void>;
+  }>;
+}>;
+
+function parseFileName(contentDisposition: string | null, fallback: string): string {
+  const match = contentDisposition?.match(/filename="?([^";]+)"?/);
+  return match?.[1] ?? fallback;
+}
 
 function BackupPanel({ onClose }: { onClose: () => void }) {
   const [running, setRunning] = useState(false);
-  const [result, setResult] = useState<BackupResult | null>(null);
+  const [savedAs, setSavedAs] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   const runBackup = async () => {
     setRunning(true);
     setError("");
-    setResult(null);
+    setSavedAs(null);
     try {
-      const r = await apiPost<{ ok: true; file: string; sizeBytes: number }>(
-        "/api/settings/backup",
-        {},
-      );
-      setResult({ file: r.file, sizeBytes: r.sizeBytes });
+      const res = await fetch("/api/settings/backup", { method: "POST" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? `Backup failed (${res.status})`);
+      }
+      const fileName = parseFileName(res.headers.get("content-disposition"), "backup.dump");
+      const blob = await res.blob();
+
+      const picker = (window as any).showSaveFilePicker as SaveFilePicker | undefined;
+      if (picker) {
+        try {
+          const handle = await picker({
+            suggestedName: fileName,
+            types: [{ description: "Database backup", accept: { "application/octet-stream": [".dump"] } }],
+          });
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+          setSavedAs(fileName);
+        } catch (err) {
+          // Cancelling the picker throws AbortError — not a real failure,
+          // the server-side copy in backups/ still exists either way.
+          if ((err as DOMException)?.name !== "AbortError") throw err;
+        }
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(url);
+        setSavedAs(fileName);
+      }
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -4723,10 +4767,10 @@ function BackupPanel({ onClose }: { onClose: () => void }) {
       </div>
 
       <p className="count">
-        Takes a full copy of the database right now and saves it to the
-        server&apos;s own <code>backups</code> folder. This is on top of the
-        scheduled nightly backup — use it before a risky change, or whenever
-        you want a fresh one on hand.
+        Takes a full copy of the database right now. A copy always lands in
+        the server&apos;s own <code>backups</code> folder, and you&apos;ll also be
+        asked where else to save one — a USB drive, a network share,
+        wherever. This is on top of the scheduled nightly backup.
       </p>
 
       <button className="primary" onClick={runBackup} disabled={running}>
@@ -4735,11 +4779,9 @@ function BackupPanel({ onClose }: { onClose: () => void }) {
 
       {error && <div className="form-error">{error}</div>}
 
-      {result && (
+      {savedAs && (
         <div className="form-notice">
-          <b>Done.</b> Saved <code>{result.file}</code> (
-          {(result.sizeBytes / (1024 * 1024)).toFixed(1)} MB) to the server&apos;s
-          backups folder.
+          <b>Done.</b> Saved <code>{savedAs}</code>.
         </div>
       )}
     </section>
