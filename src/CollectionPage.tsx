@@ -693,6 +693,12 @@ export default function CollectionPage() {
             setPaying(false);
             setChecked({});
             setExtras([]);
+            // Clear so the OR settings effect (which only ever fills an
+            // empty field, to avoid clobbering a clerk mid-typing) re-seeds
+            // from the freshly-incremented number the refetch below pulls in
+            // — otherwise the field would keep showing the just-used number.
+            setOrNumber("");
+            setOrSerial("");
             queryClient.invalidateQueries({ queryKey: ["collection-payables"] });
             queryClient.invalidateQueries({ queryKey: ["collection-history"] });
             queryClient.invalidateQueries({ queryKey: ["collection-or"] });
