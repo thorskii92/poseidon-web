@@ -426,7 +426,7 @@ function AgingChart({ data }: { data: AgingBucket[] }) {
             />
             <Bar dataKey="amount" name="Balance" radius={[3, 3, 0, 0]} maxBarSize={MAX_BAR}>
               {data.map((d) => <Cell key={d.label} fill={STATUS_COLOR[d.status]} />)}
-              <LabelList dataKey="amount" position="top" formatter={(v: number) => compactPeso(v)} style={{ fill: "var(--text-muted)", fontSize: 11 }} />
+              <LabelList dataKey="amount" position="top" formatter={(v) => compactPeso(Number(v))} style={{ fill: "var(--text-muted)", fontSize: 11 }} />
             </Bar>
           </BarChart>
         </ResponsiveContainer>

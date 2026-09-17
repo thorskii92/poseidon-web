@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useState, type JSX } from "react";
 import { useSearchParams } from "react-router-dom";
 import { apiGet } from "./api";
 import type { PaperKey } from "./orLayout";

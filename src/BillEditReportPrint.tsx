@@ -20,11 +20,6 @@ const AXIS_TICK = { fontSize: 11, fill: "#6b7280" };
 const GRID = "#eef1f4";
 const AXIS_LINE = { stroke: "#e3e6ea" };
 
-function compactPeso(v: number): string {
-  if (Math.abs(v) >= 1_000_000) return `₱${(v / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(v) >= 1_000) return `₱${(v / 1_000).toFixed(0)}K`;
-  return peso.format(v);
-}
 function signed(v: number): string {
   return `${v < 0 ? "−" : "+"}${peso.format(Math.abs(v))}`;
 }

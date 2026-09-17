@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import EditBillsDialog from "./EditBillsDialog";
 import BillEditHistory from "./BillEditHistory";
 import ConsumptionChart from "./ConsumptionChart";
-import { useNavigate } from "react-router-dom";
 import PaymentChart from "./PaymentChart";
 import SoaDialog from "./SoaDialog";
 import TransactionsDialog from "./TransactionsDialog";
@@ -176,7 +175,6 @@ function Bills({ id }: { id: string | undefined }) {
   const [txnOpen, setTxnOpen] = useState(false);
   const [adjustBill, setAdjustBill] = useState<Bill | null>(null);
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const { data, isLoading } = useAccountData<Bill>(id, "bills");
 
   if (isLoading) return <p className="count">Loading bills…</p>;

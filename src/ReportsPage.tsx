@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type JSX } from "react";
 import DailyReportDialog from "./DailyReportDialog";
 import YearReportDialog from "./YearReportDialog";
 import ORAccountabilityDialog from "./ORAccountabilityDialog";
