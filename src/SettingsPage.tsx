@@ -29,7 +29,7 @@ type Panel =
   | "other-fees" | "schema" | "logos" | "profile" | "rates" | "tariffs"
   | "fees" | "people" | "classification" | "bulk" | "sizes"
   | "consumer-types" | "addresses" | "readers" | "or-counter"
-  | "batch-reading" | "notice" | "batch-bills" | "account-series";
+  | "batch-reading" | "notice" | "batch-bills" | "account-series" | "backup";
 
 /** What a change on this row reaches. */
 type Tag =
@@ -196,6 +196,12 @@ const AREAS: Area[] = [
         panel: "schema",
       },
       {
+        label: "Back up now",
+        note: "An on-the-spot copy of the whole database, on top of the nightly one",
+        tag: "job",
+        panel: "backup",
+      },
+      {
         label: "Import from Excel",
         note: "Accounts, bills, O.R., payments",
         tag: "todo",
@@ -288,6 +294,7 @@ export default function SettingsPage() {
               {panel === "notice" && <NoticePanel onClose={close} />}
               {panel === "batch-bills" && <BatchBillsPanel onClose={close} />}
               {panel === "account-series" && <AccountSeriesPanel onClose={close} />}
+              {panel === "backup" && <BackupPanel onClose={close} />}
             </>
           ) : (
             <div className={area === "overview" ? "area-grid" : "area-grid single"}>
@@ -4670,6 +4677,70 @@ function OrCounterPanel({ onClose }: { onClose: () => void }) {
             queryClient.invalidateQueries({ queryKey: ["or-settings"] });
           }}
         />
+      )}
+    </section>
+  );
+}
+
+/* -------------------------------------------------------------------- *
+ * Backup — an on-demand pg_dump, on top of the scheduled nightly one from
+ * DEPLOYMENT.md. Trigger only: it writes the file to the server's own
+ * backups folder and reports back the name and size, nothing more (no
+ * listing, download, or restore here).
+ * -------------------------------------------------------------------- */
+
+type BackupResult = { file: string; sizeBytes: number };
+
+function BackupPanel({ onClose }: { onClose: () => void }) {
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState<BackupResult | null>(null);
+  const [error, setError] = useState("");
+
+  const runBackup = async () => {
+    setRunning(true);
+    setError("");
+    setResult(null);
+    try {
+      const r = await apiPost<{ ok: true; file: string; sizeBytes: number }>(
+        "/api/settings/backup",
+        {},
+      );
+      setResult({ file: r.file, sizeBytes: r.sizeBytes });
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  return (
+    <section className="record-section settings-panel">
+      <div className="record-head">
+        <h2>Back up now</h2>
+        <button className="clear-filters" onClick={onClose}>
+          Close
+        </button>
+      </div>
+
+      <p className="count">
+        Takes a full copy of the database right now and saves it to the
+        server&apos;s own <code>backups</code> folder. This is on top of the
+        scheduled nightly backup — use it before a risky change, or whenever
+        you want a fresh one on hand.
+      </p>
+
+      <button className="primary" onClick={runBackup} disabled={running}>
+        {running ? "Backing up…" : "Back up now"}
+      </button>
+
+      {error && <div className="form-error">{error}</div>}
+
+      {result && (
+        <div className="form-notice">
+          <b>Done.</b> Saved <code>{result.file}</code> (
+          {(result.sizeBytes / (1024 * 1024)).toFixed(1)} MB) to the server&apos;s
+          backups folder.
+        </div>
       )}
     </section>
   );
