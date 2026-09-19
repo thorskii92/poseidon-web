@@ -536,6 +536,18 @@
   text-align: center;
 }
 
+/* Reading List's blank "current reading" cell: the QR sits in one corner,
+   identifying the row for a scan, with the rest of the cell left clear for
+   the clerk's own handwritten number. */
+.reading-blank-cell {
+  position: relative;
+  min-height: 32px;
+}
+.reading-qr {
+  display: block;
+  float: left;
+}
+
 /* "incl. penalty" under the WSF heading when the penalty has been folded in.
    Without it the column is silently a different figure from the bill. */
 .soa-col-note {
