@@ -1238,7 +1238,11 @@
    other soa-sheet reports also use .dash-kpis with their own tile counts
    and shouldn't be forced into this report's 5-column layout. */
 @media print {
-  .ecpay-kpis {
+  /* .dash-kpis.ecpay-kpis (two classes chained) beats index.css's plain
+     .dash-kpis on specificity regardless of which stylesheet the bundler
+     happens to place last — .ecpay-kpis alone is the same specificity as
+     .dash-kpis and would only win by source-order luck. */
+  .dash-kpis.ecpay-kpis {
     grid-template-columns: repeat(5, 1fr) !important;
     gap: 8px !important;
   }
