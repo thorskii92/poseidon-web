@@ -19,6 +19,12 @@ import ApprovalsPage from "./ApprovalsPage";
 import ReceiptsManagerPage from "./ReceiptsManagerPage";
 import DailyCollectionPrint from "./DailyCollectionPrint";
 import ECPayDailyCollectionReportPrint from "./ECPayDailyCollectionReportPrint";
+import ECPayMonthlyCollectionReportPrint from "./ECPayMonthlyCollectionReportPrint";
+import ECPayAnnualCollectionReportPrint from "./ECPayAnnualCollectionReportPrint";
+import CollectionEfficiencyReportPrint from "./CollectionEfficiencyReportPrint";
+import ECPayAdoptionReportPrint from "./ECPayAdoptionReportPrint";
+import ECPayPaymentTimingReportPrint from "./ECPayPaymentTimingReportPrint";
+import ECPaySeniorDiscountReportPrint from "./ECPaySeniorDiscountReportPrint";
 import JobOrdersPage from "./JobOrdersPage";
 import JobOrderPrint from "./JobOrderPrint";
 import AdjustmentPrint from "./AdjustmentPrint";
@@ -32,6 +38,8 @@ import MonthlyConsumptionPrint from "./MonthlyConsumptionPrint";
 import AnnualFinancialPerformancePrint from "./AnnualFinancialPerformancePrint";
 import AnnualCollectionPrint from "./AnnualCollectionPrint";
 import ORAccountabilityPrint from "./ORAccountabilityPrint";
+import PaymentTimingReportPrint from "./PaymentTimingReportPrint";
+import CollectionEfficiencyMainPrint from "./CollectionEfficiencyMainPrint";
 import MonthlyBillingOverviewPrint from "./MonthlyBillingOverviewPrint";
 import AnnualBillingOverviewPrint from "./AnnualBillingOverviewPrint";
 import SCDSPrint from "./SCDSPrint";
@@ -89,6 +97,30 @@ export default function App() {
           path="/ecpay/reports/daily-collection/print"
           element={<ECPayDailyCollectionReportPrint />}
         />
+        <Route
+          path="/ecpay/reports/monthly-collection/print"
+          element={<ECPayMonthlyCollectionReportPrint />}
+        />
+        <Route
+          path="/ecpay/reports/annual-collection/print"
+          element={<ECPayAnnualCollectionReportPrint />}
+        />
+        <Route
+          path="/ecpay/reports/collection-efficiency/print"
+          element={<CollectionEfficiencyReportPrint />}
+        />
+        <Route
+          path="/ecpay/reports/adoption/print"
+          element={<ECPayAdoptionReportPrint />}
+        />
+        <Route
+          path="/ecpay/reports/payment-timing/print"
+          element={<ECPayPaymentTimingReportPrint />}
+        />
+        <Route
+          path="/ecpay/reports/senior-discount/print"
+          element={<ECPaySeniorDiscountReportPrint />}
+        />
         <Route path="/joborders/:joId/print" element={<JobOrderPrint />} />
         <Route
           path="/reports/abstract-monthly-collection/print"
@@ -109,6 +141,14 @@ export default function App() {
         <Route
           path="/reports/or-accountability/print"
           element={<ORAccountabilityPrint />}
+        />
+        <Route
+          path="/reports/payment-timing/print"
+          element={<PaymentTimingReportPrint />}
+        />
+        <Route
+          path="/reports/collection-efficiency/print"
+          element={<CollectionEfficiencyMainPrint />}
         />
         <Route
           path="/reports/billing-overview/monthly/print"

@@ -1231,12 +1231,19 @@
   color: #666;
 }
 
-/* This report's five KPI tiles read best in one row even on print, where
-   .dash-kpis otherwise collapses to a single column — that collapse exists
-   for the narrower portrait audit views (BillEditReportPrint and friends).
-   Scoped to its own class, not `.soa-sheet .dash-kpis`, since a couple of
-   other soa-sheet reports also use .dash-kpis with their own tile counts
-   and shouldn't be forced into this report's 5-column layout. */
+/* The ECPay reports' KPI tiles (four or five, depending on the report) read
+   best in one row even on print, where .dash-kpis otherwise collapses to a
+   single column — that collapse exists for the narrower portrait audit
+   views (BillEditReportPrint and friends). Scoped to its own class, not
+   `.soa-sheet .dash-kpis`, since a couple of other soa-sheet reports also
+   use .dash-kpis with their own tile counts and shouldn't be forced into
+   this layout.
+   A fixed column count per tile count, not auto-fit — auto-fit's column
+   count depends on the containing block's measured width, and that
+   measurement is exactly what's unreliable across browsers' print-layout
+   passes (which is what caused the tiles to stack in the first place); a
+   fixed count sidesteps that rather than trusting it to resolve the same
+   way on paper as it does on screen. */
 @media print {
   /* .dash-kpis.ecpay-kpis (two classes chained) beats index.css's plain
      .dash-kpis on specificity regardless of which stylesheet the bundler
@@ -1245,6 +1252,9 @@
   .dash-kpis.ecpay-kpis {
     grid-template-columns: repeat(5, 1fr) !important;
     gap: 8px !important;
+  }
+  .dash-kpis.ecpay-kpis.ecpay-kpis-4 {
+    grid-template-columns: repeat(4, 1fr) !important;
   }
   .ecpay-kpis .dash-kpi {
     padding: 10px 12px !important;
