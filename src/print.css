@@ -239,6 +239,10 @@
   line-height: 1.5;
 }
 
+.bill-note.highlight p {
+  margin: 3px 0;
+}
+
 .bill-note h3 {
   margin: 2px 0;
   font-size: 10pt;
