@@ -1,8 +1,10 @@
 import { useState } from "react";
+import EcpayCalendarPicker from "./EcpayCalendarPicker";
 
 /** Opens the ECPay Daily Collection Report print view for a chosen date —
  * ported from frmECPayDailyCollectionReportLoad, which only ever asked for
- * one thing: the date. */
+ * one thing: the date. The calendar bolds/highlights days that actually
+ * have a transaction, rather than asking the clerk to guess which ones do. */
 export default function ECPayDailyCollectionReportDialog({
   onClose,
 }: {
@@ -28,19 +30,15 @@ export default function ECPayDailyCollectionReportDialog({
         <p className="modal-sub">
           Every ECPay transaction posted on the chosen date — collections by
           branch and hour, classification/barangay/zone breakdowns, O.R.
-          accountability, and the full transaction detail.
+          accountability, and the full transaction detail. Highlighted days
+          below have at least one transaction on file.
         </p>
 
-        <label className="field-input" style={{ marginBottom: 12 }}>
-          <span>Date</span>
-          <input
-            type="date"
-            value={date}
-            max={today}
-            autoFocus
-            onChange={(e) => setDate(e.target.value)}
-          />
-        </label>
+        <div style={{ marginBottom: 12 }}>
+          <EcpayCalendarPicker value={date} onChange={setDate} />
+        </div>
+
+        <p className="count">Selected: <strong>{date}</strong></p>
 
         {error && <div className="form-error">{error}</div>}
 
