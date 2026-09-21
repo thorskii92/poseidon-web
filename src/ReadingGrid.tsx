@@ -302,7 +302,7 @@ export default function ReadingGrid({
           <input
             ref={scanInput}
             type="file"
-            accept="image/*"
+            accept="image/*,application/pdf"
             multiple
             style={{ display: "none" }}
             onChange={(e) => {
