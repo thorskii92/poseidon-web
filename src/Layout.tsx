@@ -1,34 +1,41 @@
 import { useState } from "react";
-import type { ReactNode } from "react";
+import type { ReactNode, JSX } from "react";
 import { NavLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "./AuthContext";
 import { apiGet } from "./api";
 import Avatar from "./Avatar";
 import ProfileEditorModal from "./ProfileEditorModal";
+import { IconReceipt, IconInvoice, IconUsers, IconWrench, IconDroplet, type IconProps } from "./ReportIcons";
+import {
+  IconGrid, IconIdCard, IconWallet, IconClock, IconSliders, IconCheckCircle,
+  IconPowerOff, IconCreditCard, IconChartBar, IconGear, IconGauge, IconLayers, IconListOrdered,
+} from "./NavIcons";
 
-const NAV: { label: string; to: string; perm: string | null }[] = [
-  { label: "Dashboard", to: "/", perm: null },
-  { label: "Accounts", to: "/accounts", perm: "accounts" },
-  { label: "Collection", to: "/collection", perm: "collection" },
-  { label: "Receipts Manager", to: "/receipts", perm: "receipts" },
-  { label: "Billing", to: "/billing", perm: "billing" },
-  { label: "Meter Reading", to: "/reading", perm: "reading" },
-  { label: "Pendings", to: "/pendings", perm: "pendings" },
-  { label: "Job Orders", to: "/joborders", perm: "joborders" },
-  { label: "Adjustments", to: "/adjustments", perm: "adjustments" },
-  { label: "Approvals", to: "/approvals", perm: "approvals" },
-  { label: "Disconnection", to: "/disconnection", perm: "disconnection" },
-  { label: "ECPay", to: "/ecpay", perm: "ecpay" },
-  { label: "Reports", to: "/reports", perm: "reports" },
-  { label: "User Management", to: "/users", perm: "users" },
-  { label: "Settings", to: "/settings", perm: "settings" },
+type IconComponent = (p: IconProps) => JSX.Element;
+
+const NAV: { label: string; to: string; perm: string | null; icon: IconComponent }[] = [
+  { label: "Dashboard", to: "/", perm: null, icon: IconGrid },
+  { label: "Accounts", to: "/accounts", perm: "accounts", icon: IconIdCard },
+  { label: "Collection", to: "/collection", perm: "collection", icon: IconWallet },
+  { label: "Receipts Manager", to: "/receipts", perm: "receipts", icon: IconReceipt },
+  { label: "Billing", to: "/billing", perm: "billing", icon: IconInvoice },
+  { label: "Meter Reading", to: "/reading", perm: "reading", icon: IconDroplet },
+  { label: "Pendings", to: "/pendings", perm: "pendings", icon: IconClock },
+  { label: "Job Orders", to: "/joborders", perm: "joborders", icon: IconWrench },
+  { label: "Adjustments", to: "/adjustments", perm: "adjustments", icon: IconSliders },
+  { label: "Approvals", to: "/approvals", perm: "approvals", icon: IconCheckCircle },
+  { label: "Disconnection", to: "/disconnection", perm: "disconnection", icon: IconPowerOff },
+  { label: "ECPay", to: "/ecpay", perm: "ecpay", icon: IconCreditCard },
+  { label: "Reports", to: "/reports", perm: "reports", icon: IconChartBar },
+  { label: "User Management", to: "/users", perm: "users", icon: IconUsers },
+  { label: "Settings", to: "/settings", perm: "settings", icon: IconGear },
 ];
 
-const SOON = [
-  "Meter Manager",
-  "Cluster Manager",
-  "Sequencing",
+const SOON: { label: string; icon: IconComponent }[] = [
+  { label: "Meter Manager", icon: IconGauge },
+  { label: "Cluster Manager", icon: IconLayers },
+  { label: "Sequencing", icon: IconListOrdered },
 ];
 
 export default function Layout({ children }: { children: ReactNode }) {
@@ -53,7 +60,10 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="shell">
       <nav className="sidebar">
-        <div className="brand">POSEIDON</div>
+        <div className="brand">
+          <img src="/favicon.svg" alt="" className="brand-mark" />
+          <span>POSEIDON</span>
+        </div>
         <ul className="nav">
           {visibleNav.map((item) => (
             <li key={item.label}>
@@ -64,16 +74,20 @@ export default function Layout({ children }: { children: ReactNode }) {
                   isActive ? "nav-item active" : "nav-item"
                 }
               >
-                {item.label}
+                <item.icon size={18} />
+                <span>{item.label}</span>
                 {item.label === "Approvals" && approvalsWaiting > 0 && (
                   <span className="stage-count">{approvalsWaiting}</span>
                 )}
               </NavLink>
             </li>
           ))}
-          {SOON.map((label) => (
-            <li key={label}>
-              <span className="nav-item disabled">{label}</span>
+          {SOON.map((item) => (
+            <li key={item.label}>
+              <span className="nav-item disabled">
+                <item.icon size={18} />
+                <span>{item.label}</span>
+              </span>
             </li>
           ))}
         </ul>

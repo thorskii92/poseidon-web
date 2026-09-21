@@ -53,12 +53,21 @@ body {
 }
 
 .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 0 20px 20px;
   font-size: 17px;
   font-weight: 600;
   letter-spacing: 0.08em;
   color: #fff;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.brand-mark {
+  width: 26px;
+  height: 26px;
+  flex: none;
 }
 
 .nav {
@@ -68,7 +77,9 @@ body {
 }
 
 .nav-item {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   width: 100%;
   padding: 9px 20px;
   font: inherit;
@@ -79,6 +90,16 @@ body {
   border: none;
   border-left: 3px solid transparent;
   cursor: pointer;
+}
+
+.nav-item svg {
+  flex: none;
+  opacity: 0.85;
+}
+
+.nav-item.active svg,
+.nav-item:hover svg {
+  opacity: 1;
 }
 
 .nav-item:hover {
@@ -867,11 +888,18 @@ tbody tr.row-selected td {
 }
 
 .nav-item.disabled {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   padding: 9px 20px;
   font-size: 14px;
   color: #6d8ba6;
   cursor: default;
+}
+
+.nav-item.disabled svg {
+  flex: none;
+  opacity: 0.6;
 }
 
 .billing-split {
