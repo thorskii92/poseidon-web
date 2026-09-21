@@ -192,13 +192,13 @@ export default function ReadingGrid({
    * a clerk's own typing uses — nothing here saves or bills on its own;
    * "Review and generate bills" still requires the clerk to look at it.
    */
-  async function scanFile(file: File) {
+  async function scanFiles(files: File[]) {
     setScanning(true);
     setScanError("");
     setScanSummary(null);
     try {
       const form = new FormData();
-      form.append("scan", file);
+      for (const file of files) form.append("scan", file);
       form.append(
         "accounts",
         JSON.stringify(
@@ -303,10 +303,11 @@ export default function ReadingGrid({
             ref={scanInput}
             type="file"
             accept="image/*"
+            multiple
             style={{ display: "none" }}
             onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) scanFile(file);
+              const files = e.target.files;
+              if (files?.length) scanFiles(Array.from(files));
             }}
           />
           <button
