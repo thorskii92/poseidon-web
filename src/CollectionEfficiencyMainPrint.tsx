@@ -1,0 +1,320 @@
+import { useEffect, useState, type SyntheticEvent } from "react";
+import { useSearchParams } from "react-router-dom";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from "recharts";
+import { apiGet } from "./api";
+import { peso } from "./collectionTypes";
+import type { PaperKey } from "./orLayout";
+import {
+  PrintLayoutControls, usePrintPageSize, scaledSheetStyle, type Orientation,
+} from "./PrintLayoutControls";
+import {
+  SignatoryBlock, SignatoryPickers, useSignatories, type SignatorySlot,
+} from "./Signatories";
+import "./print.css";
+
+/**
+ * Collection Efficiency Report — Main Collection (over the counter). The
+ * over-the-counter counterpart to CollectionEfficiencyReportPrint.tsx (the
+ * ECPay version): same billed-vs-collected question, same signed-document
+ * treatment, with the channel column showing the counter's share of
+ * collections instead of ECPay's.
+ */
+
+const LOGO_SRC = {
+  municipal: "/api/settings/logo/municipal",
+  office: "/api/settings/logo/office",
+} as const;
+
+function Seal({ which }: { which: keyof typeof LOGO_SRC }) {
+  function hide(e: SyntheticEvent<HTMLImageElement>) {
+    e.currentTarget.style.visibility = "hidden";
+  }
+  return <img className="bill-seal" src={LOGO_SRC[which]} alt="" onError={hide} />;
+}
+
+const AXIS_TICK = { fontSize: 11, fill: "#6b7280" };
+const GRID = "#eef1f4";
+const AXIS_LINE = { stroke: "#e3e6ea" };
+
+type Bucket = {
+  label: string; bills: number; billed: number; paid: number; collected: number;
+  counterCount: number; counter: number; consump: number; efficiency: number;
+  uncollected: number; counterShare: number;
+};
+
+type Report = {
+  month: string;
+  monthLabel: string;
+  office: {
+    municipality: string; municipalHeader: string; officeHeader: string;
+    officeName: string; officeAddress: string;
+  };
+  signatories?: SignatorySlot[];
+  empty: boolean;
+  kpis?: {
+    billed: number; totalBills: number; overallEfficiency: number; paidBills: number;
+    uncollected: number; openBills: number; counterAmount: number; collected: number;
+    counterCount: number; consump: number;
+  };
+  insights?: string[];
+  byBarangay?: Bucket[];
+  byZone?: Bucket[];
+  byClassification?: Bucket[];
+  weakestClusters?: Bucket[];
+};
+
+function KpiTile({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="dash-kpi">
+      <div className="dash-kpi-label">{label}</div>
+      <div className="dash-kpi-value">{value}</div>
+      {sub && <div className="dash-kpi-sub">{sub}</div>}
+    </div>
+  );
+}
+
+/** Bills / Billed / Settled / Collected / Efficiency / Uncollected /
+ * Counter / Counter share, footed by totals over exactly the rows shown —
+ * a "weakest clusters" table's total is the total of those 15 clusters,
+ * not the report-wide total, matching the ECPay version's own
+ * EfficiencyTable helper. */
+function EfficiencyTable({ rows, label }: { rows: Bucket[]; label: string }) {
+  if (!rows.length) return <p className="count">No data for this grouping.</p>;
+  const tBills = rows.reduce((s, r) => s + r.bills, 0);
+  const tPaid = rows.reduce((s, r) => s + r.paid, 0);
+  const tBilled = money(rows.reduce((s, r) => s + r.billed, 0));
+  const tCollected = money(rows.reduce((s, r) => s + r.collected, 0));
+  const tCounter = money(rows.reduce((s, r) => s + r.counter, 0));
+  const tEfficiency = tBilled > 0 ? (tCollected / tBilled) * 100 : 0;
+  const tUncollected = money(tBilled - tCollected);
+  const tCounterShare = tCollected > 0 ? (tCounter / tCollected) * 100 : 0;
+
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>{label}</th><th className="n">Bills</th><th className="n">Billed</th>
+          <th className="n">Settled</th><th className="n">Collected</th><th className="n">Efficiency</th>
+          <th className="n">Uncollected</th><th className="n">Counter</th><th className="n">Counter share</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr key={r.label}>
+            <td>{r.label}</td>
+            <td className="n">{r.bills}</td>
+            <td className="n">{peso.format(r.billed)}</td>
+            <td className="n">{r.paid}</td>
+            <td className="n">{peso.format(r.collected)}</td>
+            <td className="n">{r.efficiency.toFixed(1)}%</td>
+            <td className="n">{peso.format(r.uncollected)}</td>
+            <td className="n">{peso.format(r.counter)}</td>
+            <td className="n">{r.counterShare.toFixed(1)}%</td>
+          </tr>
+        ))}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td>Total</td>
+          <td className="n">{tBills}</td>
+          <td className="n">{peso.format(tBilled)}</td>
+          <td className="n">{tPaid}</td>
+          <td className="n">{peso.format(tCollected)}</td>
+          <td className="n">{tEfficiency.toFixed(1)}%</td>
+          <td className="n">{peso.format(tUncollected)}</td>
+          <td className="n">{peso.format(tCounter)}</td>
+          <td className="n">{tCounterShare.toFixed(1)}%</td>
+        </tr>
+      </tfoot>
+    </table>
+  );
+}
+
+function money(v: number): number {
+  return Math.round(v * 100) / 100;
+}
+
+export default function CollectionEfficiencyMainPrint() {
+  const [params] = useSearchParams();
+  const month = params.get("month") ?? "";
+  const [data, setData] = useState<Report | null>(null);
+  const [error, setError] = useState("");
+  const [generatedAt] = useState(() => new Date());
+
+  const sig = useSignatories("collection-efficiency-main");
+  const [paper, setPaper] = useState<PaperKey>("legal");
+  const [orientation, setOrientation] = useState<Orientation>("landscape");
+  const [scale, setScale] = useState(100);
+  const box = usePrintPageSize(paper, orientation);
+
+  useEffect(() => {
+    if (!month || !sig.ready) return;
+    apiGet<Report>(`/api/reports/collection-efficiency?month=${month}&${sig.query}`)
+      .then((d) => { setData(d); setError(""); })
+      .catch((e) => setError((e as Error).message));
+  }, [month, sig.ready, sig.query]);
+
+  if (!month) {
+    return (
+      <div className="print-root">
+        <div className="form-error">No month given.</div>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="print-root">
+        <div className="form-error">{error}</div>
+      </div>
+    );
+  }
+  if (!data) {
+    return (
+      <div className="print-root">
+        <p className="count">Building the report…</p>
+      </div>
+    );
+  }
+
+  const top15Barangays = (data.byBarangay ?? []).slice(0, 15);
+
+  return (
+    <div className="print-root">
+      <div className="print-toolbar no-print">
+        <button className="primary" onClick={() => window.print()}>Print</button>
+        <SignatoryPickers people={sig.people} values={sig.values} onChange={sig.setValue} />
+        <PrintLayoutControls
+          paper={paper}
+          orientation={orientation}
+          scale={scale}
+          onPaper={setPaper}
+          onOrientation={setOrientation}
+          onScale={setScale}
+        />
+      </div>
+
+      <article className="soa-sheet" style={scaledSheetStyle(box.width, scale)}>
+        <header className="ecpay-head">
+          <Seal which="municipal" />
+          <div>
+            <div>Republic of the Philippines</div>
+            <div>PROVINCE OF PALAWAN</div>
+            <div>{data.office.officeHeader || data.office.municipalHeader}</div>
+            <div className="soa-office">{data.office.officeName}</div>
+            {data.office.officeAddress && <div className="soa-address">{data.office.officeAddress}</div>}
+          </div>
+          <Seal which="office" />
+        </header>
+
+        <p className="ecpay-kicker">Collection Efficiency Report — Main Collection</p>
+        <h1 className="soa-title" style={{ margin: "0 0 8px" }}>
+          {data.monthLabel}, as collected to date
+        </h1>
+
+        {data.empty || !data.kpis ? (
+          <p className="count">No bills were issued for {data.monthLabel}.</p>
+        ) : (
+          <>
+            <div className="dash-kpis ecpay-kpis">
+              <KpiTile
+                label="Billed for the period"
+                value={peso.format(data.kpis.billed)}
+                sub={`${data.kpis.totalBills.toLocaleString()} bills issued`}
+              />
+              <KpiTile
+                label="Collection efficiency"
+                value={`${data.kpis.overallEfficiency.toFixed(1)}%`}
+                sub={`${data.kpis.paidBills.toLocaleString()} bills settled`}
+              />
+              <KpiTile
+                label="Still uncollected"
+                value={peso.format(data.kpis.uncollected)}
+                sub={`${data.kpis.openBills.toLocaleString()} bills open`}
+              />
+              <KpiTile
+                label="Collected over the counter"
+                value={peso.format(data.kpis.counterAmount)}
+                sub={`${data.kpis.collected > 0 ? ((data.kpis.counterAmount / data.kpis.collected) * 100).toFixed(1) : "0.0"}% of collections`}
+              />
+              <KpiTile
+                label="Bills paid over the counter"
+                value={data.kpis.counterCount.toLocaleString()}
+                sub={`${data.kpis.paidBills > 0 ? ((data.kpis.counterCount / data.kpis.paidBills) * 100).toFixed(1) : "0.0"}% of settled bills`}
+              />
+            </div>
+
+            {!!data.insights?.length && (
+              <section className="record-section">
+                <div className="record-head"><h2>What the period shows</h2></div>
+                <ul style={{ margin: 0, paddingLeft: 20 }}>
+                  {data.insights.map((line, i) => <li key={i} style={{ marginBottom: 4 }}>{line}</li>)}
+                </ul>
+              </section>
+            )}
+
+            <section className="record-section">
+              <div className="record-head"><h2>Efficiency by barangay</h2></div>
+              <div className="chart">
+                <ResponsiveContainer width="100%" height={Math.max(160, top15Barangays.length * 26)}>
+                  <BarChart
+                    data={top15Barangays}
+                    layout="vertical"
+                    margin={{ top: 4, right: 24, bottom: 4, left: 8 }}
+                  >
+                    <CartesianGrid stroke={GRID} horizontal={false} />
+                    <XAxis type="number" domain={[0, 100]} tick={AXIS_TICK} tickLine={false} axisLine={AXIS_LINE} unit="%" />
+                    <YAxis type="category" dataKey="label" tick={AXIS_TICK} tickLine={false} axisLine={false} width={140} />
+                    <Tooltip
+                      cursor={{ fill: "#f4f7fa" }}
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const p = payload[0]!.payload as Bucket;
+                        return (
+                          <div className="chart-tip">
+                            <div className="chart-tip-head">{p.label}</div>
+                            <div className="chart-tip-row"><span>Bills</span><span>{p.bills}</span></div>
+                            <div className="chart-tip-row total"><span>Efficiency</span><span>{p.efficiency.toFixed(1)}%</span></div>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Bar dataKey="efficiency" name="Efficiency" fill="var(--navy)" radius={[0, 2, 2, 0]} maxBarSize={16} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <EfficiencyTable rows={data.byBarangay ?? []} label="Barangay" />
+            </section>
+
+            <section className="record-section">
+              <div className="record-head"><h2>Efficiency by water system</h2></div>
+              <EfficiencyTable rows={data.byZone ?? []} label="Zone / water system" />
+            </section>
+
+            <section className="record-section">
+              <div className="record-head"><h2>Efficiency by consumer classification</h2></div>
+              <EfficiencyTable rows={data.byClassification ?? []} label="Classification" />
+            </section>
+
+            <section className="record-section">
+              <div className="record-head">
+                <h2>Weakest clusters</h2>
+                <span className="count">15 lowest by efficiency, minimum 5 bills</span>
+              </div>
+              <EfficiencyTable rows={data.weakestClusters ?? []} label="Cluster" />
+            </section>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 24 }}>
+              <SignatoryBlock slots={data.signatories ?? []} />
+            </div>
+
+            <p className="ecpay-generated">
+              Generated {generatedAt.toLocaleString("en-PH", { month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}
+            </p>
+          </>
+        )}
+      </article>
+    </div>
+  );
+}

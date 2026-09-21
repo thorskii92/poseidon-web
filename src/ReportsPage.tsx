@@ -15,6 +15,8 @@ import LatestConsumerStatusDialog from "./LatestConsumerStatusDialog";
 import ConnectionReportDialog from "./ConnectionReportDialog";
 import AnnualConnectionReportDialog from "./AnnualConnectionReportDialog";
 import ServiceConnectionStatsDialog from "./ServiceConnectionStatsDialog";
+import PaymentTimingReportDialog from "./PaymentTimingReportDialog";
+import CollectionEfficiencyMainDialog from "./CollectionEfficiencyMainDialog";
 import {
   IconReceipt, IconInvoice, IconUsers, IconWrench, IconTrendUp,
   IconCalendarBars, IconDroplet, type IconProps,
@@ -43,7 +45,7 @@ type Report = { title: string; note: string; action: ReportAction; icon?: IconCo
 type Category = { title: string; icon: IconComponent; reports: Report[] };
 
 export default function ReportsPage() {
-  const [dialog, setDialog] = useState<"daily" | "consumption" | "annual-performance" | "annual-collection" | "or-accountability" | "billing-overview-monthly" | "billing-overview-annual" | "scds" | "revenue-consumption" | "accounts-receivable-summary" | "report-of-classification" | "reading-list" | "accounts-receivables" | "adjusted-bills" | "bill-edits" | "consumer-status" | "monthly-connections" | "annual-connections" | "service-connection-stats" | null>(null);
+  const [dialog, setDialog] = useState<"daily" | "consumption" | "annual-performance" | "annual-collection" | "or-accountability" | "billing-overview-monthly" | "billing-overview-annual" | "scds" | "revenue-consumption" | "accounts-receivable-summary" | "report-of-classification" | "reading-list" | "accounts-receivables" | "adjusted-bills" | "bill-edits" | "consumer-status" | "monthly-connections" | "annual-connections" | "service-connection-stats" | "payment-timing" | "collection-efficiency" | null>(null);
 
   const CATEGORIES: Category[] = [
     {
@@ -54,6 +56,8 @@ export default function ReportsPage() {
         { title: "Annual Financial Performance Report", note: "Billed vs. collected, Jan-Dec, for one calendar year.", icon: IconTrendUp, action: { kind: "dialog", open: () => setDialog("annual-performance") } },
         { title: "Annual Collection Report", note: "Collections and billing logs by barangay, cluster, classification, senior status and fee component.", icon: IconCalendarBars, action: { kind: "dialog", open: () => setDialog("annual-collection") } },
         { title: "O.R. Accountability Report", note: "Booklets on issue, skipped or duplicate numbers, and receipts no booklet covers.", icon: IconReceipt, action: { kind: "dialog", open: () => setDialog("or-accountability") } },
+        { title: "Payment Timing Report", note: "How long consumers take to pay over the counter, and how close to the due date, by barangay, classification and water system.", icon: IconCalendarBars, action: { kind: "dialog", open: () => setDialog("payment-timing") } },
+        { title: "Collection Efficiency Report", note: "Billed vs. collected for the month, and how much of it came from the counter vs. ECPay, by barangay, water system, classification and cluster.", icon: IconTrendUp, action: { kind: "dialog", open: () => setDialog("collection-efficiency") } },
       ],
     },
     {
@@ -209,6 +213,12 @@ export default function ReportsPage() {
       )}
       {dialog === "service-connection-stats" && (
         <ServiceConnectionStatsDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "payment-timing" && (
+        <PaymentTimingReportDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "collection-efficiency" && (
+        <CollectionEfficiencyMainDialog onClose={() => setDialog(null)} />
       )}
     </div>
   );
