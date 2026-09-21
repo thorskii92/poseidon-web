@@ -1193,3 +1193,59 @@
 .soa-table-many-cols.report-table-roomy {
   font-size: 8pt;
 }
+
+/* ECPay Daily Collection Report — this one prints wide (Legal landscape by
+   default), so the bill/soa masthead's edge-anchored 3-column grid would
+   leave the seals stranded near the page corners with the centered header
+   text stuck alone in the middle. A centered flex row keeps the seals
+   hugging the text as one group instead, regardless of how wide the sheet
+   is. */
+.ecpay-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  text-align: center;
+  line-height: 1.3;
+  padding-bottom: 6px;
+}
+
+.ecpay-head .bill-seal {
+  width: 58px;
+  height: 58px;
+}
+
+.ecpay-kicker {
+  margin: 0 0 2px;
+  text-align: center;
+  font-size: 9pt;
+  letter-spacing: 0.6pt;
+  text-transform: uppercase;
+  color: #666;
+}
+
+.ecpay-generated {
+  margin-top: 18px;
+  text-align: right;
+  font-size: 8.5pt;
+  color: #666;
+}
+
+/* This report's five KPI tiles read best in one row even on print, where
+   .dash-kpis otherwise collapses to a single column — that collapse exists
+   for the narrower portrait audit views (BillEditReportPrint and friends).
+   Scoped to its own class, not `.soa-sheet .dash-kpis`, since a couple of
+   other soa-sheet reports also use .dash-kpis with their own tile counts
+   and shouldn't be forced into this report's 5-column layout. */
+@media print {
+  .ecpay-kpis {
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 8px !important;
+  }
+  .ecpay-kpis .dash-kpi {
+    padding: 10px 12px !important;
+  }
+  .ecpay-kpis .dash-kpi-value {
+    font-size: 18px !important;
+  }
+}

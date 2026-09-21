@@ -216,35 +216,26 @@ export default function ECPayDailyCollectionReportPrint() {
       </div>
 
       <article className="soa-sheet" style={scaledSheetStyle(box.width, scale)}>
-        <header className="bill-head">
+        <header className="ecpay-head">
           <Seal which="municipal" />
-          <div className="bill-head-text">
-            <div className="bill-republic">Republic of the Philippines</div>
-            <div className="bill-org">PROVINCE OF PALAWAN</div>
-            <div className="bill-org">{data.office.officeHeader || data.office.municipalHeader}</div>
+          <div>
+            <div>Republic of the Philippines</div>
+            <div>PROVINCE OF PALAWAN</div>
+            <div>{data.office.officeHeader || data.office.municipalHeader}</div>
             <div className="soa-office">{data.office.officeName}</div>
-            {data.office.officeAddress && <div className="bill-address">{data.office.officeAddress}</div>}
+            {data.office.officeAddress && <div className="soa-address">{data.office.officeAddress}</div>}
           </div>
           <Seal which="office" />
         </header>
 
-        <div className="detail-head" style={{ marginBottom: 8 }}>
-          <div>
-            <p className="account-no" style={{ textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>
-              ECPay Daily Collection Report
-            </p>
-            <h1 className="soa-title" style={{ margin: 0 }}>{dateLabel(data.date)}</h1>
-          </div>
-          <span className="count no-print">
-            Generated {generatedAt.toLocaleString("en-PH", { month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}
-          </span>
-        </div>
+        <p className="ecpay-kicker">ECPay Daily Collection Report</p>
+        <h1 className="soa-title" style={{ margin: "0 0 8px" }}>{dateLabel(data.date)}</h1>
 
         {data.empty || !data.kpis ? (
           <p className="count">No ECPay collections were posted on {dateLabel(data.date)}.</p>
         ) : (
           <>
-            <div className="dash-kpis">
+            <div className="dash-kpis ecpay-kpis">
               <KpiTile
                 label="Total collected"
                 value={peso.format(data.kpis.total)}
@@ -514,6 +505,10 @@ export default function ECPayDailyCollectionReportPrint() {
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 24 }}>
               <SignatoryBlock slots={data.signatories ?? []} />
             </div>
+
+            <p className="ecpay-generated">
+              Generated {generatedAt.toLocaleString("en-PH", { month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}
+            </p>
           </>
         )}
       </article>
