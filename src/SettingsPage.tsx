@@ -5152,10 +5152,14 @@ type NoticeData = {
   arrearsForDisconnection: number;
 };
 
-/** The same tags the bill print allows through — anything else is stripped. */
+/** The same tags (and attributes) the bill print allows through — keep this
+ * in sync with BillPrint.tsx's own DOMPurify config; anything else here
+ * that isn't mirrored there will look right in this preview and then
+ * silently vanish on the actual printed bill. */
 const NOTE_TAGS = [
   "b", "strong", "i", "em", "u", "br", "center", "h3", "p", "span", "div", "font",
 ];
+const NOTE_ATTR = ["style"];
 
 function NoticePanel({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient();
@@ -5197,13 +5201,13 @@ function NoticePanel({ onClose }: { onClose: () => void }) {
   const preview = useMemo(() => {
     let filled = text;
     for (const p of placeholders) filled = filled.replaceAll(p.token, p.sample);
-    return DOMPurify.sanitize(filled, { ALLOWED_TAGS: NOTE_TAGS, ALLOWED_ATTR: [] });
+    return DOMPurify.sanitize(filled, { ALLOWED_TAGS: NOTE_TAGS, ALLOWED_ATTR: NOTE_ATTR });
   }, [text, placeholders]);
 
   const stripped = useMemo(() => {
     if (!text.trim()) return false;
     // Something was written that the bill print will throw away.
-    const full = DOMPurify.sanitize(text, { ALLOWED_TAGS: NOTE_TAGS, ALLOWED_ATTR: [] });
+    const full = DOMPurify.sanitize(text, { ALLOWED_TAGS: NOTE_TAGS, ALLOWED_ATTR: NOTE_ATTR });
     const bare = DOMPurify.sanitize(text, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
     return full !== text && full !== bare ? false : full !== text;
   }, [text]);

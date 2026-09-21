@@ -139,6 +139,10 @@ function BillCard({
   bill: Bill;
   settings: PrintData["settings"];
 }) {
+  // Keep this list (tags and attributes both) in sync with NOTE_TAGS /
+  // NOTE_ATTR in SettingsPage.tsx's disconnection-notice editor — anything
+  // allowed in one but not the other looks right in that editor's preview
+  // and then silently vanishes here, on the actual printed bill.
   const noteHtml = DOMPurify.sanitize(bill.note, {
     ALLOWED_TAGS: [
       "b",
@@ -150,9 +154,11 @@ function BillCard({
       "center",
       "h3",
       "p",
+      "span",
       "div",
+      "font",
     ],
-    ALLOWED_ATTR: [],
+    ALLOWED_ATTR: ["style"],
   });
 
   return (
