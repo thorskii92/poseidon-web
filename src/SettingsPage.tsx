@@ -5195,6 +5195,24 @@ function NoticePanel({ onClose }: { onClose: () => void }) {
     });
   }
 
+  /** Wraps the selected text in tags — select some text first, then click a
+   * formatting button, same as a word processor. With nothing selected, it
+   * drops the tag pair at the caret with the cursor left in between. */
+  function wrapSelection(before: string, after: string) {
+    const el = box.current;
+    const start = el?.selectionStart ?? text.length;
+    const end = el?.selectionEnd ?? start;
+    const selected = text.slice(start, end);
+    const next = text.slice(0, start) + before + selected + after + text.slice(end);
+    setDraft(next);
+    setSaved(false);
+    requestAnimationFrame(() => {
+      el?.focus();
+      const caret = selected ? start + before.length + selected.length : start + before.length;
+      el?.setSelectionRange(selected ? start + before.length : caret, caret);
+    });
+  }
+
   // What the consumer will actually read: placeholders filled, then the same
   // sanitising the bill print applies, so nothing looks right here and
   // disappears on paper.
@@ -5270,6 +5288,34 @@ function NoticePanel({ onClose }: { onClose: () => void }) {
         <div className="notice-columns">
           <div>
             <span className="field-label">Markup</span>
+            <div className="notice-toolbar">
+              <button type="button" title="Bold" onClick={() => wrapSelection("<b>", "</b>")}>
+                <b>B</b>
+              </button>
+              <button type="button" title="Italic" onClick={() => wrapSelection("<i>", "</i>")}>
+                <i>I</i>
+              </button>
+              <button type="button" title="Underline" onClick={() => wrapSelection("<u>", "</u>")}>
+                <u>U</u>
+              </button>
+              <button type="button" title="Centre" onClick={() => wrapSelection("<center>", "</center>")}>
+                ⇔
+              </button>
+              <select
+                className="notice-toolbar-size"
+                title="Font size"
+                defaultValue=""
+                onChange={(e) => {
+                  if (e.target.value) wrapSelection(`<span style="font-size:${e.target.value}px">`, "</span>");
+                  e.target.value = "";
+                }}
+              >
+                <option value="" disabled>Size…</option>
+                {[10, 12, 14, 16, 18, 24, 30, 40].map((s) => (
+                  <option key={s} value={s}>{s}px</option>
+                ))}
+              </select>
+            </div>
             <textarea
               ref={box}
               className="notice-source"
@@ -5281,7 +5327,8 @@ function NoticePanel({ onClose }: { onClose: () => void }) {
               }}
             />
             <span className="setting-note">
-              {text.length} characters. Tags kept: {NOTE_TAGS.join(", ")}.
+              {text.length} characters. Tags kept: {NOTE_TAGS.join(", ")}. Select
+              text first, then click a button above to wrap it.
             </span>
           </div>
 
@@ -5302,8 +5349,8 @@ function NoticePanel({ onClose }: { onClose: () => void }) {
       {stripped && (
         <div className="form-notice">
           Some of that markup will not survive printing — the bill strips
-          anything outside the tags listed above, along with every attribute.
-          The preview already shows what is left.
+          anything outside the tags listed above, and any attribute except
+          style. The preview already shows what is left.
         </div>
       )}
 

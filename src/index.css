@@ -3249,6 +3249,37 @@ button.primary.big {
   margin-bottom: 6px;
 }
 
+.notice-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.notice-toolbar button,
+.notice-toolbar select {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--tint);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.notice-toolbar button:hover,
+.notice-toolbar select:hover {
+  border-color: var(--blue);
+  background: #dceaf5;
+}
+
+.notice-toolbar-size {
+  margin-left: 4px;
+}
+
 .notice-source {
   width: 100%;
   min-height: 260px;
