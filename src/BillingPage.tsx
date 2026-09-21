@@ -132,6 +132,24 @@ export default function BillingPage() {
     );
   }
 
+  // "Print all" always means every bill currently loaded for this group
+  // (respecting the active search filter, same as what's on screen) --
+  // sending the group's own identity instead of enumerating every bill ID
+  // avoids a URL that grows without bound for a large cluster. A hand-picked
+  // selection stays on printIds above, since that list is naturally small.
+  function printGroup() {
+    if (!active) return;
+    const params = new URLSearchParams({
+      month: active.month,
+      year: String(active.year),
+      areaId: String(active.clusterId ?? active.barangayId),
+      useCluster: active.clusterId ? "1" : "0",
+      search: debouncedSearch,
+      sort,
+    });
+    window.open(`/bills/print?${params}`, "_blank");
+  }
+
   const allSelected =
     (bills?.length ?? 0) > 0 &&
     bills!.every((b) => selected.includes(b.billId));
@@ -279,7 +297,7 @@ export default function BillingPage() {
                 <div className="head-actions">
                   <button
                     className="print-all"
-                    onClick={() => printIds((bills ?? []).map((b) => b.billId))}
+                    onClick={printGroup}
                     disabled={!bills?.length}
                   >
                     <svg

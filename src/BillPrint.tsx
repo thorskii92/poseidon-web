@@ -335,8 +335,10 @@ function BillCard({
 
 export default function BillPrint() {
   const [params] = useSearchParams();
-  const ids = params.get("ids") ?? "";
-  const sort = params.get("sort") ?? "name";
+  // Forwarded as-is rather than picking out named fields — the API accepts
+  // either a hand-picked "ids" list or a whole-group identity (month/year/
+  // areaId/useCluster/search), and this view doesn't need to know which.
+  const query = params.toString();
   const [perPage, setPerPage] = useState(loadPerPage);
 
   function changePerPage(value: number) {
@@ -349,12 +351,9 @@ export default function BillPrint() {
   }
 
   const { data, isLoading, error } = useQuery<PrintData>({
-    queryKey: ["bill-print", ids, sort],
-    queryFn: () =>
-      apiGet<PrintData>(
-        `/api/bills/print?ids=${encodeURIComponent(ids)}&sort=${encodeURIComponent(sort)}`,
-      ),
-    enabled: ids !== "",
+    queryKey: ["bill-print", query],
+    queryFn: () => apiGet<PrintData>(`/api/bills/print?${query}`),
+    enabled: query !== "",
   });
 
   useEffect(() => {
