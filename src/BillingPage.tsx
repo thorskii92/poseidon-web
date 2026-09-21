@@ -126,7 +126,10 @@ export default function BillingPage() {
   }
 
   function printIds(ids: number[]) {
-    window.open(`/bills/print?ids=${ids.join(",")}`, "_blank");
+    window.open(
+      `/bills/print?ids=${ids.join(",")}&sort=${encodeURIComponent(sort)}`,
+      "_blank",
+    );
   }
 
   const allSelected =

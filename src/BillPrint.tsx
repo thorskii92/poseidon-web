@@ -80,7 +80,9 @@ function Seal({ which }: { which: keyof typeof LOGO_SRC }) {
   function hide(e: SyntheticEvent<HTMLImageElement>) {
     e.currentTarget.style.visibility = "hidden";
   }
-  return <img className="bill-seal" src={LOGO_SRC[which]} alt="" onError={hide} />;
+  return (
+    <img className="bill-seal" src={LOGO_SRC[which]} alt="" onError={hide} />
+  );
 }
 
 type Bill = {
@@ -334,6 +336,7 @@ function BillCard({
 export default function BillPrint() {
   const [params] = useSearchParams();
   const ids = params.get("ids") ?? "";
+  const sort = params.get("sort") ?? "name";
   const [perPage, setPerPage] = useState(loadPerPage);
 
   function changePerPage(value: number) {
@@ -346,9 +349,11 @@ export default function BillPrint() {
   }
 
   const { data, isLoading, error } = useQuery<PrintData>({
-    queryKey: ["bill-print", ids],
+    queryKey: ["bill-print", ids, sort],
     queryFn: () =>
-      apiGet<PrintData>(`/api/bills/print?ids=${encodeURIComponent(ids)}`),
+      apiGet<PrintData>(
+        `/api/bills/print?ids=${encodeURIComponent(ids)}&sort=${encodeURIComponent(sort)}`,
+      ),
     enabled: ids !== "",
   });
 
