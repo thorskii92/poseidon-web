@@ -1,18 +1,16 @@
 import { useState } from "react";
 import ECPayDashboardPage from "./ECPayDashboardPage";
 import ECPayPaymentPage from "./ECPayPaymentPage";
+import ECPayReportPage from "./ECPayReportPage";
 
-/**
- * ECPay — ported from frmECPayMenu's three buttons. "ECPay Report" isn't
- * here: its source (frmECPayReportMenu) was never supplied, so this doesn't
- * guess at what it should show.
- */
+/** ECPay — ported from frmECPayMenu's three buttons. */
 
-type Tab = "dashboard" | "payment";
+type Tab = "dashboard" | "payment" | "report";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "dashboard", label: "Extract Payables" },
   { key: "payment", label: "Process Payment" },
+  { key: "report", label: "ECPay Report" },
 ];
 
 export default function ECPayPage() {
@@ -42,7 +40,9 @@ export default function ECPayPage() {
         ))}
       </div>
 
-      {tab === "dashboard" ? <ECPayDashboardPage /> : <ECPayPaymentPage />}
+      {tab === "dashboard" && <ECPayDashboardPage />}
+      {tab === "payment" && <ECPayPaymentPage />}
+      {tab === "report" && <ECPayReportPage />}
     </div>
   );
 }

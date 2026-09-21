@@ -18,6 +18,7 @@ import AdjustmentsPage from "./AdjustmentsPage";
 import ApprovalsPage from "./ApprovalsPage";
 import ReceiptsManagerPage from "./ReceiptsManagerPage";
 import DailyCollectionPrint from "./DailyCollectionPrint";
+import ECPayDailyCollectionReportPrint from "./ECPayDailyCollectionReportPrint";
 import JobOrdersPage from "./JobOrdersPage";
 import JobOrderPrint from "./JobOrderPrint";
 import AdjustmentPrint from "./AdjustmentPrint";
@@ -83,6 +84,10 @@ export default function App() {
         <Route
           path="/receipts/daily-collection/print"
           element={<DailyCollectionPrint />}
+        />
+        <Route
+          path="/ecpay/reports/daily-collection/print"
+          element={<ECPayDailyCollectionReportPrint />}
         />
         <Route path="/joborders/:joId/print" element={<JobOrderPrint />} />
         <Route
