@@ -14,12 +14,18 @@ import { apiGet, apiPost } from "./api";
 type SyncStatus = {
   isSatellite: boolean;
   mainHost: string | null;
-  lastSync: {
+  lastPull: {
     ranAt: string;
     status: string;
     referenceRows: number;
     accountRows: number;
     billingRows: number;
+    durationMs: number;
+    detail: string | null;
+  } | null;
+  lastPush: {
+    ranAt: string;
+    status: string;
     durationMs: number;
     detail: string | null;
   } | null;
@@ -50,6 +56,16 @@ type PushSummary = {
   conflict: number;
   error: number;
   durationMs: number;
+};
+
+type Bundle = {
+  ogId: number;
+  initial: number;
+  final: number;
+  serial: string;
+  dateAdded: string | null;
+  accountablePerson: string;
+  carried: boolean;
 };
 
 function shortDateTime(value: string | null): string {
@@ -85,6 +101,29 @@ export default function SyncPage() {
     retry: false,
     enabled: !!status?.isSatellite,
   });
+
+  const { data: bundles } = useQuery<Bundle[]>({
+    queryKey: ["sync-bundles"],
+    queryFn: () => apiGet<Bundle[]>("/api/sync/bundles"),
+    retry: false,
+    enabled: !!status?.isSatellite,
+  });
+  const [bundleError, setBundleError] = useState("");
+
+  async function toggleCarried(ogId: number, carried: boolean) {
+    setBundleError("");
+    try {
+      if (carried) {
+        await apiPost(`/api/sync/bundles/${ogId}/carry`, {});
+      } else {
+        const r = await fetch(`/api/sync/bundles/${ogId}/carry`, { method: "DELETE" });
+        if (!r.ok) throw new Error((await r.json().catch(() => null))?.error ?? "Could not update that bundle");
+      }
+      await qc.invalidateQueries({ queryKey: ["sync-bundles"] });
+    } catch (err) {
+      setBundleError((err as Error).message);
+    }
+  }
 
   async function syncNow() {
     setRunning(true);
@@ -146,19 +185,19 @@ export default function SyncPage() {
               </div>
               <div className="dash-kpi">
                 <div className="dash-kpi-label">Last synced</div>
-                <div className="dash-kpi-value" style={{ fontSize: 16 }}>{shortDateTime(status.lastSync?.ranAt ?? null)}</div>
-                {status.lastSync && <div className="dash-kpi-sub">{status.lastSync.status === "ok" ? "Succeeded" : "Failed"}</div>}
+                <div className="dash-kpi-value" style={{ fontSize: 16 }}>{shortDateTime(status.lastPull?.ranAt ?? null)}</div>
+                {status.lastPull && <div className="dash-kpi-sub">{status.lastPull.status === "ok" ? "Succeeded" : "Failed"}</div>}
               </div>
               <div className="dash-kpi">
                 <div className="dash-kpi-label">Accounts / Bills pulled</div>
                 <div className="dash-kpi-value">
-                  {status.lastSync ? `${status.lastSync.accountRows.toLocaleString()} / ${status.lastSync.billingRows.toLocaleString()}` : "—"}
+                  {status.lastPull ? `${status.lastPull.accountRows.toLocaleString()} / ${status.lastPull.billingRows.toLocaleString()}` : "—"}
                 </div>
               </div>
               <div className="dash-kpi">
                 <div className="dash-kpi-label">Took</div>
                 <div className="dash-kpi-value">
-                  {status.lastSync ? `${(status.lastSync.durationMs / 1000).toFixed(1)}s` : "—"}
+                  {status.lastPull ? `${(status.lastPull.durationMs / 1000).toFixed(1)}s` : "—"}
                 </div>
               </div>
             </div>
@@ -170,9 +209,53 @@ export default function SyncPage() {
             </div>
 
             {error && <div className="form-error">{error}</div>}
-            {status.lastSync?.status === "failed" && status.lastSync.detail && (
-              <div className="form-error">Last sync failed: {status.lastSync.detail}</div>
+            {status.lastPull?.status === "failed" && status.lastPull.detail && (
+              <div className="form-error">Last sync failed: {status.lastPull.detail}</div>
             )}
+          </section>
+
+          <section className="record-section">
+            <div className="record-head"><h2>Bundles</h2></div>
+            <p className="count">
+              Every O.R. bundle registered on main reaches this laptop on
+              sync, but only the ones actually in the bag should be
+              accepted here — check off what's being carried on this trip.
+              Bundles are registered and managed on main; nothing here
+              changes what main itself has reserved.
+            </p>
+            {!bundles?.length ? (
+              <p className="count">No bundles have synced down yet.</p>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Carried</th>
+                    <th>Serial</th>
+                    <th className="n">Range</th>
+                    <th>Accountable person</th>
+                    <th>Registered</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bundles.map((b) => (
+                    <tr key={b.ogId}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={b.carried}
+                          onChange={(e) => toggleCarried(b.ogId, e.target.checked)}
+                        />
+                      </td>
+                      <td>{b.serial}</td>
+                      <td className="n">{b.initial} – {b.final}</td>
+                      <td>{b.accountablePerson || "—"}</td>
+                      <td>{shortDateTime(b.dateAdded)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            {bundleError && <div className="form-error">{bundleError}</div>}
           </section>
 
           <section className="record-section">
@@ -201,6 +284,13 @@ export default function SyncPage() {
                 <div className="dash-kpi-value">{pendingUpload?.error ?? 0}</div>
               </div>
             </div>
+
+            {!uploadResult && status.lastPush && (
+              <p className="count" style={{ marginTop: 8 }}>
+                Last upload: {shortDateTime(status.lastPush.ranAt)} — {status.lastPush.status === "ok" ? "succeeded" : "failed"}
+                {status.lastPush.status === "failed" && status.lastPush.detail ? ` (${status.lastPush.detail})` : ""}
+              </p>
+            )}
 
             <div className="form-actions" style={{ marginTop: 16 }}>
               <button

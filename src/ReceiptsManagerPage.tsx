@@ -107,6 +107,18 @@ export default function ReceiptsManagerPage() {
   const [showBundleManager, setShowBundleManager] = useState(false);
   const [showDailyReport, setShowDailyReport] = useState(false);
 
+  // Bundle Manager creates/edits O.R. bundle registrations — main-only.
+  // A satellite's bundles are registered on main and pulled down read-only
+  // (see SyncPage.tsx's own bundle picker), so letting a satellite create
+  // or resize one locally would just get overwritten by the next sync
+  // anyway, or worse, diverge from what main actually has reserved.
+  const { data: deployment } = useQuery<{ isSatellite: boolean }>({
+    queryKey: ["deployment"],
+    queryFn: () => apiGet("/api/deployment"),
+    retry: false,
+  });
+  const isSatellite = deployment?.isSatellite ?? false;
+
   const { data: serialData } = useQuery<{ serials: string[] }>({
     queryKey: ["receipt-serials"],
     queryFn: () => apiGet("/api/receipts/serials"),
@@ -158,9 +170,11 @@ export default function ReceiptsManagerPage() {
           <button className="clear-filters" onClick={() => setShowDailyReport(true)}>
             Daily Collection Report
           </button>
-          <button className="clear-filters" onClick={() => setShowBundleManager(true)}>
-            Bundle Manager
-          </button>
+          {!isSatellite && (
+            <button className="clear-filters" onClick={() => setShowBundleManager(true)}>
+              Bundle Manager
+            </button>
+          )}
         </div>
       </div>
 
