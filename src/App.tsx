@@ -85,9 +85,21 @@ import AnnualConnectionReportPrint from "./AnnualConnectionReportPrint";
 import ServiceConnectionStatsPrint from "./ServiceConnectionStatsPrint";
 import ForcedPasswordChangeScreen from "./ForcedPasswordChangeScreen";
 import { useAuth } from "./AuthContext";
+import { useEffect } from "react";
+import { apiGet } from "./api";
 
 export default function App() {
   const { user, loading } = useAuth();
+
+  // The browser tab title is static in index.html ("POSEIDON" — shared by
+  // both a main and a satellite build), so it's set here instead, once,
+  // regardless of sign-in state — same unauthenticated check the login
+  // screen and sidebar already use to brand themselves.
+  useEffect(() => {
+    apiGet<{ isSatellite: boolean }>("/api/deployment")
+      .then((d) => { document.title = d.isSatellite ? "OSCARS" : "POSEIDON"; })
+      .catch(() => {});
+  }, []);
 
   if (loading) {
     return (
