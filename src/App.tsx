@@ -65,6 +65,7 @@ import UserRosterPrint from "./UserRosterPrint";
 import JobOrderRegisterPrint from "./JobOrderRegisterPrint";
 import JobOrderTurnaroundPrint from "./JobOrderTurnaroundPrint";
 import JobOrderCompletionDetailPrint from "./JobOrderCompletionDetailPrint";
+import IPAllocationPrint from "./IPAllocationPrint";
 import MonthlyBillingOverviewPrint from "./MonthlyBillingOverviewPrint";
 import AnnualBillingOverviewPrint from "./AnnualBillingOverviewPrint";
 import SCDSPrint from "./SCDSPrint";
@@ -274,6 +275,10 @@ export default function App() {
         <Route
           path="/reports/job-order-completion-detail/print"
           element={<JobOrderCompletionDetailPrint />}
+        />
+        <Route
+          path="/reports/ip-allocation/print"
+          element={<IPAllocationPrint />}
         />
         <Route
           path="/reports/billing-overview/monthly/print"

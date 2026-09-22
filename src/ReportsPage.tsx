@@ -38,6 +38,7 @@ import AdjustmentProcessingDialog from "./AdjustmentProcessingDialog";
 import JobOrderRegisterDialog from "./JobOrderRegisterDialog";
 import JobOrderTurnaroundDialog from "./JobOrderTurnaroundDialog";
 import JobOrderCompletionDetailDialog from "./JobOrderCompletionDetailDialog";
+import IPAllocationDialog from "./IPAllocationDialog";
 import { IconClock, IconIdCard, IconListOrdered } from "./NavIcons";
 import {
   IconReceipt, IconInvoice, IconUsers, IconWrench, IconTrendUp,
@@ -70,7 +71,8 @@ export default function ReportsPage() {
   const [dialog, setDialog] = useState<"daily" | "consumption" | "annual-performance" | "annual-collection" | "or-accountability" | "billing-overview-monthly" | "billing-overview-annual" | "scds" | "revenue-consumption" | "accounts-receivable-summary" | "report-of-classification" | "reading-list" | "accounts-receivables" | "adjusted-bills" | "bill-edits" | "consumer-status" | "monthly-connections" | "annual-connections" | "service-connection-stats" | "payment-timing" | "collection-efficiency" | "disconnection-turnaround" | "connection-turnaround" | "zero-consumption" | "temp-closure-turnaround" | "meter-replacement" | "transfer-activity" |
     "main-monthly-collection" | "collection-by-nature" | "penalty-collection" | "main-senior-discount" | "channel-summary" | "collector-accountability" |
     "consumption-brackets" | "billing-completeness" | "environmental-fee" | "consumption-trend" |
-    "field-staff-activity" | "adjustment-processing" | "job-order-register" | "job-order-turnaround" | "job-order-completion-detail" | null
+    "field-staff-activity" | "adjustment-processing" | "job-order-register" | "job-order-turnaround" | "job-order-completion-detail" |
+    "ip-allocation" | null
   >(null);
 
   const CATEGORIES: Category[] = [
@@ -92,6 +94,7 @@ export default function ReportsPage() {
         { title: "Collector Accountability Report", note: "Who receipted how much over the counter, and how many receipts each collector handled.", icon: IconUsers, action: { kind: "dialog", open: () => setDialog("collector-accountability") } },
         { title: "Long-Outstanding Accounts Report", note: "Which accounts are chronically unpaid, how much is owed, and where — a live snapshot.", icon: IconInvoice, action: { kind: "dialog", open: () => window.open("/reports/long-outstanding/print", "_blank") } },
         { title: "Abstract of Monthly Collection", note: "Water bills, fees and totals for the last 12 months.", icon: IconCalendarBars, action: { kind: "dialog", open: () => window.open("/reports/abstract-monthly-collection/print", "_blank") } },
+        { title: "IP Community Fund Allocation Report", note: "1% of total monthly collections set aside for the Indigenous Peoples community fund — Municipality of Rizal only.", icon: IconUsers, action: { kind: "dialog", open: () => setDialog("ip-allocation") } },
       ],
     },
     {
@@ -341,6 +344,9 @@ export default function ReportsPage() {
       )}
       {dialog === "job-order-completion-detail" && (
         <JobOrderCompletionDetailDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "ip-allocation" && (
+        <IPAllocationDialog onClose={() => setDialog(null)} />
       )}
     </div>
   );
