@@ -36,9 +36,11 @@ type SyncHistoryRow = {
   direction: string;
   username: string | null;
   status: string;
-  referenceRows: number;
-  accountRows: number;
-  billingRows: number;
+  // NULL for a push (upload) row — see syncClient.ts's pushToMain, which
+  // only ever writes reference/account/billing counts for a pull.
+  referenceRows: number | null;
+  accountRows: number | null;
+  billingRows: number | null;
   durationMs: number;
   detail: string | null;
 };
@@ -320,7 +322,7 @@ export default function SyncPage() {
               <table>
                 <thead>
                   <tr>
-                    <th>Ran</th><th>By</th><th>Status</th>
+                    <th>Ran</th><th>Direction</th><th>By</th><th>Status</th>
                     <th className="n">Reference</th><th className="n">Accounts</th><th className="n">Bills</th>
                     <th className="n">Took</th>
                   </tr>
@@ -329,11 +331,12 @@ export default function SyncPage() {
                   {history.map((h, i) => (
                     <tr key={i}>
                       <td>{shortDateTime(h.ranAt)}</td>
+                      <td>{h.direction === "pull" ? "Pull" : "Upload"}</td>
                       <td>{h.username ?? "—"}</td>
                       <td>{h.status === "ok" ? "Succeeded" : "Failed"}</td>
-                      <td className="n">{h.referenceRows.toLocaleString()}</td>
-                      <td className="n">{h.accountRows.toLocaleString()}</td>
-                      <td className="n">{h.billingRows.toLocaleString()}</td>
+                      <td className="n">{h.referenceRows?.toLocaleString() ?? "—"}</td>
+                      <td className="n">{h.accountRows?.toLocaleString() ?? "—"}</td>
+                      <td className="n">{h.billingRows?.toLocaleString() ?? "—"}</td>
                       <td className="n">{(h.durationMs / 1000).toFixed(1)}s</td>
                     </tr>
                   ))}
