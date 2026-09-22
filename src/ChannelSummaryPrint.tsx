@@ -41,7 +41,12 @@ type Report = {
   };
   signatories?: SignatorySlot[];
   empty: boolean;
-  kpis?: { total: number; onlineTotal: number; onlinePct: number; onlineCount: number; counterTotal: number; counterPct: number; counterCount: number };
+  kpis?: {
+    total: number;
+    onlineTotal: number; onlinePct: number; onlineCount: number;
+    satelliteTotal: number; satellitePct: number; satelliteCount: number;
+    counterTotal: number; counterPct: number; counterCount: number;
+  };
   insights?: string[];
   byBarangay?: Grouped[];
   byBarangayOnline?: Grouped[];
@@ -116,18 +121,19 @@ export default function ChannelSummaryPrint() {
           <Seal which="office" />
         </header>
 
-        <p className="ecpay-kicker">Online vs Counter Collection Summary</p>
+        <p className="ecpay-kicker">Online vs Counter vs Satellite Collection Summary</p>
         <h1 className="soa-title" style={{ margin: "0 0 8px" }}>{data.monthLabel}</h1>
 
         {data.empty || !data.kpis ? (
           <p className="count">No payments were posted in {data.monthLabel}.</p>
         ) : (
           <>
-            <div className="dash-kpis ecpay-kpis ecpay-kpis-4">
+            <div className="dash-kpis ecpay-kpis">
               <KpiTile label="Total collected" value={peso.format(data.kpis.total)} />
               <KpiTile label="ECPay (online)" value={peso.format(data.kpis.onlineTotal)} sub={`${data.kpis.onlinePct.toFixed(1)}% · ${data.kpis.onlineCount.toLocaleString()} payments`} />
               <KpiTile label="Counter" value={peso.format(data.kpis.counterTotal)} sub={`${data.kpis.counterPct.toFixed(1)}% · ${data.kpis.counterCount.toLocaleString()} payments`} />
-              <KpiTile label="Total payments" value={(data.kpis.onlineCount + data.kpis.counterCount).toLocaleString()} />
+              <KpiTile label="Satellite" value={peso.format(data.kpis.satelliteTotal)} sub={`${data.kpis.satellitePct.toFixed(1)}% · ${data.kpis.satelliteCount.toLocaleString()} payments`} />
+              <KpiTile label="Total payments" value={(data.kpis.onlineCount + data.kpis.satelliteCount + data.kpis.counterCount).toLocaleString()} />
             </div>
 
             {!!data.insights?.length && (

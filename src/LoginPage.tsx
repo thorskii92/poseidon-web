@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "./AuthContext";
+import { apiGet } from "./api";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -7,6 +8,16 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const { signIn } = useAuth();
+
+  // No session exists yet on the login screen, so this can't use
+  // AuthContext or /api/sync/status (both need one) — a tiny unauthenticated
+  // endpoint (see server.ts) is the only thing available pre-login.
+  const [isSatellite, setIsSatellite] = useState(false);
+  useEffect(() => {
+    apiGet<{ isSatellite: boolean }>("/api/deployment")
+      .then((d) => setIsSatellite(d.isSatellite))
+      .catch(() => {});
+  }, []);
 
   async function submit() {
     if (!username || !password) return;
@@ -25,7 +36,7 @@ export default function LoginPage() {
   return (
     <div className="login-screen">
       <div className="login-card">
-        <div className="login-brand">POSEIDON</div>
+        <div className="login-brand">{isSatellite ? "OSCARS" : "POSEIDON"}</div>
         <p className="login-sub">Water billing and collection</p>
 
         <label className="field-input">

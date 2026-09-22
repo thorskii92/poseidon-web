@@ -65,6 +65,8 @@ type Receipt = {
   draweeDate: string | null;
   moneyOrderNum: string | null;
   moneyOrderDate: string | null;
+  collectionOrigin: string;
+  originSatellite: string | null;
   lines: { nature: string; amount: string }[];
 };
 
@@ -544,6 +546,14 @@ function OrDetailModal({
               <div>
                 <span className="field-label">Collection Officer</span>
                 <strong>{data.collector || "—"}</strong>
+              </div>
+              <div>
+                <span className="field-label">Collected Via</span>
+                <strong>
+                  {data.collectionOrigin === "Satellite"
+                    ? `Satellite${data.originSatellite ? ` (${data.originSatellite})` : ""}`
+                    : "Counter"}
+                </strong>
               </div>
               <div>
                 <span className="field-label">Discount Type</span>
