@@ -81,7 +81,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       <nav className="sidebar">
         <div className="brand">
           <img src="/favicon.svg" alt="" className="brand-mark" />
-          <span>POSEIDON</span>
+          <span>{isSatellite ? "OSCARS" : "POSEIDON"}</span>
         </div>
         <ul className="nav">
           {visibleNav.map((item) => (
