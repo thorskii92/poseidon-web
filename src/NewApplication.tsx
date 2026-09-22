@@ -9,6 +9,7 @@ type Options = {
   classifications: { id: number; name: string }[];
   consumerTypes: { id: number; name: string; needsCollection: number }[];
   meterSizes: { id: number; name: string }[];
+  downpaymentEnabled: boolean;
 };
 
 const EMPTY = {
@@ -82,7 +83,7 @@ export default function NewApplication() {
   // other types either need no application fee at all or have their own
   // fixed pending status (see server.ts's POST /api/accounts).
   const selectedType = options.consumerTypes.find((t) => t.id === form.consumerTypeId);
-  const showApplicationOption = selectedType?.needsCollection === 1;
+  const showApplicationOption = selectedType?.needsCollection === 1 && options.downpaymentEnabled;
 
   function set(key: keyof typeof form, value: string | number) {
     setError("");
