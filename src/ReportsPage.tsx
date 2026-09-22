@@ -33,7 +33,12 @@ import ConsumptionBracketsDialog from "./ConsumptionBracketsDialog";
 import BillingCompletenessDialog from "./BillingCompletenessDialog";
 import EnvironmentalFeeDialog from "./EnvironmentalFeeDialog";
 import ConsumptionTrendDialog from "./ConsumptionTrendDialog";
-import { IconClock } from "./NavIcons";
+import FieldStaffActivityDialog from "./FieldStaffActivityDialog";
+import AdjustmentProcessingDialog from "./AdjustmentProcessingDialog";
+import JobOrderRegisterDialog from "./JobOrderRegisterDialog";
+import JobOrderTurnaroundDialog from "./JobOrderTurnaroundDialog";
+import JobOrderCompletionDetailDialog from "./JobOrderCompletionDetailDialog";
+import { IconClock, IconIdCard, IconListOrdered } from "./NavIcons";
 import {
   IconReceipt, IconInvoice, IconUsers, IconWrench, IconTrendUp,
   IconCalendarBars, IconDroplet, type IconProps,
@@ -64,7 +69,8 @@ type Category = { title: string; icon: IconComponent; reports: Report[] };
 export default function ReportsPage() {
   const [dialog, setDialog] = useState<"daily" | "consumption" | "annual-performance" | "annual-collection" | "or-accountability" | "billing-overview-monthly" | "billing-overview-annual" | "scds" | "revenue-consumption" | "accounts-receivable-summary" | "report-of-classification" | "reading-list" | "accounts-receivables" | "adjusted-bills" | "bill-edits" | "consumer-status" | "monthly-connections" | "annual-connections" | "service-connection-stats" | "payment-timing" | "collection-efficiency" | "disconnection-turnaround" | "connection-turnaround" | "zero-consumption" | "temp-closure-turnaround" | "meter-replacement" | "transfer-activity" |
     "main-monthly-collection" | "collection-by-nature" | "penalty-collection" | "main-senior-discount" | "channel-summary" | "collector-accountability" |
-    "consumption-brackets" | "billing-completeness" | "environmental-fee" | "consumption-trend" | null
+    "consumption-brackets" | "billing-completeness" | "environmental-fee" | "consumption-trend" |
+    "field-staff-activity" | "adjustment-processing" | "job-order-register" | "job-order-turnaround" | "job-order-completion-detail" | null
   >(null);
 
   const CATEGORIES: Category[] = [
@@ -133,6 +139,24 @@ export default function ReportsPage() {
         { title: "Transfer Activity Report", note: "Meter and owner transfer requests filed, how fast they were completed, and which are still pending, by type and barangay.", icon: IconWrench, action: { kind: "dialog", open: () => setDialog("transfer-activity") } },
         { title: "Service Request Backlog", note: "Every account currently waiting on installation, reconnection, a transfer, a meter swap, or a temporary closure — and for how long.", icon: IconClock, action: { kind: "dialog", open: () => window.open("/reports/service-backlog/print", "_blank") } },
         { title: "Monthly Consumption Report", note: "Cu.m. billed by barangay, cluster, classification and senior/PWD status.", icon: IconDroplet, action: { kind: "dialog", open: () => setDialog("consumption") } },
+      ],
+    },
+    {
+      title: "Staff Activity Reports",
+      icon: IconIdCard,
+      reports: [
+        { title: "Field Staff Activity Report", note: "Account actions logged for one month — installations, (re)connections, closures, transfers and meter work — by staff member and action type.", icon: IconIdCard, action: { kind: "dialog", open: () => setDialog("field-staff-activity") } },
+        { title: "Bill Adjustment Processing Report", note: "Who requested, processed and completed bill-adjustment requests in one month, and how long it took.", icon: IconInvoice, action: { kind: "dialog", open: () => setDialog("adjustment-processing") } },
+        { title: "User Roster & Access Report", note: "Every system user account, active or not, by position — a live snapshot.", icon: IconUsers, action: { kind: "dialog", open: () => window.open("/reports/user-roster/print", "_blank") } },
+      ],
+    },
+    {
+      title: "Job Orders Reports",
+      icon: IconListOrdered,
+      reports: [
+        { title: "Job Order Register", note: "Every job order issued for one month — installation, reconnection, meter transfer, meter replacement, inspection and closure orders — by type, status and preparer.", icon: IconListOrdered, action: { kind: "dialog", open: () => setDialog("job-order-register") } },
+        { title: "Job Order Turnaround Report", note: "How many days job orders take from issue to completion, by type, and which are still open.", icon: IconClock, action: { kind: "dialog", open: () => setDialog("job-order-turnaround") } },
+        { title: "Job Order Completion Detail Report", note: "Field results for completed job orders — meter and standpipe readings, materials used and findings, by who completed them.", icon: IconWrench, action: { kind: "dialog", open: () => setDialog("job-order-completion-detail") } },
       ],
     },
   ];
@@ -302,6 +326,21 @@ export default function ReportsPage() {
       )}
       {dialog === "consumption-trend" && (
         <ConsumptionTrendDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "field-staff-activity" && (
+        <FieldStaffActivityDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "adjustment-processing" && (
+        <AdjustmentProcessingDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "job-order-register" && (
+        <JobOrderRegisterDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "job-order-turnaround" && (
+        <JobOrderTurnaroundDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "job-order-completion-detail" && (
+        <JobOrderCompletionDetailDialog onClose={() => setDialog(null)} />
       )}
     </div>
   );

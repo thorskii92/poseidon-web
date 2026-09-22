@@ -59,6 +59,12 @@ import ConsumptionBracketsPrint from "./ConsumptionBracketsPrint";
 import BillingCompletenessPrint from "./BillingCompletenessPrint";
 import EnvironmentalFeePrint from "./EnvironmentalFeePrint";
 import ConsumptionTrendPrint from "./ConsumptionTrendPrint";
+import FieldStaffActivityPrint from "./FieldStaffActivityPrint";
+import AdjustmentProcessingPrint from "./AdjustmentProcessingPrint";
+import UserRosterPrint from "./UserRosterPrint";
+import JobOrderRegisterPrint from "./JobOrderRegisterPrint";
+import JobOrderTurnaroundPrint from "./JobOrderTurnaroundPrint";
+import JobOrderCompletionDetailPrint from "./JobOrderCompletionDetailPrint";
 import MonthlyBillingOverviewPrint from "./MonthlyBillingOverviewPrint";
 import AnnualBillingOverviewPrint from "./AnnualBillingOverviewPrint";
 import SCDSPrint from "./SCDSPrint";
@@ -244,6 +250,30 @@ export default function App() {
         <Route
           path="/reports/consumption-trend/print"
           element={<ConsumptionTrendPrint />}
+        />
+        <Route
+          path="/reports/field-staff-activity/print"
+          element={<FieldStaffActivityPrint />}
+        />
+        <Route
+          path="/reports/adjustment-processing/print"
+          element={<AdjustmentProcessingPrint />}
+        />
+        <Route
+          path="/reports/user-roster/print"
+          element={<UserRosterPrint />}
+        />
+        <Route
+          path="/reports/job-order-register/print"
+          element={<JobOrderRegisterPrint />}
+        />
+        <Route
+          path="/reports/job-order-turnaround/print"
+          element={<JobOrderTurnaroundPrint />}
+        />
+        <Route
+          path="/reports/job-order-completion-detail/print"
+          element={<JobOrderCompletionDetailPrint />}
         />
         <Route
           path="/reports/billing-overview/monthly/print"
