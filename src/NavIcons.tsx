@@ -138,3 +138,14 @@ export function IconListOrdered({ size = 20 }: IconProps) {
     </svg>
   );
 }
+
+export function IconRefresh({ size = 20 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...base}>
+      <path d="M4.5 12a7.5 7.5 0 0 1 12.6-5.5" />
+      <path d="M19.5 12a7.5 7.5 0 0 1-12.6 5.5" />
+      <path d="M17.1 6.5h3v-3" />
+      <path d="M6.9 17.5h-3v3" />
+    </svg>
+  );
+}

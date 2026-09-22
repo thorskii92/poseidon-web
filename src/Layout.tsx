@@ -10,11 +10,12 @@ import { IconReceipt, IconInvoice, IconUsers, IconWrench, IconDroplet, type Icon
 import {
   IconGrid, IconIdCard, IconWallet, IconClock, IconSliders, IconCheckCircle,
   IconPowerOff, IconCreditCard, IconChartBar, IconGear, IconGauge, IconLayers, IconListOrdered,
+  IconRefresh,
 } from "./NavIcons";
 
 type IconComponent = (p: IconProps) => JSX.Element;
 
-const NAV: { label: string; to: string; perm: string | null; icon: IconComponent }[] = [
+const NAV: { label: string; to: string; perm: string | null; icon: IconComponent; satelliteOnly?: boolean }[] = [
   { label: "Dashboard", to: "/", perm: null, icon: IconGrid },
   { label: "Accounts", to: "/accounts", perm: "accounts", icon: IconIdCard },
   { label: "Collection", to: "/collection", perm: "collection", icon: IconWallet },
@@ -30,6 +31,7 @@ const NAV: { label: string; to: string; perm: string | null; icon: IconComponent
   { label: "Reports", to: "/reports", perm: "reports", icon: IconChartBar },
   { label: "User Management", to: "/users", perm: "users", icon: IconUsers },
   { label: "Settings", to: "/settings", perm: "settings", icon: IconGear },
+  { label: "Synchronization", to: "/sync", perm: "sync", icon: IconRefresh, satelliteOnly: true },
 ];
 
 const SOON: { label: string; icon: IconComponent }[] = [
@@ -55,7 +57,22 @@ export default function Layout({ children }: { children: ReactNode }) {
   });
   const approvalsWaiting = approvals?.length ?? 0;
 
-  const visibleNav = NAV.filter((item) => item.perm === null || can(item.perm));
+  // Synchronization only makes sense on a satellite deployment — hidden on
+  // the ordinary main server, where /api/sync/status still 200s (just with
+  // isSatellite: false) so this never shows an error, just no nav item.
+  const { data: syncStatus } = useQuery<{ isSatellite: boolean }>({
+    queryKey: ["sync-status"],
+    queryFn: () => apiGet<{ isSatellite: boolean }>("/api/sync/status"),
+    retry: false,
+    enabled: can("sync"),
+  });
+  const isSatellite = syncStatus?.isSatellite ?? false;
+
+  const visibleNav = NAV.filter((item) => {
+    if (item.perm !== null && !can(item.perm)) return false;
+    if (item.satelliteOnly && !isSatellite) return false;
+    return true;
+  });
 
   return (
     <div className="shell">

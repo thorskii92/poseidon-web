@@ -33,6 +33,7 @@ import ECPayPage from "./ECPayPage";
 import UserManagementPage from "./UserManagementPage";
 import DashboardPage from "./DashboardPage";
 import ReportsPage from "./ReportsPage";
+import SyncPage from "./SyncPage";
 import AbstractMonthlyCollectionPrint from "./AbstractMonthlyCollectionPrint";
 import MonthlyConsumptionPrint from "./MonthlyConsumptionPrint";
 import AnnualFinancialPerformancePrint from "./AnnualFinancialPerformancePrint";
@@ -362,6 +363,7 @@ export default function App() {
                 <Route path="/ecpay" element={<ECPayPage />} />
                 <Route path="/users" element={<UserManagementPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/sync" element={<SyncPage />} />
               </Routes>
             </Layout>
           }
