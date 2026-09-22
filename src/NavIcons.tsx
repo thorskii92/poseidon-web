@@ -149,3 +149,13 @@ export function IconRefresh({ size = 20 }: IconProps) {
     </svg>
   );
 }
+
+export function IconAlertTriangle({ size = 20 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...base}>
+      <path d="M12 4 21 19.5H3z" strokeLinejoin="round" />
+      <path d="M12 10v4.5" />
+      <circle cx="12" cy="17.3" r="0.15" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}

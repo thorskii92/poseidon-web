@@ -10,12 +10,12 @@ import { IconReceipt, IconInvoice, IconUsers, IconWrench, IconDroplet, type Icon
 import {
   IconGrid, IconIdCard, IconWallet, IconClock, IconSliders, IconCheckCircle,
   IconPowerOff, IconCreditCard, IconChartBar, IconGear, IconGauge, IconLayers, IconListOrdered,
-  IconRefresh,
+  IconRefresh, IconAlertTriangle,
 } from "./NavIcons";
 
 type IconComponent = (p: IconProps) => JSX.Element;
 
-const NAV: { label: string; to: string; perm: string | null; icon: IconComponent; satelliteOnly?: boolean }[] = [
+const NAV: { label: string; to: string; perm: string | null; icon: IconComponent; satelliteOnly?: boolean; mainOnly?: boolean }[] = [
   { label: "Dashboard", to: "/", perm: null, icon: IconGrid },
   { label: "Accounts", to: "/accounts", perm: "accounts", icon: IconIdCard },
   { label: "Collection", to: "/collection", perm: "collection", icon: IconWallet },
@@ -32,6 +32,7 @@ const NAV: { label: string; to: string; perm: string | null; icon: IconComponent
   { label: "User Management", to: "/users", perm: "users", icon: IconUsers },
   { label: "Settings", to: "/settings", perm: "settings", icon: IconGear },
   { label: "Synchronization", to: "/sync", perm: "sync", icon: IconRefresh, satelliteOnly: true },
+  { label: "Sync Conflicts", to: "/sync-conflicts", perm: "sync", icon: IconAlertTriangle, mainOnly: true },
 ];
 
 const SOON: { label: string; icon: IconComponent }[] = [
@@ -71,6 +72,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const visibleNav = NAV.filter((item) => {
     if (item.perm !== null && !can(item.perm)) return false;
     if (item.satelliteOnly && !isSatellite) return false;
+    if (item.mainOnly && isSatellite) return false;
     return true;
   });
 
