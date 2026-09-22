@@ -7,7 +7,7 @@ type Options = {
   barangays: { id: number; name: string }[];
   clusters: { id: number; barangayId: number; name: string }[];
   classifications: { id: number; name: string }[];
-  consumerTypes: { id: number; name: string }[];
+  consumerTypes: { id: number; name: string; needsCollection: number }[];
   meterSizes: { id: number; name: string }[];
 };
 
@@ -28,6 +28,7 @@ const EMPTY = {
   company: "",
   householdMembers: "",
   seniorCount: "",
+  applicationOption: "pay",
 };
 
 export default function NewApplication() {
@@ -77,6 +78,12 @@ export default function NewApplication() {
     ? options.clusters.filter((c) => c.barangayId === form.barangayId)
     : [];
 
+  // Only Regular/IP Class A (NeedsCollection = 1) has a real choice — the
+  // other types either need no application fee at all or have their own
+  // fixed pending status (see server.ts's POST /api/accounts).
+  const selectedType = options.consumerTypes.find((t) => t.id === form.consumerTypeId);
+  const showApplicationOption = selectedType?.needsCollection === 1;
+
   function set(key: keyof typeof form, value: string | number) {
     setError("");
     setForm((prev) => {
@@ -101,8 +108,10 @@ export default function NewApplication() {
 
       <h1>New account application</h1>
       <p className="count">
-        The account is created as Pending Payment. It moves to Installation once
-        the application fee is collected.
+        Most account types are created as Pending Payment and move to
+        Installation once the application fee is collected. Some types need
+        no fee at all and go straight to Installation, and Fire Hydrant has
+        its own pending status.
       </p>
 
       <div className="form-section">
@@ -271,6 +280,34 @@ export default function NewApplication() {
             </select>
           </label>
         </div>
+
+        {showApplicationOption && (
+          <div className="form-grid" style={{ marginTop: 12 }}>
+            <label className="field-input wide">
+              <span>Application fee</span>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: "normal" }}>
+                  <input
+                    type="radio"
+                    name="application-option"
+                    checked={form.applicationOption === "pay"}
+                    onChange={() => set("applicationOption", "pay")}
+                  />
+                  Make payment — collect the application fee now, in full or in part
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: "normal" }}>
+                  <input
+                    type="radio"
+                    name="application-option"
+                    checked={form.applicationOption === "noDown"}
+                    onChange={() => set("applicationOption", "noDown")}
+                  />
+                  No down payment — go straight to Installation; the whole fee becomes an installment added to future bills
+                </label>
+              </div>
+            </label>
+          </div>
+        )}
       </div>
 
       <div className="form-section">
