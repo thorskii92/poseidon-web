@@ -17,6 +17,23 @@ import AnnualConnectionReportDialog from "./AnnualConnectionReportDialog";
 import ServiceConnectionStatsDialog from "./ServiceConnectionStatsDialog";
 import PaymentTimingReportDialog from "./PaymentTimingReportDialog";
 import CollectionEfficiencyMainDialog from "./CollectionEfficiencyMainDialog";
+import DisconnectionTurnaroundDialog from "./DisconnectionTurnaroundDialog";
+import NewConnectionTurnaroundDialog from "./NewConnectionTurnaroundDialog";
+import ZeroConsumptionDialog from "./ZeroConsumptionDialog";
+import TempClosureTurnaroundDialog from "./TempClosureTurnaroundDialog";
+import MeterReplacementReportDialog from "./MeterReplacementReportDialog";
+import TransferActivityReportDialog from "./TransferActivityReportDialog";
+import MainMonthlyCollectionDialog from "./MainMonthlyCollectionDialog";
+import CollectionByNatureDialog from "./CollectionByNatureDialog";
+import PenaltyCollectionDialog from "./PenaltyCollectionDialog";
+import MainSeniorDiscountDialog from "./MainSeniorDiscountDialog";
+import ChannelSummaryDialog from "./ChannelSummaryDialog";
+import CollectorAccountabilityDialog from "./CollectorAccountabilityDialog";
+import ConsumptionBracketsDialog from "./ConsumptionBracketsDialog";
+import BillingCompletenessDialog from "./BillingCompletenessDialog";
+import EnvironmentalFeeDialog from "./EnvironmentalFeeDialog";
+import ConsumptionTrendDialog from "./ConsumptionTrendDialog";
+import { IconClock } from "./NavIcons";
 import {
   IconReceipt, IconInvoice, IconUsers, IconWrench, IconTrendUp,
   IconCalendarBars, IconDroplet, type IconProps,
@@ -45,7 +62,10 @@ type Report = { title: string; note: string; action: ReportAction; icon?: IconCo
 type Category = { title: string; icon: IconComponent; reports: Report[] };
 
 export default function ReportsPage() {
-  const [dialog, setDialog] = useState<"daily" | "consumption" | "annual-performance" | "annual-collection" | "or-accountability" | "billing-overview-monthly" | "billing-overview-annual" | "scds" | "revenue-consumption" | "accounts-receivable-summary" | "report-of-classification" | "reading-list" | "accounts-receivables" | "adjusted-bills" | "bill-edits" | "consumer-status" | "monthly-connections" | "annual-connections" | "service-connection-stats" | "payment-timing" | "collection-efficiency" | null>(null);
+  const [dialog, setDialog] = useState<"daily" | "consumption" | "annual-performance" | "annual-collection" | "or-accountability" | "billing-overview-monthly" | "billing-overview-annual" | "scds" | "revenue-consumption" | "accounts-receivable-summary" | "report-of-classification" | "reading-list" | "accounts-receivables" | "adjusted-bills" | "bill-edits" | "consumer-status" | "monthly-connections" | "annual-connections" | "service-connection-stats" | "payment-timing" | "collection-efficiency" | "disconnection-turnaround" | "connection-turnaround" | "zero-consumption" | "temp-closure-turnaround" | "meter-replacement" | "transfer-activity" |
+    "main-monthly-collection" | "collection-by-nature" | "penalty-collection" | "main-senior-discount" | "channel-summary" | "collector-accountability" |
+    "consumption-brackets" | "billing-completeness" | "environmental-fee" | "consumption-trend" | null
+  >(null);
 
   const CATEGORIES: Category[] = [
     {
@@ -58,14 +78,14 @@ export default function ReportsPage() {
         { title: "O.R. Accountability Report", note: "Booklets on issue, skipped or duplicate numbers, and receipts no booklet covers.", icon: IconReceipt, action: { kind: "dialog", open: () => setDialog("or-accountability") } },
         { title: "Payment Timing Report", note: "How long consumers take to pay over the counter, and how close to the due date, by barangay, classification and water system.", icon: IconCalendarBars, action: { kind: "dialog", open: () => setDialog("payment-timing") } },
         { title: "Collection Efficiency Report", note: "Billed vs. collected for the month, and how much of it came from the counter vs. ECPay, by barangay, water system, classification and cluster.", icon: IconTrendUp, action: { kind: "dialog", open: () => setDialog("collection-efficiency") } },
-      ],
-    },
-    {
-      title: "On Going Reports",
-      icon: IconTrendUp,
-      reports: [
+        { title: "Monthly Collection Report", note: "Over-the-counter water bill collections for one month — daily/weekday trends, the six-month trend, and breakdowns by barangay, water system and classification.", icon: IconCalendarBars, action: { kind: "dialog", open: () => setDialog("main-monthly-collection") } },
+        { title: "Collection by Payment Nature Report", note: "What was collected for — Water Bill, Application Fee, Reconnection Fee, and the rest — by barangay and classification.", icon: IconReceipt, action: { kind: "dialog", open: () => setDialog("collection-by-nature") } },
+        { title: "Penalty & Surcharge Collection Report", note: "How much penalty revenue was collected on water bills, and what share of collections it made up, by barangay and classification.", icon: IconTrendUp, action: { kind: "dialog", open: () => setDialog("penalty-collection") } },
+        { title: "Senior/PWD Discount Collection Report", note: "Discounts granted on over-the-counter receipts, reconciled against the gross billed amount, including missing senior IDs.", icon: IconUsers, action: { kind: "dialog", open: () => setDialog("main-senior-discount") } },
+        { title: "Online vs Counter Collection Summary", note: "How much of everything collected came through ECPay versus the counter, by barangay and classification.", icon: IconTrendUp, action: { kind: "dialog", open: () => setDialog("channel-summary") } },
+        { title: "Collector Accountability Report", note: "Who receipted how much over the counter, and how many receipts each collector handled.", icon: IconUsers, action: { kind: "dialog", open: () => setDialog("collector-accountability") } },
+        { title: "Long-Outstanding Accounts Report", note: "Which accounts are chronically unpaid, how much is owed, and where — a live snapshot.", icon: IconInvoice, action: { kind: "dialog", open: () => window.open("/reports/long-outstanding/print", "_blank") } },
         { title: "Abstract of Monthly Collection", note: "Water bills, fees and totals for the last 12 months.", icon: IconCalendarBars, action: { kind: "dialog", open: () => window.open("/reports/abstract-monthly-collection/print", "_blank") } },
-        { title: "Monthly Consumption Report", note: "Cu.m. billed by barangay, cluster, classification and senior/PWD status.", icon: IconDroplet, action: { kind: "dialog", open: () => setDialog("consumption") } },
       ],
     },
     {
@@ -82,6 +102,10 @@ export default function ReportsPage() {
         { title: "Accounts Receivables", note: "Every unpaid bill for a barangay or cluster — all outstanding, one month, or one year.", icon: IconInvoice, action: { kind: "dialog", open: () => setDialog("accounts-receivables") } },
         { title: "Monthly Adjusted Bills", note: "Bill-adjustment requests raised, completed and still open for one month.", icon: IconInvoice, action: { kind: "dialog", open: () => setDialog("adjusted-bills") } },
         { title: "Modified Bills Report", note: "An audit of every bill edited in one month — who changed what, and what needs review.", icon: IconInvoice, action: { kind: "dialog", open: () => setDialog("bill-edits") } },
+        { title: "Consumption Bracket Analysis Report", note: "How many bills fall into each consumption range, and revenue by bracket — a rate-setting lens, by classification and barangay.", icon: IconTrendUp, action: { kind: "dialog", open: () => setDialog("consumption-brackets") } },
+        { title: "Billing Generation Completeness Report", note: "Whether every billable account actually got billed for the month, with the list of accounts that were missed.", icon: IconInvoice, action: { kind: "dialog", open: () => setDialog("billing-completeness") } },
+        { title: "Environmental Fee Report", note: "How much environmental fee was billed, and what share of total billing it made up, by barangay and classification.", icon: IconDroplet, action: { kind: "dialog", open: () => setDialog("environmental-fee") } },
+        { title: "Average Consumption Trend Report", note: "The six-month trailing trend in average consumption per bill — demand and infrastructure planning.", icon: IconTrendUp, action: { kind: "dialog", open: () => setDialog("consumption-trend") } },
       ],
     },
     {
@@ -91,6 +115,10 @@ export default function ReportsPage() {
         { title: "Latest Consumer Status", note: "Active vs. disconnected accounts by classification, per barangay or per cluster.", icon: IconUsers, action: { kind: "dialog", open: () => setDialog("consumer-status") } },
         { title: "Monthly Connection Report", note: "New service connections for one month — trend, forecast, and where they are.", icon: IconUsers, action: { kind: "dialog", open: () => setDialog("monthly-connections") } },
         { title: "Annual Connection Report", note: "New service connections for a calendar year — monthly/quarterly spread, long-run growth.", icon: IconUsers, action: { kind: "dialog", open: () => setDialog("annual-connections") } },
+        { title: "Account Status Census", note: "Every account by its actual status — Connected, Disconnected, and the in-progress statuses in between — by barangay, water system and classification.", icon: IconUsers, action: { kind: "dialog", open: () => window.open("/reports/account-status-census/print", "_blank") } },
+        { title: "Zero-Consumption Accounts Report", note: "Accounts billed at 0 m³ for a chosen month, and which have read zero for three months running — a field-check flag.", icon: IconDroplet, action: { kind: "dialog", open: () => setDialog("zero-consumption") } },
+        { title: "Senior Citizen Accounts Report", note: "The roster of senior/PWD-discounted accounts, including which ones have no senior ID on file.", icon: IconUsers, action: { kind: "dialog", open: () => window.open("/reports/senior-accounts/print", "_blank") } },
+        { title: "Account Tenure Report", note: "How long accounts have been connected, bucketed — infrastructure and asset-age planning.", icon: IconClock, action: { kind: "dialog", open: () => window.open("/reports/account-tenure/print", "_blank") } },
       ],
     },
     {
@@ -98,6 +126,13 @@ export default function ReportsPage() {
       icon: IconWrench,
       reports: [
         { title: "Service Connection Statistics", note: "Application, installation, disconnection and transfer activity, by zone, barangay and classification.", icon: IconWrench, action: { kind: "dialog", open: () => setDialog("service-connection-stats") } },
+        { title: "Disconnection & Reconnection Turnaround Report", note: "How many days disconnected accounts wait to be reconnected, and which ones still are, by barangay, water system and classification.", icon: IconWrench, action: { kind: "dialog", open: () => setDialog("disconnection-turnaround") } },
+        { title: "New Service Connection Turnaround Report", note: "How many days applications wait to be installed, and which ones are still pending, by barangay, water system and classification.", icon: IconUsers, action: { kind: "dialog", open: () => setDialog("connection-turnaround") } },
+        { title: "Temporary Closure Turnaround Report", note: "How many days temporarily-closed accounts wait to be reconnected, and which ones still are.", icon: IconWrench, action: { kind: "dialog", open: () => setDialog("temp-closure-turnaround") } },
+        { title: "Meter Replacement Report", note: "Meter replacements requested, how fast they were completed, and which are still pending, by barangay and classification.", icon: IconWrench, action: { kind: "dialog", open: () => setDialog("meter-replacement") } },
+        { title: "Transfer Activity Report", note: "Meter and owner transfer requests filed, how fast they were completed, and which are still pending, by type and barangay.", icon: IconWrench, action: { kind: "dialog", open: () => setDialog("transfer-activity") } },
+        { title: "Service Request Backlog", note: "Every account currently waiting on installation, reconnection, a transfer, a meter swap, or a temporary closure — and for how long.", icon: IconClock, action: { kind: "dialog", open: () => window.open("/reports/service-backlog/print", "_blank") } },
+        { title: "Monthly Consumption Report", note: "Cu.m. billed by barangay, cluster, classification and senior/PWD status.", icon: IconDroplet, action: { kind: "dialog", open: () => setDialog("consumption") } },
       ],
     },
   ];
@@ -219,6 +254,54 @@ export default function ReportsPage() {
       )}
       {dialog === "collection-efficiency" && (
         <CollectionEfficiencyMainDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "disconnection-turnaround" && (
+        <DisconnectionTurnaroundDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "connection-turnaround" && (
+        <NewConnectionTurnaroundDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "zero-consumption" && (
+        <ZeroConsumptionDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "temp-closure-turnaround" && (
+        <TempClosureTurnaroundDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "meter-replacement" && (
+        <MeterReplacementReportDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "transfer-activity" && (
+        <TransferActivityReportDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "main-monthly-collection" && (
+        <MainMonthlyCollectionDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "collection-by-nature" && (
+        <CollectionByNatureDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "penalty-collection" && (
+        <PenaltyCollectionDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "main-senior-discount" && (
+        <MainSeniorDiscountDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "channel-summary" && (
+        <ChannelSummaryDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "collector-accountability" && (
+        <CollectorAccountabilityDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "consumption-brackets" && (
+        <ConsumptionBracketsDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "billing-completeness" && (
+        <BillingCompletenessDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "environmental-fee" && (
+        <EnvironmentalFeeDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "consumption-trend" && (
+        <ConsumptionTrendDialog onClose={() => setDialog(null)} />
       )}
     </div>
   );

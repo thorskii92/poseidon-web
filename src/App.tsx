@@ -40,6 +40,25 @@ import AnnualCollectionPrint from "./AnnualCollectionPrint";
 import ORAccountabilityPrint from "./ORAccountabilityPrint";
 import PaymentTimingReportPrint from "./PaymentTimingReportPrint";
 import CollectionEfficiencyMainPrint from "./CollectionEfficiencyMainPrint";
+import ServiceTurnaroundPrint from "./ServiceTurnaroundPrint";
+import AccountStatusCensusPrint from "./AccountStatusCensusPrint";
+import ZeroConsumptionPrint from "./ZeroConsumptionPrint";
+import SeniorAccountsPrint from "./SeniorAccountsPrint";
+import AccountTenurePrint from "./AccountTenurePrint";
+import MeterReplacementReportPrint from "./MeterReplacementReportPrint";
+import TransferActivityReportPrint from "./TransferActivityReportPrint";
+import ServiceBacklogPrint from "./ServiceBacklogPrint";
+import MainMonthlyCollectionPrint from "./MainMonthlyCollectionPrint";
+import CollectionByNaturePrint from "./CollectionByNaturePrint";
+import PenaltyCollectionPrint from "./PenaltyCollectionPrint";
+import MainSeniorDiscountPrint from "./MainSeniorDiscountPrint";
+import ChannelSummaryPrint from "./ChannelSummaryPrint";
+import CollectorAccountabilityPrint from "./CollectorAccountabilityPrint";
+import LongOutstandingPrint from "./LongOutstandingPrint";
+import ConsumptionBracketsPrint from "./ConsumptionBracketsPrint";
+import BillingCompletenessPrint from "./BillingCompletenessPrint";
+import EnvironmentalFeePrint from "./EnvironmentalFeePrint";
+import ConsumptionTrendPrint from "./ConsumptionTrendPrint";
 import MonthlyBillingOverviewPrint from "./MonthlyBillingOverviewPrint";
 import AnnualBillingOverviewPrint from "./AnnualBillingOverviewPrint";
 import SCDSPrint from "./SCDSPrint";
@@ -149,6 +168,82 @@ export default function App() {
         <Route
           path="/reports/collection-efficiency/print"
           element={<CollectionEfficiencyMainPrint />}
+        />
+        <Route
+          path="/reports/service-turnaround/print"
+          element={<ServiceTurnaroundPrint />}
+        />
+        <Route
+          path="/reports/account-status-census/print"
+          element={<AccountStatusCensusPrint />}
+        />
+        <Route
+          path="/reports/zero-consumption/print"
+          element={<ZeroConsumptionPrint />}
+        />
+        <Route
+          path="/reports/senior-accounts/print"
+          element={<SeniorAccountsPrint />}
+        />
+        <Route
+          path="/reports/account-tenure/print"
+          element={<AccountTenurePrint />}
+        />
+        <Route
+          path="/reports/meter-replacement/print"
+          element={<MeterReplacementReportPrint />}
+        />
+        <Route
+          path="/reports/transfer-activity/print"
+          element={<TransferActivityReportPrint />}
+        />
+        <Route
+          path="/reports/service-backlog/print"
+          element={<ServiceBacklogPrint />}
+        />
+        <Route
+          path="/reports/main-monthly-collection/print"
+          element={<MainMonthlyCollectionPrint />}
+        />
+        <Route
+          path="/reports/collection-by-nature/print"
+          element={<CollectionByNaturePrint />}
+        />
+        <Route
+          path="/reports/penalty-collection/print"
+          element={<PenaltyCollectionPrint />}
+        />
+        <Route
+          path="/reports/main-senior-discount/print"
+          element={<MainSeniorDiscountPrint />}
+        />
+        <Route
+          path="/reports/channel-summary/print"
+          element={<ChannelSummaryPrint />}
+        />
+        <Route
+          path="/reports/collector-accountability/print"
+          element={<CollectorAccountabilityPrint />}
+        />
+        <Route
+          path="/reports/long-outstanding/print"
+          element={<LongOutstandingPrint />}
+        />
+        <Route
+          path="/reports/consumption-brackets/print"
+          element={<ConsumptionBracketsPrint />}
+        />
+        <Route
+          path="/reports/billing-completeness/print"
+          element={<BillingCompletenessPrint />}
+        />
+        <Route
+          path="/reports/environmental-fee/print"
+          element={<EnvironmentalFeePrint />}
+        />
+        <Route
+          path="/reports/consumption-trend/print"
+          element={<ConsumptionTrendPrint />}
         />
         <Route
           path="/reports/billing-overview/monthly/print"
