@@ -3178,6 +3178,34 @@ button.primary.big {
   min-width: 200px;
 }
 
+/* Synchronization's Bundles picker — Main and Local side by side so
+   adding/removing a bundle reads as moving it across, not toggling a flag
+   in a flat list. Stacks on narrow screens rather than squeezing both
+   tables illegibly. */
+.bundle-picker-columns {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.bundle-picker-column {
+  flex: 1 1 360px;
+  min-width: 0;
+}
+
+.bundle-picker-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.bundle-picker-head h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
 /* The batch list can run to several hundred rows, so it scrolls inside the
    panel rather than pushing the Save button off the bottom of the page. */
 .batch-scroll {

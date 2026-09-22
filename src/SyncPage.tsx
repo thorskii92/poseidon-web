@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPost } from "./api";
 
@@ -67,8 +67,9 @@ type Bundle = {
   serial: string;
   dateAdded: string | null;
   accountablePerson: string;
-  carried: boolean;
 };
+
+type BundlePage = { page: number; totalPages: number; total: number; bundles: Bundle[] };
 
 function shortDateTime(value: string | null): string {
   if (!value) return "—";
@@ -104,28 +105,6 @@ export default function SyncPage() {
     enabled: !!status?.isSatellite,
   });
 
-  const { data: bundles } = useQuery<Bundle[]>({
-    queryKey: ["sync-bundles"],
-    queryFn: () => apiGet<Bundle[]>("/api/sync/bundles"),
-    retry: false,
-    enabled: !!status?.isSatellite,
-  });
-  const [bundleError, setBundleError] = useState("");
-
-  async function toggleCarried(ogId: number, carried: boolean) {
-    setBundleError("");
-    try {
-      if (carried) {
-        await apiPost(`/api/sync/bundles/${ogId}/carry`, {});
-      } else {
-        const r = await fetch(`/api/sync/bundles/${ogId}/carry`, { method: "DELETE" });
-        if (!r.ok) throw new Error((await r.json().catch(() => null))?.error ?? "Could not update that bundle");
-      }
-      await qc.invalidateQueries({ queryKey: ["sync-bundles"] });
-    } catch (err) {
-      setBundleError((err as Error).message);
-    }
-  }
 
   async function syncNow() {
     setRunning(true);
@@ -216,49 +195,7 @@ export default function SyncPage() {
             )}
           </section>
 
-          <section className="record-section">
-            <div className="record-head"><h2>Bundles</h2></div>
-            <p className="count">
-              Every O.R. bundle registered on main reaches this laptop on
-              sync, but only the ones actually in the bag should be
-              accepted here — check off what's being carried on this trip.
-              Bundles are registered and managed on main; nothing here
-              changes what main itself has reserved.
-            </p>
-            {!bundles?.length ? (
-              <p className="count">No bundles have synced down yet.</p>
-            ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Carried</th>
-                    <th>Serial</th>
-                    <th className="n">Range</th>
-                    <th>Accountable person</th>
-                    <th>Registered</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bundles.map((b) => (
-                    <tr key={b.ogId}>
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={b.carried}
-                          onChange={(e) => toggleCarried(b.ogId, e.target.checked)}
-                        />
-                      </td>
-                      <td>{b.serial}</td>
-                      <td className="n">{b.initial} – {b.final}</td>
-                      <td>{b.accountablePerson || "—"}</td>
-                      <td>{shortDateTime(b.dateAdded)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-            {bundleError && <div className="form-error">{bundleError}</div>}
-          </section>
+          <BundlesPicker />
 
           <section className="record-section">
             <div className="record-head"><h2>Upload</h2></div>
@@ -345,6 +282,199 @@ export default function SyncPage() {
             )}
           </section>
         </>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Bundles — Main (not yet carried) on the left, Local/carried on the
+ * right, so it reads as a transfer rather than a flat checklist. A bundle
+ * moves sides via Add/Remove; both sides refresh together since either
+ * action changes both lists at once. Removing one is refused server-side
+ * (see sync.ts's DELETE /bundles/:ogId/carry) if it still has an
+ * unuploaded payment — refreshKey bump alone can't show that ahead of
+ * time, so the refusal message is what actually communicates it.
+ */
+function BundlesPicker() {
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [busyOgId, setBusyOgId] = useState<number | null>(null);
+  const [actionError, setActionError] = useState("");
+
+  async function addBundle(ogId: number) {
+    setActionError("");
+    setBusyOgId(ogId);
+    try {
+      await apiPost(`/api/sync/bundles/${ogId}/carry`, {});
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setActionError((err as Error).message);
+    } finally {
+      setBusyOgId(null);
+    }
+  }
+
+  async function removeBundle(ogId: number) {
+    setActionError("");
+    setBusyOgId(ogId);
+    try {
+      const r = await fetch(`/api/sync/bundles/${ogId}/carry`, { method: "DELETE" });
+      if (!r.ok) throw new Error((await r.json().catch(() => null))?.error ?? "Could not remove that bundle");
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setActionError((err as Error).message);
+    } finally {
+      setBusyOgId(null);
+    }
+  }
+
+  return (
+    <section className="record-section">
+      <div className="record-head"><h2>Bundles</h2></div>
+      <p className="count">
+        Every O.R. bundle registered on main reaches this laptop on sync —
+        add the ones actually in the bag on this trip to Local; only those
+        are accepted at Collection. Bundles are registered and managed on
+        main; nothing here changes what main itself has reserved.
+      </p>
+      {actionError && <div className="form-error">{actionError}</div>}
+      <div className="bundle-picker-columns">
+        <BundleColumn
+          title="Main"
+          sub="Not yet carried"
+          carried={false}
+          refreshKey={refreshKey}
+          actionLabel="Add Bundle"
+          onAction={addBundle}
+          busyOgId={busyOgId}
+        />
+        <BundleColumn
+          title="Local"
+          sub="Carried on this trip"
+          carried={true}
+          refreshKey={refreshKey}
+          actionLabel="Remove Bundle"
+          onAction={removeBundle}
+          busyOgId={busyOgId}
+        />
+      </div>
+    </section>
+  );
+}
+
+function BundleColumn({
+  title, sub, carried, refreshKey, actionLabel, onAction, busyOgId,
+}: {
+  title: string;
+  sub: string;
+  carried: boolean;
+  refreshKey: number;
+  actionLabel: string;
+  onAction: (ogId: number) => void;
+  busyOgId: number | null;
+}) {
+  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [page, setPage] = useState(1);
+  const [rows, setRows] = useState<Bundle[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // A changed search or an add/remove elsewhere resets back to page 1
+  // rather than appending onto a now-stale list.
+  useEffect(() => {
+    setPage(1);
+  }, [search, refreshKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+    const qs = new URLSearchParams({ carried: String(carried), page: String(page) });
+    if (search) qs.set("search", search);
+    apiGet<BundlePage>(`/api/sync/bundles?${qs.toString()}`)
+      .then((d) => {
+        if (cancelled) return;
+        setRows((prev) => (page === 1 ? d.bundles : [...prev, ...d.bundles]));
+        setTotalPages(d.totalPages);
+        setTotal(d.total);
+      })
+      .catch((e) => !cancelled && setError((e as Error).message))
+      .finally(() => !cancelled && setLoading(false));
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [carried, page, search, refreshKey]);
+
+  function runSearch() {
+    setSearch(searchInput.trim());
+  }
+
+  return (
+    <div className="bundle-picker-column">
+      <div className="bundle-picker-head">
+        <h3>{title}</h3>
+        <span className="count">{sub} · {total.toLocaleString()}</span>
+      </div>
+
+      <div className="filter-row" style={{ marginBottom: 10 }}>
+        <input
+          placeholder="Search O.R. number"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && runSearch()}
+        />
+        <button className="clear-filters" onClick={runSearch}>Search</button>
+        {search && (
+          <button className="clear-filters" onClick={() => { setSearchInput(""); setSearch(""); }}>
+            Clear
+          </button>
+        )}
+      </div>
+
+      {error && <div className="form-error">{error}</div>}
+      {!loading && !rows.length ? (
+        <p className="count">{search ? "No bundle matches that number." : "Nothing here."}</p>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>Serial</th>
+              <th className="n">Range</th>
+              <th>Accountable person</th>
+              <th>Registered</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((b) => (
+              <tr key={b.ogId}>
+                <td>{b.serial}</td>
+                <td className="n">{b.initial} – {b.final}</td>
+                <td>{b.accountablePerson || "—"}</td>
+                <td>{shortDateTime(b.dateAdded)}</td>
+                <td>
+                  <button
+                    className="link-button"
+                    disabled={busyOgId === b.ogId}
+                    onClick={() => onAction(b.ogId)}
+                  >
+                    {busyOgId === b.ogId ? "…" : actionLabel}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {page < totalPages && (
+        <div className="form-actions" style={{ marginTop: 10 }}>
+          <button className="clear-filters" disabled={loading} onClick={() => setPage((p) => p + 1)}>
+            {loading ? "Loading…" : "Load more"}
+          </button>
+        </div>
       )}
     </div>
   );
