@@ -4,6 +4,7 @@ import { apiGet, apiPost, ApiError } from "./api";
 import { peso } from "./collectionTypes";
 import AdminAuth from "./AdminAuth";
 import DailyReportDialog from "./DailyReportDialog";
+import { useAuth } from "./AuthContext";
 
 /**
  * Receipts Manager — browsing issued O.R.s by bundle, and the O.R. Bundle
@@ -337,12 +338,15 @@ function OrDetailModal({
   number, serial, onClose,
 }: { number: string; serial: string; onClose: () => void }) {
   const qc = useQueryClient();
-  const [mode, setMode] = useState<"view" | "cancel" | "editAuth" | "editForm">("view");
+  const { can } = useAuth();
+  const isAdmin = can("admin");
+  const [mode, setMode] = useState<"view" | "cancel" | "delete" | "editAuth" | "editForm">("view");
   const [adminUsername, setAdminUsername] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [cancelled, setCancelled] = useState(false);
+  const [deleted, setDeleted] = useState(false);
   const [editData, setEditData] = useState<EditOrData | null>(null);
   const [saved, setSaved] = useState<{ orNumber: string } | null>(null);
   const currentNumber = saved?.orNumber ?? number;
@@ -380,6 +384,21 @@ function OrDetailModal({
     }
   }
 
+  async function doDelete() {
+    setBusy(true);
+    setError("");
+    try {
+      await apiPost(`/api/receipts/or/${number}/delete`, { serial, adminUsername, adminPassword });
+      setDeleted(true);
+      qc.invalidateQueries({ queryKey: ["receipt-bundle-rows"] });
+      qc.invalidateQueries({ queryKey: ["receipt-bundles"] });
+    } catch (err) {
+      setError((err as ApiError).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function loadEdit() {
     setBusy(true);
     setError("");
@@ -404,6 +423,7 @@ function OrDetailModal({
         {isLoading && <p className="count">Loading…</p>}
         {loadError && !notIssued && <div className="form-error">{(loadError as Error).message}</div>}
         {cancelled && <div className="form-notice">This O.R. has been cancelled.</div>}
+        {deleted && <div className="form-notice">This O.R. has been deleted.</div>}
         {saved && <div className="form-notice">Saved — this O.R. is now number {saved.orNumber}.</div>}
 
         {mode === "editForm" && editData && (
@@ -449,7 +469,7 @@ function OrDetailModal({
             {error && <div className="form-error">{error}</div>}
 
             <div className="form-actions" style={{ marginTop: 14 }}>
-              {mode === "view" && (
+              {mode === "view" && isAdmin && (
                 <button className="danger" onClick={() => setMode("cancel")}>
                   Cancel O.R.
                 </button>
@@ -571,11 +591,11 @@ function OrDetailModal({
               )}
             </div>
 
-            {data.remark === "Cancelled" && !cancelled && (
+            {data.remark === "Cancelled" && !cancelled && !deleted && (
               <div className="form-notice">This O.R. was already cancelled.</div>
             )}
 
-            {mode === "cancel" && data.remark !== "Cancelled" && !cancelled && (
+            {mode === "cancel" && data.remark !== "Cancelled" && !cancelled && !deleted && (
               <>
                 <div className="form-notice" style={{ marginBottom: 10 }}>
                   <strong>Cancelling is irreversible.</strong> The payment, the bill it
@@ -592,7 +612,26 @@ function OrDetailModal({
               </>
             )}
 
-            {mode === "editAuth" && data.remark !== "Cancelled" && !cancelled && (
+            {mode === "delete" && !cancelled && !deleted && (
+              <>
+                <div className="form-notice" style={{ marginBottom: 10 }}>
+                  <strong>Deleting is irreversible and permanent.</strong> Unlike
+                  Cancel, no record of this O.R. is kept — the number becomes
+                  available to issue again, and it will show as a plain gap on
+                  the O.R. Accountability Report rather than an explained one.
+                </div>
+                <AdminAuth
+                  username={adminUsername}
+                  password={adminPassword}
+                  onUsername={setAdminUsername}
+                  onPassword={setAdminPassword}
+                  onSubmit={doDelete}
+                  disabled={busy}
+                />
+              </>
+            )}
+
+            {mode === "editAuth" && data.remark !== "Cancelled" && !cancelled && !deleted && (
               <>
                 <div className="form-notice" style={{ marginBottom: 10 }}>
                   An administrator must authorise editing this O.R.
@@ -611,24 +650,40 @@ function OrDetailModal({
             {error && <div className="form-error">{error}</div>}
 
             <div className="form-actions" style={{ marginTop: 14 }}>
-              <button className="primary" onClick={print}>Print O.R.</button>
-              {data.remark !== "Cancelled" && !cancelled && mode === "view" && (
+              {!deleted && <button className="primary" onClick={print}>Print O.R.</button>}
+              {!cancelled && !deleted && mode === "view" && isAdmin && (
                 <>
-                  <button className="clear-filters" onClick={() => setMode("editAuth")}>
-                    Edit O.R.
-                  </button>
-                  <button className="danger" onClick={() => setMode("cancel")}>
-                    Cancel O.R.
+                  {data.remark !== "Cancelled" && (
+                    <>
+                      <button className="clear-filters" onClick={() => setMode("editAuth")}>
+                        Edit O.R.
+                      </button>
+                      <button className="danger" onClick={() => setMode("cancel")}>
+                        Cancel O.R.
+                      </button>
+                    </>
+                  )}
+                  <button className="danger" onClick={() => setMode("delete")}>
+                    Delete O.R.
                   </button>
                 </>
               )}
-              {mode === "cancel" && !cancelled && (
+              {mode === "cancel" && !cancelled && !deleted && (
                 <button
                   className="danger"
                   disabled={busy || !adminUsername || !adminPassword}
                   onClick={doCancel}
                 >
                   {busy ? "Cancelling…" : "Confirm cancel"}
+                </button>
+              )}
+              {mode === "delete" && !cancelled && !deleted && (
+                <button
+                  className="danger"
+                  disabled={busy || !adminUsername || !adminPassword}
+                  onClick={doDelete}
+                >
+                  {busy ? "Deleting…" : "Confirm delete"}
                 </button>
               )}
               {mode === "editAuth" && (
@@ -640,7 +695,7 @@ function OrDetailModal({
                   {busy ? "Checking…" : "Continue"}
                 </button>
               )}
-              {(mode === "cancel" || mode === "editAuth") && (
+              {(mode === "cancel" || mode === "delete" || mode === "editAuth") && (
                 <button className="clear-filters" onClick={() => { setMode("view"); setError(""); }}>
                   Back
                 </button>
