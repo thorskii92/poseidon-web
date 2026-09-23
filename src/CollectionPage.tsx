@@ -437,6 +437,11 @@ export default function CollectionPage() {
                           {row.blocked && (
                             <span className="blocked-why">{row.blocked}</span>
                           )}
+                          {!row.blocked && row.fieldWarning && (
+                            <span className="field-warning">
+                              ⚠ Possibly already collected in the field ({row.fieldWarning})
+                            </span>
+                          )}
                         </td>
                         <td className="period">{row.billPeriod ?? "—"}</td>
                         <td className="num">

@@ -40,6 +40,12 @@ export type Payable = {
   detail: { label: string; value: string }[];
   /** Extra fields posted with the item — bulk water's rate, units and range. */
   payload?: Record<string, unknown>;
+  /** Set (to the satellite's name, or a generic fallback) when a Neon
+   *  relay signal says a satellite may already be collecting against this
+   *  payable in the field, before its real upload has reached here. Main
+   *  only — never set on a satellite itself. See poseidon-api's
+   *  neonRelay.ts / fieldpaymentsignals. */
+  fieldWarning?: string | null;
 };
 
 export type CollectionAccount = {
