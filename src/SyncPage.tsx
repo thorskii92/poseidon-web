@@ -116,6 +116,16 @@ export default function SyncPage() {
     refetchInterval: 15_000,
   });
 
+  // The Neon relay ("Middle Man") — two separate facts, since this
+  // instance can reach Neon fine while main's own poller is down for some
+  // unrelated reason (see sync.ts's own comment on /middleman-status).
+  const { data: middleman } = useQuery<{ neonConnected: boolean; mainViaNeon: boolean; heartbeatAt: string | null }>({
+    queryKey: ["sync-middleman-status"],
+    queryFn: () => apiGet("/api/sync/middleman-status"),
+    retry: false,
+    enabled: !!status?.isSatellite,
+    refetchInterval: 15_000,
+  });
 
   async function syncNow() {
     setRunning(true);
@@ -170,7 +180,7 @@ export default function SyncPage() {
         <>
           <section className="record-section">
             <div className="record-head"><h2>Status</h2></div>
-            <div className="dash-kpis ecpay-kpis ecpay-kpis-4">
+            <div className="dash-kpis ecpay-kpis">
               <div className="dash-kpi">
                 <div className="dash-kpi-label">Main server</div>
                 <div className="dash-kpi-value" style={{ fontSize: 16, display: "flex", alignItems: "center", gap: 8 }}>
@@ -178,6 +188,26 @@ export default function SyncPage() {
                   <span className={mainStatus?.connected ? "badge connected" : "badge disconnected"} style={{ fontSize: 11 }}>
                     {mainStatus === undefined ? "Checking…" : mainStatus.connected ? "Connected" : "Disconnected"}
                   </span>
+                </div>
+              </div>
+              <div className="dash-kpi">
+                <div className="dash-kpi-label">Middle Man</div>
+                <div className="dash-kpi-value" style={{ fontSize: 16 }}>
+                  <span className={middleman?.neonConnected ? "badge connected" : "badge disconnected"} style={{ fontSize: 11 }}>
+                    {middleman === undefined ? "Checking…" : middleman.neonConnected ? "Connected" : "Disconnected"}
+                  </span>
+                </div>
+                <div className="dash-kpi-sub">This laptop ↔ Neon</div>
+              </div>
+              <div className="dash-kpi">
+                <div className="dash-kpi-label">Middle Man → Main</div>
+                <div className="dash-kpi-value" style={{ fontSize: 16 }}>
+                  <span className={middleman?.mainViaNeon ? "badge connected" : "badge disconnected"} style={{ fontSize: 11 }}>
+                    {middleman === undefined ? "Checking…" : middleman.mainViaNeon ? "Connected" : "Disconnected"}
+                  </span>
+                </div>
+                <div className="dash-kpi-sub">
+                  {middleman?.heartbeatAt ? `Main last seen ${shortDateTime(middleman.heartbeatAt)}` : "No heartbeat from main yet"}
                 </div>
               </div>
               <div className="dash-kpi">
