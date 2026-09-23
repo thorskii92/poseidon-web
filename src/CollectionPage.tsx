@@ -439,7 +439,12 @@ export default function CollectionPage() {
                           )}
                           {!row.blocked && row.fieldWarning && (
                             <span className="field-warning">
-                              ⚠ Possibly already collected in the field ({row.fieldWarning})
+                              {/* Direction-agnostic on purpose — poseidon-api's own
+                                  label already says which side (a satellite's name,
+                                  "the main office", or "a field collector") this
+                                  warning is actually about; see collection.ts's
+                                  /payables/:acctId. */}
+                              ⚠ Possibly already handled by {row.fieldWarning}
                             </span>
                           )}
                         </td>
