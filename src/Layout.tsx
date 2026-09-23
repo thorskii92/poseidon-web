@@ -15,11 +15,16 @@ import {
 
 type IconComponent = (p: IconProps) => JSX.Element;
 
-const NAV: { label: string; to: string; perm: string | null; icon: IconComponent; satelliteOnly?: boolean; mainOnly?: boolean }[] = [
+const NAV: { label: string; to: string; perm: string | null; icon: IconComponent; satelliteOnly?: boolean; mainOnly?: boolean; satelliteAlwaysOn?: boolean }[] = [
   { label: "Dashboard", to: "/", perm: null, icon: IconGrid },
   { label: "Accounts", to: "/accounts", perm: "accounts", icon: IconIdCard },
   { label: "Collection", to: "/collection", perm: "collection", icon: IconWallet },
-  { label: "Receipts Manager", to: "/receipts", perm: "receipts", icon: IconReceipt },
+  // A field collector needs to see the O.R. list regardless of their main-
+  // office role grant — the module is already safe there on its own terms
+  // (no Bundle Manager, no Edit O.R., cancel/delete still admin-gated; see
+  // ReceiptsManagerPage.tsx and receipts.ts's own isSatellite() checks), so
+  // this bypasses the "receipts" permission on a satellite specifically.
+  { label: "Receipts Manager", to: "/receipts", perm: "receipts", icon: IconReceipt, satelliteAlwaysOn: true },
   { label: "Billing", to: "/billing", perm: "billing", icon: IconInvoice },
   { label: "Meter Reading", to: "/reading", perm: "reading", icon: IconDroplet },
   { label: "Pendings", to: "/pendings", perm: "pendings", icon: IconClock },
@@ -70,7 +75,8 @@ export default function Layout({ children }: { children: ReactNode }) {
   const isSatellite = syncStatus?.isSatellite ?? false;
 
   const visibleNav = NAV.filter((item) => {
-    if (item.perm !== null && !can(item.perm)) return false;
+    const permOk = item.perm === null || can(item.perm) || (item.satelliteAlwaysOn && isSatellite);
+    if (!permOk) return false;
     if (item.satelliteOnly && !isSatellite) return false;
     if (item.mainOnly && isSatellite) return false;
     return true;
