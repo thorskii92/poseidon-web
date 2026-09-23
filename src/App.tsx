@@ -55,6 +55,7 @@ import CollectionByNaturePrint from "./CollectionByNaturePrint";
 import PenaltyCollectionPrint from "./PenaltyCollectionPrint";
 import MainSeniorDiscountPrint from "./MainSeniorDiscountPrint";
 import ChannelSummaryPrint from "./ChannelSummaryPrint";
+import FieldCollectionPrint from "./FieldCollectionPrint";
 import CollectorAccountabilityPrint from "./CollectorAccountabilityPrint";
 import LongOutstandingPrint from "./LongOutstandingPrint";
 import ConsumptionBracketsPrint from "./ConsumptionBracketsPrint";
@@ -246,6 +247,10 @@ export default function App() {
         <Route
           path="/reports/channel-summary/print"
           element={<ChannelSummaryPrint />}
+        />
+        <Route
+          path="/reports/field-collection/print"
+          element={<FieldCollectionPrint />}
         />
         <Route
           path="/reports/collector-accountability/print"

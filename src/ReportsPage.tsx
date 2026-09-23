@@ -1,4 +1,6 @@
 import { useState, type JSX } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiGet } from "./api";
 import DailyReportDialog from "./DailyReportDialog";
 import YearReportDialog from "./YearReportDialog";
 import ORAccountabilityDialog from "./ORAccountabilityDialog";
@@ -163,6 +165,45 @@ export default function ReportsPage() {
       ],
     },
   ];
+
+  // A satellite keeps exactly one report — everything else needs main's
+  // full dataset or doesn't make sense in the field. Checked the same
+  // unauthenticated way the login screen and sidebar already brand
+  // themselves, rather than gating on a permission (this isn't about who
+  // can see reports, just which ones exist here).
+  const { data: deployment } = useQuery<{ isSatellite: boolean }>({
+    queryKey: ["deployment"],
+    queryFn: () => apiGet("/api/deployment"),
+    retry: false,
+  });
+
+  if (deployment?.isSatellite) {
+    return (
+      <div className="settings-page">
+        <div className="detail-head">
+          <div>
+            <h1>Reports</h1>
+            <p className="account-no">What this laptop has collected in the field.</p>
+          </div>
+        </div>
+        <div className="reports-category">
+          <div className="reports-grid">
+            <button
+              className="report-card"
+              onClick={() => window.open("/reports/field-collection/print", "_blank")}
+            >
+              <span className="report-card-icon"><IconCalendarBars size={18} /></span>
+              <span className="report-card-title">Field Collection Report</span>
+              <span className="report-card-note">
+                Everything collected on a chosen day — by nature, with each
+                line's upload status, no O.R.-range entry needed.
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="settings-page">
