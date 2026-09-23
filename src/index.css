@@ -24,6 +24,20 @@
   --border: #d4d8dd;
 }
 
+/* OSCARS's own palette — same five tokens the rest of the app already
+   builds every accent, button and highlight from (sidebar, primary
+   buttons, links, focus rings, KPI tints), so this one override reskins
+   the whole app without touching individual components. Set on <html>
+   by App.tsx from the unauthenticated /api/deployment check, same flag
+   that drives the OSCARS wordmark and tab title. */
+:root[data-satellite] {
+  --navy: #123b2e;
+  --navy-deep: #0b2a20;
+  --blue: #2c6e5c;
+  --blue-soft: #c9992f;
+  --tint: #f3e7c9;
+}
+
 * {
   box-sizing: border-box;
 }

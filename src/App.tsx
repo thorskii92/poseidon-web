@@ -94,10 +94,15 @@ export default function App() {
   // The browser tab title is static in index.html ("POSEIDON" — shared by
   // both a main and a satellite build), so it's set here instead, once,
   // regardless of sign-in state — same unauthenticated check the login
-  // screen and sidebar already use to brand themselves.
+  // screen and sidebar already use to brand themselves. The [data-satellite]
+  // attribute drives OSCARS's own color palette (see index.css's :root
+  // override) the same way — one flag, set once, at the document root.
   useEffect(() => {
     apiGet<{ isSatellite: boolean }>("/api/deployment")
-      .then((d) => { document.title = d.isSatellite ? "OSCARS" : "POSEIDON"; })
+      .then((d) => {
+        document.title = d.isSatellite ? "OSCARS" : "POSEIDON";
+        document.documentElement.toggleAttribute("data-satellite", d.isSatellite);
+      })
       .catch(() => {});
   }, []);
 
