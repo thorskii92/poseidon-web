@@ -312,6 +312,7 @@ export default function ReceiptsManagerPage() {
         <OrDetailModal
           number={selectedOr.number}
           serial={selectedOr.serial}
+          isSatellite={isSatellite}
           onClose={() => setSelectedOr(null)}
         />
       )}
@@ -351,8 +352,8 @@ function Pager({
  * ==================================================================== */
 
 function OrDetailModal({
-  number, serial, onClose,
-}: { number: string; serial: string; onClose: () => void }) {
+  number, serial, isSatellite, onClose,
+}: { number: string; serial: string; isSatellite: boolean; onClose: () => void }) {
   const qc = useQueryClient();
   const { can } = useAuth();
   const isAdmin = can("admin");
@@ -679,9 +680,11 @@ function OrDetailModal({
                 <>
                   {data.remark !== "Cancelled" && (
                     <>
-                      <button className="clear-filters" onClick={() => setMode("editAuth")}>
-                        Edit O.R.
-                      </button>
+                      {!isSatellite && (
+                        <button className="clear-filters" onClick={() => setMode("editAuth")}>
+                          Edit O.R.
+                        </button>
+                      )}
                       <button className="danger" onClick={() => setMode("cancel")}>
                         Cancel O.R.
                       </button>

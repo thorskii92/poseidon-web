@@ -27,7 +27,7 @@ const NAV: { label: string; to: string; perm: string | null; icon: IconComponent
   { label: "Adjustments", to: "/adjustments", perm: "adjustments", icon: IconSliders },
   { label: "Approvals", to: "/approvals", perm: "approvals", icon: IconCheckCircle },
   { label: "Disconnection", to: "/disconnection", perm: "disconnection", icon: IconPowerOff },
-  { label: "ECPay", to: "/ecpay", perm: "ecpay", icon: IconCreditCard },
+  { label: "ECPay", to: "/ecpay", perm: "ecpay", icon: IconCreditCard, mainOnly: true },
   { label: "Reports", to: "/reports", perm: "reports", icon: IconChartBar },
   { label: "User Management", to: "/users", perm: "users", icon: IconUsers },
   { label: "Settings", to: "/settings", perm: "settings", icon: IconGear },
