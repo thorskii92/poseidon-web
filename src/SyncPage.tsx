@@ -301,11 +301,11 @@ function BundlesPicker() {
   const [busyOgId, setBusyOgId] = useState<number | null>(null);
   const [actionError, setActionError] = useState("");
 
-  async function addBundle(ogId: number) {
+  async function addBundle(bundle: Bundle) {
     setActionError("");
-    setBusyOgId(ogId);
+    setBusyOgId(bundle.ogId);
     try {
-      await apiPost(`/api/sync/bundles/${ogId}/carry`, {});
+      await apiPost("/api/sync/bundles/carry", bundle);
       setRefreshKey((k) => k + 1);
     } catch (err) {
       setActionError((err as Error).message);
@@ -314,11 +314,11 @@ function BundlesPicker() {
     }
   }
 
-  async function removeBundle(ogId: number) {
+  async function removeBundle(bundle: Bundle) {
     setActionError("");
-    setBusyOgId(ogId);
+    setBusyOgId(bundle.ogId);
     try {
-      const r = await fetch(`/api/sync/bundles/${ogId}/carry`, { method: "DELETE" });
+      const r = await fetch(`/api/sync/bundles/${bundle.ogId}/carry`, { method: "DELETE" });
       if (!r.ok) throw new Error((await r.json().catch(() => null))?.error ?? "Could not remove that bundle");
       setRefreshKey((k) => k + 1);
     } catch (err) {
@@ -332,16 +332,17 @@ function BundlesPicker() {
     <section className="record-section">
       <div className="record-head"><h2>Bundles</h2></div>
       <p className="count">
-        Every O.R. bundle registered on main reaches this laptop on sync —
-        add the ones actually in the bag on this trip to Local; only those
-        are accepted at Collection. Bundles are registered and managed on
-        main; nothing here changes what main itself has reserved.
+        Main lists every bundle registered on main, live — nothing is
+        stored here until you add it. Add the ones actually in the bag on
+        this trip to Local; only those are accepted at Collection.
+        Bundles are registered and managed on main; nothing here changes
+        what main itself has reserved.
       </p>
       {actionError && <div className="form-error">{actionError}</div>}
       <div className="bundle-picker-columns">
         <BundleColumn
           title="Main"
-          sub="Not yet carried"
+          sub="Live from main — not yet carried"
           carried={false}
           refreshKey={refreshKey}
           actionLabel="Add Bundle"
@@ -370,7 +371,7 @@ function BundleColumn({
   carried: boolean;
   refreshKey: number;
   actionLabel: string;
-  onAction: (ogId: number) => void;
+  onAction: (bundle: Bundle) => void;
   busyOgId: number | null;
 }) {
   const [search, setSearch] = useState("");
@@ -458,7 +459,7 @@ function BundleColumn({
                   <button
                     className="link-button"
                     disabled={busyOgId === b.ogId}
-                    onClick={() => onAction(b.ogId)}
+                    onClick={() => onAction(b)}
                   >
                     {busyOgId === b.ogId ? "…" : actionLabel}
                   </button>
