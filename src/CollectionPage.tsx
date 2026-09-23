@@ -689,19 +689,29 @@ export default function CollectionPage() {
           rows={rows.filter((r) => checked[r.key] !== undefined)}
           amounts={checked}
           onClose={() => setPaying(false)}
-          onSaved={() => {
+          onSaved={async () => {
             setPaying(false);
             setChecked({});
             setExtras([]);
-            // Clear so the OR settings effect (which only ever fills an
-            // empty field, to avoid clobbering a clerk mid-typing) re-seeds
-            // from the freshly-incremented number the refetch below pulls in
-            // — otherwise the field would keep showing the just-used number.
-            setOrNumber("");
-            setOrSerial("");
             queryClient.invalidateQueries({ queryKey: ["collection-payables"] });
             queryClient.invalidateQueries({ queryKey: ["collection-history"] });
-            queryClient.invalidateQueries({ queryKey: ["collection-or"] });
+            // Explicitly fetched and applied directly — clearing the field
+            // and relying on the [orSettings] effect to re-seed it from a
+            // separately-invalidated refetch left it blank until a full
+            // page reload in practice (the two didn't reliably land in the
+            // same order every time), so this fetches the freshly-
+            // incremented number itself and sets it deterministically.
+            try {
+              const fresh = await queryClient.fetchQuery<OrSettings>({
+                queryKey: ["collection-or"],
+                queryFn: () => apiGet<OrSettings>("/api/collection/or"),
+              });
+              setOrNumber(fresh.orNumber);
+              setOrSerial(fresh.orSerial || fresh.serials[0] || "");
+            } catch {
+              // Best-effort — if this fails the clerk can still type the
+              // number in by hand, same as any other blank-field case.
+            }
           }}
         />
       )}
