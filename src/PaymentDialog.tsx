@@ -41,6 +41,14 @@ export default function PaymentDialog({
   const [error, setError] = useState("");
   const [result, setResult] = useState<PaymentResult | null>(null);
 
+  // The row itself already shows this warning (see CollectionPage.tsx), but
+  // that's a small inline note easy to miss when several items are checked
+  // — this is the "make sure they actually saw it" checkpoint right before
+  // money changes hands, not a second, separate warning.
+  const warnedRows = rows.filter((r) => r.fieldWarning);
+  const [acknowledged, setAcknowledged] = useState(false);
+  const needsAck = warnedRows.length > 0 && !acknowledged;
+
   const total = useMemo(
     () => rows.reduce((sum, r) => sum + (amounts[r.key] ?? r.amount), 0),
     [rows, amounts],
@@ -198,6 +206,24 @@ export default function PaymentDialog({
           </div>
         </header>
 
+        {warnedRows.length > 0 && (
+          <div className="form-notice field-warning-banner">
+            <strong>⚠ Before you continue:</strong>{" "}
+            {warnedRows.map((r) => `${r.nature} (${r.billPeriod ?? ""})`).join(", ")}{" "}
+            may already be handled by{" "}
+            {[...new Set(warnedRows.map((r) => r.fieldWarning))].join(", ")}.
+            Please confirm this hasn't already been paid before saving.
+            <label className="field-warning-ack">
+              <input
+                type="checkbox"
+                checked={acknowledged}
+                onChange={(e) => setAcknowledged(e.target.checked)}
+              />
+              I've checked — this account hasn't already been paid elsewhere.
+            </label>
+          </div>
+        )}
+
         <table className="data-table particulars">
           <thead>
             <tr>
@@ -295,14 +321,14 @@ export default function PaymentDialog({
         <div className="form-actions">
           <button
             className="primary"
-            disabled={saving || short || preview.length > 8}
+            disabled={saving || short || preview.length > 8 || needsAck}
             onClick={() => save(true)}
           >
             {saving ? "Saving…" : "Save and print"}
           </button>
           <button
             className="clear-filters"
-            disabled={saving || short || preview.length > 8}
+            disabled={saving || short || preview.length > 8 || needsAck}
             onClick={() => save(false)}
           >
             Save

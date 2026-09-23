@@ -2440,6 +2440,15 @@ button.primary.big {
   font-size: 14px;
 }
 
+.field-warning-ack {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 /* ---- payment dialog ---- */
 
 .payment-modal {
