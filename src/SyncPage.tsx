@@ -105,6 +105,17 @@ export default function SyncPage() {
     enabled: !!status?.isSatellite,
   });
 
+  // Just reachability, not whether a pull would actually succeed (see
+  // sync.ts's own comment) — polled so the badge doesn't need a manual
+  // reload to notice main coming back or going away mid-session.
+  const { data: mainStatus } = useQuery<{ connected: boolean }>({
+    queryKey: ["sync-main-status"],
+    queryFn: () => apiGet<{ connected: boolean }>("/api/sync/main-status"),
+    retry: false,
+    enabled: !!status?.isSatellite,
+    refetchInterval: 15_000,
+  });
+
 
   async function syncNow() {
     setRunning(true);
@@ -162,7 +173,12 @@ export default function SyncPage() {
             <div className="dash-kpis ecpay-kpis ecpay-kpis-4">
               <div className="dash-kpi">
                 <div className="dash-kpi-label">Main server</div>
-                <div className="dash-kpi-value" style={{ fontSize: 16 }}>{status.mainHost ?? "—"}</div>
+                <div className="dash-kpi-value" style={{ fontSize: 16, display: "flex", alignItems: "center", gap: 8 }}>
+                  {status.mainHost ?? "—"}
+                  <span className={mainStatus?.connected ? "badge connected" : "badge disconnected"} style={{ fontSize: 11 }}>
+                    {mainStatus === undefined ? "Checking…" : mainStatus.connected ? "Connected" : "Disconnected"}
+                  </span>
+                </div>
               </div>
               <div className="dash-kpi">
                 <div className="dash-kpi-label">Last synced</div>
