@@ -42,6 +42,15 @@ export type FieldKey =
   | "tickCash"
   | "tickCheck"
   | "tickMoneyOrder"
+  // Only ever one non-empty set at a time (Check has all three; Money
+  // Order has no drawee bank of its own, only a number and a date) —
+  // separate keys per row rather than one shared position, since Check
+  // and Money Order print on different rows of the same three columns.
+  | "draweeBankCheck"
+  | "draweeNumberCheck"
+  | "draweeDateCheck"
+  | "draweeNumberMO"
+  | "draweeDateMO"
   | "collector"
   | "orNumber"
   | "orSerial";
@@ -152,6 +161,26 @@ export const DEFAULT_OR_LAYOUT: OrLayout = {
       size: 10,
       bold: true,
       label: "Tick - Money order",
+    },
+    // Rough starting positions only — the Drawee Bank/Number/Date columns
+    // were never measured off the scan the way everything else here was.
+    // Same row heights as tickCheck/tickMoneyOrder so each prints level
+    // with its own checkbox; nudge these with Calibrate before relying on
+    // them.
+    draweeBankCheck: {
+      x: 1.85, y: 6.39, align: "left", size: 8, label: "Drawee bank (Check row)",
+    },
+    draweeNumberCheck: {
+      x: 2.75, y: 6.39, align: "left", size: 8, label: "Drawee number (Check row)",
+    },
+    draweeDateCheck: {
+      x: 3.55, y: 6.39, align: "left", size: 8, label: "Drawee date (Check row)",
+    },
+    draweeNumberMO: {
+      x: 2.75, y: 6.626, align: "left", size: 8, label: "Drawee number (Money order row)",
+    },
+    draweeDateMO: {
+      x: 3.55, y: 6.626, align: "left", size: 8, label: "Drawee date (Money order row)",
     },
     collector: {
       x: 2.165,

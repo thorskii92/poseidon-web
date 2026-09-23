@@ -25,6 +25,11 @@ type Receipt = {
   tendered: number;
   change: number;
   paymentType: string;
+  draweeBank: string | null;
+  draweeNum: string | null;
+  draweeDate: string | null;
+  moneyOrderNum: string | null;
+  moneyOrderDate: string | null;
   amountInWords: string;
   amountInWords1?: string;
   amountInWords2?: string;
@@ -226,6 +231,15 @@ export default function ReceiptPrint() {
     tickCash: data.paymentType === "Cash" ? "✔" : "",
     tickCheck: data.paymentType === "Check" ? "✔" : "",
     tickMoneyOrder: data.paymentType === "Money Order" ? "✔" : "",
+    // Check has its own bank/number/date; Money Order only ever has a
+    // number/date (no drawee bank of its own) — see collection.ts's /pay,
+    // which only ever populates one set or the other depending on which
+    // payment type was actually chosen.
+    draweeBankCheck: data.paymentType === "Check" ? (data.draweeBank ?? "") : "",
+    draweeNumberCheck: data.paymentType === "Check" ? (data.draweeNum ?? "") : "",
+    draweeDateCheck: data.paymentType === "Check" ? shortDate(data.draweeDate) : "",
+    draweeNumberMO: data.paymentType === "Money Order" ? (data.moneyOrderNum ?? "") : "",
+    draweeDateMO: data.paymentType === "Money Order" ? shortDate(data.moneyOrderDate) : "",
     collector: data.collector ?? "",
     orNumber: data.orNumber,
     orSerial: data.orSerial ?? "",
