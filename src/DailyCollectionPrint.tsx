@@ -201,7 +201,7 @@ export default function DailyCollectionPrint() {
                   <td>{r.period}</td>
                   <td className="soa-amt">{r.waterBill ? peso.format(r.waterBill) : ""}</td>
                   <td className="soa-amt">{r.pes ? peso.format(r.pes) : ""}</td>
-                  <td className="soa-amt">{r.disc ? peso.format(r.disc) : ""}</td>
+                  <td className="soa-amt">{r.disc ? `(${peso.format(r.disc)})` : ""}</td>
                   <td className="soa-amt">{r.pen ? peso.format(r.pen) : ""}</td>
                   <td className="soa-amt">{r.connFee ? peso.format(r.connFee) : ""}</td>
                   <td className="soa-amt">{r.reconnFee ? peso.format(r.reconnFee) : ""}</td>
@@ -216,7 +216,7 @@ export default function DailyCollectionPrint() {
               <td colSpan={6} className="soa-total-label">Total</td>
               <td className="soa-amt">{peso.format(totals.waterBill)}</td>
               <td className="soa-amt">{peso.format(totals.pes)}</td>
-              <td className="soa-amt">{peso.format(totals.disc)}</td>
+              <td className="soa-amt">{totals.disc ? `(${peso.format(totals.disc)})` : peso.format(totals.disc)}</td>
               <td className="soa-amt">{peso.format(totals.pen)}</td>
               <td className="soa-amt">{peso.format(totals.connFee)}</td>
               <td className="soa-amt">{peso.format(totals.reconnFee)}</td>
