@@ -42,7 +42,9 @@ import JobOrderRegisterDialog from "./JobOrderRegisterDialog";
 import JobOrderTurnaroundDialog from "./JobOrderTurnaroundDialog";
 import JobOrderCompletionDetailDialog from "./JobOrderCompletionDetailDialog";
 import IPAllocationDialog from "./IPAllocationDialog";
-import { IconClock, IconIdCard, IconListOrdered } from "./NavIcons";
+import MonthReportDialog from "./MonthReportDialog";
+import { useAuth } from "./AuthContext";
+import { IconClock, IconIdCard, IconListOrdered, IconMegaphone } from "./NavIcons";
 import {
   IconReceipt, IconInvoice, IconUsers, IconWrench, IconTrendUp,
   IconCalendarBars, IconDroplet, type IconProps,
@@ -75,10 +77,12 @@ export default function ReportsPage() {
     "main-monthly-collection" | "collection-by-nature" | "penalty-collection" | "main-senior-discount" | "channel-summary" | "collector-accountability" |
     "consumption-brackets" | "billing-completeness" | "environmental-fee" | "consumption-trend" |
     "field-staff-activity" | "adjustment-processing" | "job-order-register" | "job-order-turnaround" | "job-order-completion-detail" |
-    "ip-allocation" | "collections-deposit" | null
+    "ip-allocation" | "collections-deposit" |
+    "incident-register" | "incident-response" | "mobile-adjustment-requests" | null
   >(null);
+  const { can } = useAuth();
 
-  const CATEGORIES: Category[] = [
+  const ALL_CATEGORIES: Category[] = [
     {
       title: "Collection Reports",
       icon: IconReceipt,
@@ -166,7 +170,28 @@ export default function ReportsPage() {
         { title: "Job Order Completion Detail Report", note: "Field results for completed job orders — meter and standpipe readings, materials used and findings, by who completed them.", icon: IconWrench, action: { kind: "dialog", open: () => setDialog("job-order-completion-detail") } },
       ],
     },
+    {
+      // Each also needs the page it reports on (see poseidon-api's
+      // mobileAppReports.ts), so a card only shows to roles that can open it.
+      title: "Mobile App Reports",
+      icon: IconMegaphone,
+      reports: [
+        ...(can("incidents")
+          ? [
+              { title: "Incident Report Register", note: "Every incident reported from the mobile app in one month — leaks, pipe theft, illegal connections — by category and status.", icon: IconMegaphone, action: { kind: "dialog" as const, open: () => setDialog("incident-register") } },
+              { title: "Incident Response Time Report", note: "How quickly incident reports were first acted on and closed, by category and staff member, and which are still open.", icon: IconClock, action: { kind: "dialog" as const, open: () => setDialog("incident-response") } },
+            ]
+          : []),
+        ...(can("adjustments")
+          ? [
+              { title: "Mobile Adjustment Requests Report", note: "Bill adjustment requests sent from the mobile app — how many were accepted or declined, how long decisions took, and where accepted ones stand.", icon: IconInvoice, action: { kind: "dialog" as const, open: () => setDialog("mobile-adjustment-requests") } },
+            ]
+          : []),
+      ],
+    },
   ];
+  // A category left with no cards for this role isn't shown at all.
+  const CATEGORIES = ALL_CATEGORIES.filter((c) => c.reports.length > 0);
 
   // A satellite keeps exactly one report — everything else needs main's
   // full dataset or doesn't make sense in the field. Checked the same
@@ -393,6 +418,30 @@ export default function ReportsPage() {
       )}
       {dialog === "ip-allocation" && (
         <IPAllocationDialog onClose={() => setDialog(null)} />
+      )}
+      {dialog === "incident-register" && (
+        <MonthReportDialog
+          title="Incident Report Register"
+          blurb="Every incident reported from the mobile app in the chosen month, by category and status."
+          printPath="/reports/incident-register/print"
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog === "incident-response" && (
+        <MonthReportDialog
+          title="Incident Response Time Report"
+          blurb="How quickly the month's incident reports were first acted on and closed, by category and staff member, plus every report still open."
+          printPath="/reports/incident-response/print"
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog === "mobile-adjustment-requests" && (
+        <MonthReportDialog
+          title="Mobile Adjustment Requests Report"
+          blurb="Bill adjustment requests sent from the mobile app in the chosen month — decisions, how long they took, and where accepted ones stand."
+          printPath="/reports/mobile-adjustment-requests/print"
+          onClose={() => setDialog(null)}
+        />
       )}
     </div>
   );

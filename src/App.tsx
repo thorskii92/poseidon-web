@@ -38,6 +38,9 @@ import SyncPage from "./SyncPage";
 import SyncConflictsPage from "./SyncConflictsPage";
 import ITDashboardPage from "./ITDashboardPage";
 import IncidentReportsPage from "./IncidentReportsPage";
+import IncidentRegisterPrint from "./IncidentRegisterPrint";
+import IncidentResponsePrint from "./IncidentResponsePrint";
+import MobileAdjustmentRequestsPrint from "./MobileAdjustmentRequestsPrint";
 import AbstractMonthlyCollectionPrint from "./AbstractMonthlyCollectionPrint";
 import MonthlyConsumptionPrint from "./MonthlyConsumptionPrint";
 import AnnualFinancialPerformancePrint from "./AnnualFinancialPerformancePrint";
@@ -175,6 +178,9 @@ export default function App() {
           element={<ECPaySeniorDiscountReportPrint />}
         />
         <Route path="/joborders/:joId/print" element={<JobOrderPrint />} />
+        <Route path="/reports/incident-register/print" element={<IncidentRegisterPrint />} />
+        <Route path="/reports/incident-response/print" element={<IncidentResponsePrint />} />
+        <Route path="/reports/mobile-adjustment-requests/print" element={<MobileAdjustmentRequestsPrint />} />
         <Route
           path="/reports/abstract-monthly-collection/print"
           element={<AbstractMonthlyCollectionPrint />}
