@@ -6,4 +6,8 @@ export default defineConfig({
   server: {
     proxy: { "/api": "http://localhost:3001" },
   },
+  preview: {
+    allowedHosts: true,
+    proxy: { "/api": "http://localhost:3001" },
+  },
 });
