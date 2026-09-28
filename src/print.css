@@ -643,6 +643,24 @@
   font-size: 8.5pt;
 }
 
+/* Daily Collection Report: one line per receipt, like the desktop's own
+   report — wrapped names and "September '26" were doubling every row's
+   height. Headers may still wrap ("Connection Fee"); body cells never do. */
+.soa-table.dcr-table {
+  font-size: 7pt;
+  line-height: 1.15;
+}
+
+.soa-table.dcr-table th,
+.soa-table.dcr-table td {
+  padding: 1px 2px;
+  vertical-align: middle;
+}
+
+.soa-table.dcr-table td {
+  white-space: nowrap;
+}
+
 .soa-analytics {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -698,13 +716,282 @@
   }
 }
 
-/* Forces a fresh sheet before a section — used where a report's own paper
-   original is a multi-page form (e.g. the Report of Collections and
-   Deposit's accountability table sits on its own page). */
-.report-page-break {
-  break-before: page;
-  page-break-before: always;
+/* ---- Report of Collections and Deposit ----
+   A specific COA-style LGU treasury form, reproduced fixed and black-and-
+   white to match the paper original (see CollectionsDepositReportPrint.tsx)
+   rather than this app's usual colored soa-* look. Its own class family
+   (rcd-*) instead of soa-* because it needs fixed-layout tables with a set
+   row count and no color, and its two pages are fixed by design (portrait
+   then landscape) rather than picked via the shared paper/orientation/scale
+   controls every other report uses. */
+
+.rcd-page {
+  box-sizing: border-box;
+  width: 8.5in;
+  margin: 0 auto 24px;
+  padding: 0.45in 0.55in;
+  background: #fff;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10pt;
+  color: #000;
+  break-after: page;
+  page-break-after: always;
 }
+
+.rcd-page:last-child {
+  break-after: auto;
+  page-break-after: auto;
+}
+
+/* Selects the `rcd-landscape` named @page rule the component injects at
+   runtime — Chromium print honors per-element page selection via this
+   `page` property, so page two prints on a landscape sheet while page one
+   stays portrait. */
+.rcd-page-landscape {
+  width: 11in;
+  page: rcd-landscape;
+}
+
+/* The form's outer border. Tables inside are pulled 1px past each side so
+   their own edge borders sit exactly on top of it, instead of doubling up
+   next to it. */
+.rcd-box {
+  border: 1px solid #000;
+}
+
+.rcd-box > .rcd-table {
+  width: calc(100% + 2px);
+  margin: 0 -1px;
+}
+
+.rcd-box > .rcd-table-first {
+  margin-top: -1px;
+}
+
+.rcd-box > .rcd-table-last {
+  margin-bottom: -1px;
+}
+
+.rcd-head {
+  padding-top: 6px;
+  text-align: center;
+  line-height: 1.25;
+}
+
+.rcd-title {
+  font-size: 14.5pt;
+  text-transform: uppercase;
+}
+
+.rcd-muni {
+  font-size: 12pt;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.rcd-lgu {
+  font-size: 10pt;
+}
+
+.rcd-meta {
+  margin-top: 0.55in;
+  padding: 0 2px 16px;
+  border-bottom: 1px solid #000;
+}
+
+.rcd-meta-row {
+  display: grid;
+  grid-template-columns: 1fr 34%;
+  align-items: baseline;
+}
+
+.rcd-meta-row + .rcd-meta-row {
+  margin-top: 18px;
+}
+
+.rcd-meta-row small {
+  font-size: 8.5pt;
+}
+
+.rcd-officer {
+  margin-left: 0.4in;
+  text-transform: uppercase;
+}
+
+.rcd-section {
+  margin: 22px 0 0 2px;
+  font-weight: 700;
+}
+
+.rcd-sub {
+  margin: 0 0 0 0.28in;
+}
+
+.rcd-gap {
+  margin-top: 22px;
+}
+
+.rcd-table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 10pt;
+}
+
+.rcd-table th,
+.rcd-table td {
+  height: 0.23in;
+  padding: 0 5px;
+  border: 1px solid #000;
+  font-weight: 400;
+  text-align: center;
+  vertical-align: middle;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.rcd-table .rcd-l {
+  text-align: left;
+}
+
+.rcd-table .rcd-r {
+  text-align: right;
+}
+
+.rcd-table .rcd-b {
+  font-weight: 700;
+}
+
+.rcd-total {
+  font-weight: 700;
+  letter-spacing: 2.5pt;
+}
+
+/* ---- Page two ---- */
+
+.rcd-page-landscape .rcd-table {
+  font-size: 9pt;
+}
+
+.rcd-page-landscape .rcd-table th,
+.rcd-page-landscape .rcd-table td {
+  height: 0.2in;
+}
+
+.rcd-summary-block {
+  padding: 4px 2px 12px;
+}
+
+.rcd-summary {
+  width: 7in;
+  margin: 6px 0 0 0.28in;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.rcd-summary td {
+  height: 0.21in;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+
+.rcd-summary .rcd-amt {
+  text-align: right;
+}
+
+.rcd-summary td.rcd-underline {
+  border-bottom: 1px solid #000;
+}
+
+.rcd-blank {
+  display: inline-block;
+  border-bottom: 1px solid #000;
+  vertical-align: bottom;
+}
+
+.rcd-signoff {
+  display: flex;
+  min-height: 1.8in;
+  border-top: 1px solid #000;
+}
+
+.rcd-cert,
+.rcd-verify {
+  display: flex;
+  flex-direction: column;
+  padding: 3px 6px 6px;
+}
+
+.rcd-cert {
+  flex: 0 0 36%;
+  border-right: 1px solid #000;
+}
+
+.rcd-verify {
+  flex: 1 1 auto;
+}
+
+.rcd-signoff-title {
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.rcd-signoff p {
+  margin: 12px 0 0;
+  text-indent: 0.35in;
+  line-height: 1.35;
+}
+
+.rcd-ack-amt {
+  display: inline-block;
+  min-width: 1.4in;
+  text-align: center;
+}
+
+.rcd-cert-sign {
+  display: flex;
+  align-items: flex-start;
+  margin-top: auto;
+  padding-top: 0.5in;
+}
+
+.rcd-cert-sign > div {
+  flex: 1 1 auto;
+}
+
+.rcd-cert-date {
+  flex: 0 0 auto;
+  font-weight: 700;
+}
+
+.rcd-verify-signs {
+  display: flex;
+  margin-top: auto;
+  padding-top: 0.5in;
+}
+
+.rcd-verify-signs > div {
+  flex: 1 1 0;
+  text-align: center;
+}
+
+.rcd-name {
+  display: block;
+  min-height: 1.2em;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+@media print {
+  .rcd-page {
+    width: auto;
+    margin: 0;
+    padding: 0;
+  }
+}
+
 
 /* ---- Account Transaction History ----------------------------------- *
  * Shares the statement's sheet, masthead, tables and signature block, so the
