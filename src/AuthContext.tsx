@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { SIGNED_OUT_EVENT } from "./api";
+import { clearViewState } from "./useViewState";
 
 type User = {
   id: number;
@@ -65,6 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     function handleSignedOut() {
       setUser(null);
       queryClient.clear();
+      clearViewState();
     }
 
     window.addEventListener(SIGNED_OUT_EVENT, handleSignedOut);
@@ -100,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     // Don't leave one user's accounts in the cache for the next sign-in.
     queryClient.clear();
+    clearViewState();
   }
 
   function can(permission: string) {
