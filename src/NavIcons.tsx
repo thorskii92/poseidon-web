@@ -182,6 +182,17 @@ export function IconSidebar({ size = 20, collapsed = false }: IconProps & { coll
   );
 }
 
+/** Incident Reports — a megaphone: something the public called in. */
+export function IconMegaphone({ size = 20 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...base}>
+      <path d="M4 10v4a1 1 0 0 0 1 1h2l6 4V5L7 9H5a1 1 0 0 0-1 1Z" />
+      <path d="M7 15l1.2 4.2a1 1 0 0 0 1 .8h1.3" />
+      <path d="M16.5 9.5a3.5 3.5 0 0 1 0 5M19 7a7 7 0 0 1 0 10" />
+    </svg>
+  );
+}
+
 export function IconAlertTriangle({ size = 20 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" {...base}>

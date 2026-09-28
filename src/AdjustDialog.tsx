@@ -45,6 +45,8 @@ export default function AdjustDialog({
   facts,
   onClose,
   onRequested,
+  prefill,
+  mobileRequestId,
 }: {
   billId: number;
   /** The bill row the Bills tab already has, so nothing is re-fetched. */
@@ -65,11 +67,15 @@ export default function AdjustDialog({
   };
   onClose: () => void;
   onRequested: (adjID: number) => void;
+  /** What the consumer already typed, when accepting a mobile-app request. */
+  prefill?: { reason: string; remarks: string; requestedBy: string; contactNo: string };
+  /** Links the new request to the mobile one it accepts (same transaction). */
+  mobileRequestId?: number;
 }) {
-  const [reason, setReason] = useState("");
-  const [remarks, setRemarks] = useState("");
-  const [requestedBy, setRequestedBy] = useState("");
-  const [contactNo, setContactNo] = useState("");
+  const [reason, setReason] = useState(prefill?.reason ?? "");
+  const [remarks, setRemarks] = useState(prefill?.remarks ?? "");
+  const [requestedBy, setRequestedBy] = useState(prefill?.requestedBy ?? "");
+  const [contactNo, setContactNo] = useState(prefill?.contactNo ?? "");
   const [preparedBy, setPreparedBy] = useState("");
   const [approverId, setApproverId] = useState("");
   const [busy, setBusy] = useState(false);
@@ -103,6 +109,7 @@ export default function AdjustDialog({
           contactNo,
           preparedBy,
           approverId: Number(approver) || null,
+          mobileRequestId: mobileRequestId ?? null,
         },
       );
       onRequested(r.adjID);
@@ -130,6 +137,7 @@ export default function AdjustDialog({
         <h2 className="modal-title">Request Bill Adjustment</h2>
         <p className="modal-sub">
           Bill #{billId} · {facts.period}
+          {mobileRequestId ? " · from the mobile app" : ""}
         </p>
 
         {gateLoading && <p className="count">Checking this bill…</p>}

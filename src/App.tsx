@@ -37,6 +37,7 @@ import ReportsPage from "./ReportsPage";
 import SyncPage from "./SyncPage";
 import SyncConflictsPage from "./SyncConflictsPage";
 import ITDashboardPage from "./ITDashboardPage";
+import IncidentReportsPage from "./IncidentReportsPage";
 import AbstractMonthlyCollectionPrint from "./AbstractMonthlyCollectionPrint";
 import MonthlyConsumptionPrint from "./MonthlyConsumptionPrint";
 import AnnualFinancialPerformancePrint from "./AnnualFinancialPerformancePrint";
@@ -395,6 +396,7 @@ export default function App() {
                 <Route path="/sync" element={<SyncPage />} />
                 <Route path="/sync-conflicts" element={<SyncConflictsPage />} />
                 <Route path="/it" element={<ITDashboardPage />} />
+                <Route path="/incidents" element={<IncidentReportsPage />} />
               </Routes>
             </Layout>
           }

@@ -3,6 +3,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPost } from "./api";
 import AdminAuth from "./AdminAuth";
 import EditBillsDialog from "./EditBillsDialog";
+import MobileAdjustmentRequests from "./MobileAdjustmentRequests";
+import { useMobileInbox } from "./mobileInbox";
 import { useDebounce } from "./useDebounce";
 import {
   peso,
@@ -387,6 +389,10 @@ export default function AdjustmentsPage() {
   const [notice, setNotice] = useState("");
   const [onlyMismatched, setOnlyMismatched] = useState(false);
   const [repairIds, setRepairIds] = useState<number[] | null>(null);
+  // The Mobile Requests tab — requests consumers sent from the mobile app,
+  // waiting on a call before they become real requests.
+  const [mobile, setMobile] = useState(false);
+  const { data: inbox } = useMobileInbox();
   const debouncedSearch = useDebounce(search, 300);
 
   const { data: ctx } = useQuery<Context>({
@@ -460,19 +466,36 @@ export default function AdjustmentsPage() {
             the approving officer.
           </p>
         </div>
-        <div className="detail-head-right">
-          <button
-            className={finished ? "primary small" : "clear-filters"}
-            onClick={() => {
-              setFinished(!finished);
-              setStatus("");
-              setOnlyMismatched(false);
-              setPage(1);
-            }}
-          >
-            {finished ? "Show open requests" : "Show finished transactions"}
-          </button>
-        </div>
+      </div>
+
+      <div className="stage-tabs">
+        {(
+          [
+            { key: "open", label: "Open requests" },
+            { key: "finished", label: "Finished transactions" },
+            { key: "mobile", label: "Mobile requests" },
+          ] as const
+        ).map((t) => {
+          const current = t.key === "mobile" ? mobile : !mobile && finished === (t.key === "finished");
+          return (
+            <button
+              key={t.key}
+              className={current ? "stage-tab current" : "stage-tab"}
+              onClick={() => {
+                setMobile(t.key === "mobile");
+                if (t.key !== "mobile") setFinished(t.key === "finished");
+                setStatus("");
+                setOnlyMismatched(false);
+                setPage(1);
+              }}
+            >
+              {t.label}
+              {t.key === "mobile" && !!inbox?.adjustmentRequests && (
+                <span className="stage-count">{inbox.adjustmentRequests}</span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {notice && (
@@ -481,6 +504,10 @@ export default function AdjustmentsPage() {
         </div>
       )}
 
+      {mobile ? (
+        <MobileAdjustmentRequests onChanged={setNotice} />
+      ) : (
+      <>
       <div className="filter-row">
         <label className="field-input">
           <span>Stage</span>
@@ -706,6 +733,8 @@ export default function AdjustmentsPage() {
           </div>
         )}
       </section>
+      </>
+      )}
 
       {open && detail && ctx && open.mode === "inspect" && (
         <InspectionDialog
