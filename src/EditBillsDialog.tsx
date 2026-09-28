@@ -47,8 +47,17 @@ type LoadedBill = {
   seniorCount: number;
   newerBills: number;
   blockedBy: string[];
+  /** Set for an adjusted bill whose figures don't add up — the only kind of
+   *  adjusted bill this dialog lets through, to be repaired. */
+  repair: { parts: number; charged: number; chargedAfterDue: number; penalty: number } | null;
   fields: BillFields;
 };
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
+/** WSF + E.F. − discount — what the bill amount must equal for Collection
+ *  to accept it (see bill-edit's "doesn't add up" check). */
+const parts = (f: BillFields) => round2(f.wsf + f.enviFee - f.discount);
+const addsUp = (f: BillFields) => Math.abs(parts(f) - round2(f.billAmount)) <= 0.01;
 
 type EditRow = LoadedBill & {
   mode: "Automatic" | "Manual";
@@ -129,7 +138,9 @@ export default function EditBillsDialog({
             .filter((b) => !b.blockedBy.length)
             .map((b) => ({
               ...b,
-              mode: "Automatic" as const,
+              // Automatic would recompute from the readings and throw the
+              // adjustment away; a repair keeps the adjusted amount.
+              mode: b.repair ? ("Manual" as const) : ("Automatic" as const),
               original: { ...b.fields },
               updateMeterReference: false,
             })),
@@ -382,6 +393,14 @@ export default function EditBillsDialog({
                                 {r.newerBills === 1 ? "bill" : "bills"}
                               </span>
                             )}
+                            {r.repair && (
+                              <span
+                                className="edited"
+                                title="An adjusted bill whose figures don't add up — editable only so it can be repaired"
+                              >
+                                adjusted · doesn't add up
+                              </span>
+                            )}
                             <span className="cell-sub">{r.accountNo}</span>
                           </td>
                           <td>
@@ -495,6 +514,54 @@ export default function EditBillsDialog({
                             </button>
                           </td>
                         </tr>
+
+                        {r.repair && (
+                          <tr className="row-detail">
+                            <td colSpan={11} className={`repair-bar ${addsUp(f) ? "fixed" : ""}`}>
+                              {addsUp(f) ? (
+                                <span>
+                                  <strong>Adds up now</strong> — WSF {peso.format(f.wsf)} + E.F.{" "}
+                                  {peso.format(f.enviFee)} − discount {peso.format(f.discount)} ={" "}
+                                  {peso.format(f.billAmount)}. Past due it will be{" "}
+                                  {peso.format(f.billAmount + f.penalty)} with the penalty.
+                                </span>
+                              ) : (
+                                <span>
+                                  <strong>Doesn't add up:</strong> WSF + E.F. − discount ={" "}
+                                  {peso.format(parts(f))}, but the bill amount is{" "}
+                                  {peso.format(f.billAmount)} (off by{" "}
+                                  {peso.format(Math.abs(parts(f) - f.billAmount))}).
+                                </span>
+                              )}
+                              {!addsUp(f) && (
+                                <span className="repair-actions">
+                                  <button
+                                    className="link-button"
+                                    title="Keep the adjusted bill amount and change the WSF so the breakdown matches it"
+                                    onClick={() =>
+                                      edit(r.billId, {
+                                        wsf: round2(f.billAmount - f.enviFee + f.discount),
+                                      })
+                                    }
+                                  >
+                                    Fit WSF to {peso.format(f.billAmount)}
+                                  </button>
+                                  <button
+                                    className="link-button"
+                                    title="Keep the breakdown and change the bill amount to match it"
+                                    onClick={() => edit(r.billId, { billAmount: parts(f) })}
+                                  >
+                                    Set bill amount to {peso.format(parts(f))}
+                                  </button>
+                                </span>
+                              )}
+                              <span className="count">
+                                Was charging {peso.format(r.repair.charged)}
+                                {r.repair.penalty ? ` (penalty ${peso.format(r.repair.penalty)} — check it matches the adjusted amount)` : ""}
+                              </span>
+                            </td>
+                          </tr>
+                        )}
 
                         {r.newerBills === 0 &&
                           f.presRead !== r.original.presRead && (
@@ -691,7 +758,8 @@ export default function EditBillsDialog({
           <button
             className="primary"
             disabled={
-              saving || !rows.length || !reason.trim() || !username || !password
+              saving || !rows.length || !reason.trim() || !username || !password ||
+              rows.some((r) => r.repair && !addsUp(r.fields))
             }
             onClick={save}
           >
@@ -705,6 +773,11 @@ export default function EditBillsDialog({
           {rows.length > 0 && (!reason.trim() || !username || !password) && (
             <span className="count">
               A reason and an administrator's credentials are required.
+            </span>
+          )}
+          {rows.some((r) => r.repair && !addsUp(r.fields)) && (
+            <span className="count">
+              Every adjusted bill being repaired has to add up before it can be saved.
             </span>
           )}
         </div>

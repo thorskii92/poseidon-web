@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPost } from "./api";
 import AdminAuth from "./AdminAuth";
+import EditBillsDialog from "./EditBillsDialog";
 import { useDebounce } from "./useDebounce";
 import {
   peso,
@@ -51,6 +52,10 @@ type Row = {
   inspector: string;
   approvedOn: string | null;
   adjustedOn: string | null;
+  paid: boolean;
+  /** A finished adjustment on an unpaid bill whose figures don't add up —
+   *  Collection refuses it until it's repaired in Edit Bills. */
+  mismatch: { parts: number; charged: number; chargedAfterDue: number; penalty: number } | null;
 };
 
 function InspectionDialog({
@@ -380,6 +385,8 @@ export default function AdjustmentsPage() {
   const [page, setPage] = useState(1);
   const [open, setOpen] = useState<{ adjID: number; mode: string } | null>(null);
   const [notice, setNotice] = useState("");
+  const [onlyMismatched, setOnlyMismatched] = useState(false);
+  const [repairIds, setRepairIds] = useState<number[] | null>(null);
   const debouncedSearch = useDebounce(search, 300);
 
   const { data: ctx } = useQuery<Context>({
@@ -395,11 +402,13 @@ export default function AdjustmentsPage() {
   if (brgyID) query.set("brgyID", brgyID);
   if (clusterID) query.set("clusterID", clusterID);
   if (debouncedSearch) query.set("search", debouncedSearch);
+  if (finished && onlyMismatched) query.set("mismatch", "1");
 
   const { data, isLoading } = useQuery<{
     page: number;
     pages: number;
     total: number;
+    mismatchCount: number;
     rows: Row[];
   }>({
     queryKey: ["adjust-list", query.toString()],
@@ -457,6 +466,7 @@ export default function AdjustmentsPage() {
             onClick={() => {
               setFinished(!finished);
               setStatus("");
+              setOnlyMismatched(false);
               setPage(1);
             }}
           >
@@ -535,10 +545,47 @@ export default function AdjustmentsPage() {
           />
         </label>
 
+        {finished && (
+          <label className="toolbar-check" style={{ alignSelf: "center" }}>
+            <input
+              type="checkbox"
+              checked={onlyMismatched}
+              onChange={(e) => {
+                setOnlyMismatched(e.target.checked);
+                setPage(1);
+              }}
+            />
+            Only unpaid bills that don't add up
+          </label>
+        )}
+
         <span className="count">
           {data ? `${data.total} request${data.total === 1 ? "" : "s"}` : ""}
         </span>
       </div>
+
+      {finished && !!data?.mismatchCount && !onlyMismatched && (
+        <div className="adj-mismatch-banner">
+          <span>
+            <strong>
+              {data.mismatchCount} adjusted bill{data.mismatchCount === 1 ? "" : "s"} still unpaid and
+              {data.mismatchCount === 1 ? " doesn't" : " don't"} add up.
+            </strong>{" "}
+            The amount charged doesn't match the water bill, fee and discount on the bill, so Collection
+            will refuse {data.mismatchCount === 1 ? "it" : "them"} until repaired.
+          </span>
+          <button
+            className="primary small"
+            onClick={() => {
+              setOnlyMismatched(true);
+              setStatus("");
+              setPage(1);
+            }}
+          >
+            Show {data.mismatchCount === 1 ? "it" : "them"}
+          </button>
+        </div>
+      )}
 
       <section className="record-section">
         {isLoading && <p className="count">Loading…</p>}
@@ -595,6 +642,17 @@ export default function AdjustmentsPage() {
                       >
                         {STAGE_LABEL[r.status] ?? r.status}
                       </span>
+                      {r.mismatch && (
+                        <span
+                          className="badge pending adj-mismatch-pill"
+                          title={
+                            `Charges ${peso.format(r.mismatch.charged)}, but water bill + fee − discount = ` +
+                            `${peso.format(r.mismatch.parts)}`
+                          }
+                        >
+                          Doesn't add up
+                        </span>
+                      )}
                     </td>
                     <td className="adj-row-actions">
                       <button
@@ -605,6 +663,11 @@ export default function AdjustmentsPage() {
                       >
                         Form
                       </button>
+                      {r.mismatch && (
+                        <button className="primary small" onClick={() => setRepairIds([r.billId])}>
+                          Repair
+                        </button>
+                      )}
                       {a && (
                         <button
                           className="primary small"
@@ -658,6 +721,16 @@ export default function AdjustmentsPage() {
           ctx={ctx}
           onClose={() => setOpen(null)}
           onDone={() => refresh("The bill has been adjusted.")}
+        />
+      )}
+      {repairIds && (
+        <EditBillsDialog
+          billIds={repairIds}
+          onClose={() => setRepairIds(null)}
+          onSaved={() => {
+            setRepairIds(null);
+            refresh("The bill has been repaired and can now be collected.");
+          }}
         />
       )}
       {open && detail && open.mode === "clear" && (
