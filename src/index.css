@@ -946,6 +946,21 @@ tbody tr.row-selected td {
   overflow-y: auto;
 }
 
+/* The right-hand panel beside .groups (Receipts Manager's O.R. list) — same
+   70vh cap, with its inner table scroll stretching to fill it instead of
+   stopping at .batch-scroll's own fixed 460px. */
+.groups-partner {
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.groups-partner .batch-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+}
+
 .group-controls {
   display: flex;
   align-items: flex-end;

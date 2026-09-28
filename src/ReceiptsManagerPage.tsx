@@ -248,7 +248,7 @@ export default function ReceiptsManagerPage() {
           )}
         </section>
 
-        <section className="record-section">
+        <section className="record-section groups-partner">
           {ogId === null ? (
             <p className="count">Select a bundle to see its O.R. numbers.</p>
           ) : rowsLoading ? (
