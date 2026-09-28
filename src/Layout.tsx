@@ -10,7 +10,7 @@ import { IconReceipt, IconInvoice, IconUsers, IconWrench, IconDroplet, type Icon
 import {
   IconGrid, IconIdCard, IconWallet, IconClock, IconSliders, IconCheckCircle,
   IconPowerOff, IconCreditCard, IconChartBar, IconGear, IconGauge, IconLayers, IconListOrdered,
-  IconRefresh, IconAlertTriangle,
+  IconRefresh, IconAlertTriangle, IconServer,
 } from "./NavIcons";
 
 type IconComponent = (p: IconProps) => JSX.Element;
@@ -38,6 +38,7 @@ const NAV: { label: string; to: string; perm: string | null; icon: IconComponent
   { label: "Settings", to: "/settings", perm: "settings", icon: IconGear },
   { label: "Synchronization", to: "/sync", perm: "sync", icon: IconRefresh, satelliteOnly: true },
   { label: "Sync Conflicts", to: "/sync-conflicts", perm: "sync", icon: IconAlertTriangle, mainOnly: true },
+  { label: "IT Dashboard", to: "/it", perm: "it", icon: IconServer },
 ];
 
 const SOON: { label: string; icon: IconComponent }[] = [

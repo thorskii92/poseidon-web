@@ -150,6 +150,18 @@ export function IconRefresh({ size = 20 }: IconProps) {
   );
 }
 
+export function IconServer({ size = 20 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...base}>
+      <rect x="3.5" y="4" width="17" height="7" rx="1.5" />
+      <rect x="3.5" y="13" width="17" height="7" rx="1.5" />
+      <circle cx="7.3" cy="7.5" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="7.3" cy="16.5" r="0.9" fill="currentColor" stroke="none" />
+      <path d="M11 7.5h6M11 16.5h6" />
+    </svg>
+  );
+}
+
 export function IconAlertTriangle({ size = 20 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" {...base}>
