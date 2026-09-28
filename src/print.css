@@ -698,6 +698,14 @@
   }
 }
 
+/* Forces a fresh sheet before a section — used where a report's own paper
+   original is a multi-page form (e.g. the Report of Collections and
+   Deposit's accountability table sits on its own page). */
+.report-page-break {
+  break-before: page;
+  page-break-before: always;
+}
+
 /* ---- Account Transaction History ----------------------------------- *
  * Shares the statement's sheet, masthead, tables and signature block, so the
  * two documents read as one record. Only the section headings, the gap rows

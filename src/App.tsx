@@ -18,6 +18,7 @@ import AdjustmentsPage from "./AdjustmentsPage";
 import ApprovalsPage from "./ApprovalsPage";
 import ReceiptsManagerPage from "./ReceiptsManagerPage";
 import DailyCollectionPrint from "./DailyCollectionPrint";
+import CollectionsDepositReportPrint from "./CollectionsDepositReportPrint";
 import ECPayDailyCollectionReportPrint from "./ECPayDailyCollectionReportPrint";
 import ECPayMonthlyCollectionReportPrint from "./ECPayMonthlyCollectionReportPrint";
 import ECPayAnnualCollectionReportPrint from "./ECPayAnnualCollectionReportPrint";
@@ -138,6 +139,10 @@ export default function App() {
         <Route
           path="/receipts/daily-collection/print"
           element={<DailyCollectionPrint />}
+        />
+        <Route
+          path="/receipts/collections-deposit/print"
+          element={<CollectionsDepositReportPrint />}
         />
         <Route
           path="/ecpay/reports/daily-collection/print"

@@ -2,6 +2,7 @@ import { useState, type JSX } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "./api";
 import DailyReportDialog from "./DailyReportDialog";
+import CollectionsDepositReportDialog from "./CollectionsDepositReportDialog";
 import YearReportDialog from "./YearReportDialog";
 import ORAccountabilityDialog from "./ORAccountabilityDialog";
 import MonthlyBillingOverviewDialog from "./MonthlyBillingOverviewDialog";
@@ -74,7 +75,7 @@ export default function ReportsPage() {
     "main-monthly-collection" | "collection-by-nature" | "penalty-collection" | "main-senior-discount" | "channel-summary" | "collector-accountability" |
     "consumption-brackets" | "billing-completeness" | "environmental-fee" | "consumption-trend" |
     "field-staff-activity" | "adjustment-processing" | "job-order-register" | "job-order-turnaround" | "job-order-completion-detail" |
-    "ip-allocation" | null
+    "ip-allocation" | "collections-deposit" | null
   >(null);
 
   const CATEGORIES: Category[] = [
@@ -83,6 +84,7 @@ export default function ReportsPage() {
       icon: IconReceipt,
       reports: [
         { title: "Daily Collection Report", note: "Every payment on an O.R. range, totalled by nature.", icon: IconCalendarBars, action: { kind: "dialog", open: () => setDialog("daily") } },
+        { title: "Report of Collections and Deposit", note: "Collections and booklet accountability for one or more O.R. bundles — the LGU's own accountability form.", icon: IconReceipt, action: { kind: "dialog", open: () => setDialog("collections-deposit") } },
         { title: "Annual Financial Performance Report", note: "Billed vs. collected, Jan-Dec, for one calendar year.", icon: IconTrendUp, action: { kind: "dialog", open: () => setDialog("annual-performance") } },
         { title: "Annual Collection Report", note: "Collections and billing logs by barangay, cluster, classification, senior status and fee component.", icon: IconCalendarBars, action: { kind: "dialog", open: () => setDialog("annual-collection") } },
         { title: "O.R. Accountability Report", note: "Booklets on issue, skipped or duplicate numbers, and receipts no booklet covers.", icon: IconReceipt, action: { kind: "dialog", open: () => setDialog("or-accountability") } },
@@ -243,6 +245,9 @@ export default function ReportsPage() {
       ))}
 
       {dialog === "daily" && <DailyReportDialog onClose={() => setDialog(null)} />}
+      {dialog === "collections-deposit" && (
+        <CollectionsDepositReportDialog onClose={() => setDialog(null)} />
+      )}
       {dialog === "consumption" && (
         <YearReportDialog
           title="Monthly Consumption Report"
