@@ -153,7 +153,10 @@ export default function DailyCollectionPrint() {
         </span>
       </div>
 
-      <article className="soa-sheet" style={scaledSheetStyle(box.width, scale)}>
+      <article
+        className="soa-sheet"
+        style={{ ...scaledSheetStyle(box.width, scale), width: "fit-content", minWidth: `${box.width}in` }}
+      >
         <header style={{ textAlign: "center", lineHeight: 1.3 }}>
           <div>Republic of the Philippines</div>
           <div>PROVINCE OF PALAWAN</div>
@@ -164,7 +167,7 @@ export default function DailyCollectionPrint() {
         <h1 className="soa-title">Report of Daily Water Collections</h1>
         <p className="soa-issued">For {longDate(data.reportDate)}</p>
 
-        <table className="soa-table soa-table-compact">
+        <table className="soa-table dcr-table">
           <thead>
             <tr>
               <th>#</th>
