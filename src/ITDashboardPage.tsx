@@ -50,8 +50,11 @@ type Hardware =
       disks: {
         id: string; name: string; media: string; bus: string; health: string; status: string; size: number;
         reliability: { temp: number | null; wear: number | null; readErrors: number | null; writeErrors: number | null; hours: number | null } | null;
+        healthPct: number | null;
       }[];
       reliabilityAvailable: boolean;
+      reliabilitySource: "direct" | "task" | null;
+      reliabilityAt: string | null;
       memory: { slot: string; maker: string; size: number; speed: number; part: string }[];
       pagefile: { name: string; sizeMb: number; usedMb: number; peakMb: number }[];
       commitPct: number | null; commitLimit: number | null; committed: number | null;
@@ -586,16 +589,37 @@ function HardwarePanel({ hw }: { hw: Hardware }) {
       <div className="it-subhead" style={{ marginTop: 0 }}>Drives</div>
       <table className="it-table">
         <thead>
-          <tr><th>Drive</th><th>Health</th><th className="num">Size</th><th className="num">Temp</th><th className="num">Wear</th><th className="num">Errors</th></tr>
+          <tr>
+            <th>Drive</th><th>Status</th><th style={{ width: "26%" }}>Health</th>
+            <th className="num">Temp</th><th className="num">Powered on</th><th className="num">Errors</th>
+          </tr>
         </thead>
         <tbody>
           {hw.disks.map((d) => (
             <tr key={d.id}>
-              <td>{d.name}<div className="it-down-sub">{d.media} · {d.bus}</div></td>
+              <td>{d.name}<div className="it-down-sub">{d.media} · {d.bus} · {bytes(d.size)}</div></td>
               <td>{healthPill(d.health)}</td>
-              <td className="num">{bytes(d.size)}</td>
+              <td>
+                {d.healthPct != null ? (
+                  <div className="it-health" title={`${d.reliability?.wear ?? 0}% worn`}>
+                    <div className="it-health-bar">
+                      <span
+                        className={d.healthPct <= 10 ? "it-bad-bg" : d.healthPct <= 20 ? "it-meh-bg" : "it-good-bg"}
+                        style={{ width: `${d.healthPct}%` }}
+                      />
+                    </div>
+                    <strong className={d.healthPct <= 10 ? "it-bad" : d.healthPct <= 20 ? "it-meh" : "it-good"}>
+                      {d.healthPct}%
+                    </strong>
+                  </div>
+                ) : (
+                  "—"
+                )}
+              </td>
               <td className="num">{d.reliability?.temp != null ? `${d.reliability.temp}°C` : "—"}</td>
-              <td className="num">{d.reliability?.wear != null ? `${d.reliability.wear}%` : "—"}</td>
+              <td className="num">
+                {d.reliability?.hours != null ? `${Number(d.reliability.hours).toLocaleString()} h` : "—"}
+              </td>
               <td className="num">
                 {d.reliability && (d.reliability.readErrors != null || d.reliability.writeErrors != null)
                   ? (d.reliability.readErrors ?? 0) + (d.reliability.writeErrors ?? 0)
@@ -605,9 +629,15 @@ function HardwarePanel({ hw }: { hw: Hardware }) {
           ))}
         </tbody>
       </table>
-      {!hw.reliabilityAvailable && (
+      {hw.reliabilityAvailable ? (
         <p className="dash-chart-note">
-          Temperature, wear and error counters need the app to run as an administrator or a Windows service.
+          Health is the drive's remaining life (100% minus the wear it reports)
+          {hw.reliabilitySource === "task" && hw.reliabilityAt ? ` · read ${ago(hw.reliabilityAt)} by the hourly Disk Health task` : ""}.
+        </p>
+      ) : (
+        <p className="dash-chart-note">
+          Health %, temperature and error counters need administrator rights. Install the hourly Disk Health task
+          once from an Administrator PowerShell: <code>scripts\install-disk-health-task.ps1</code> in the API folder.
         </p>
       )}
 

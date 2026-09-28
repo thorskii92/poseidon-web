@@ -1351,6 +1351,38 @@ tbody tr.row-warning td {
   color: #a82b23;
 }
 
+.it-health {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.it-health-bar {
+  flex: 1;
+  height: 8px;
+  overflow: hidden;
+  background: #eef1f4;
+  border-radius: 4px;
+}
+
+.it-health-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+}
+
+.it-good-bg {
+  background: #22a35a;
+}
+
+.it-meh-bg {
+  background: #d8931c;
+}
+
+.it-bad-bg {
+  background: #d03b3b;
+}
+
 .it-down-sub {
   font-size: 11px;
   color: var(--text-muted);
