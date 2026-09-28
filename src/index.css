@@ -355,12 +355,30 @@ thead th:last-child {
 /* Activity feed type badges — same palette as the badges above, kept as
    their own classes so retagging an activity type never shifts the meaning
    of an unrelated status pill elsewhere in the app. */
-.badge.act-green { background: #e3f4e9; color: #1d6b3f; }
-.badge.act-red { background: #fdeaea; color: #a82b23; }
-.badge.act-blue { background: #e5eff8; color: #14547f; }
-.badge.act-orange { background: #fdf1de; color: #8a5a05; }
-.badge.act-purple { background: #ece9f7; color: #4a3f8c; }
-.badge.act-gray { background: #f1f3f5; color: #6b7885; }
+.badge.act-green {
+  background: #e3f4e9;
+  color: #1d6b3f;
+}
+.badge.act-red {
+  background: #fdeaea;
+  color: #a82b23;
+}
+.badge.act-blue {
+  background: #e5eff8;
+  color: #14547f;
+}
+.badge.act-orange {
+  background: #fdf1de;
+  color: #8a5a05;
+}
+.badge.act-purple {
+  background: #ece9f7;
+  color: #4a3f8c;
+}
+.badge.act-gray {
+  background: #f1f3f5;
+  color: #6b7885;
+}
 .unpaid {
   display: inline-block;
   min-width: 18px;
@@ -1105,23 +1123,32 @@ tbody tr.row-warning td {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: var(--navy);
+  padding: 24px;
+  background:
+    radial-gradient(circle at 15% 20%, var(--blue-soft) 0%, transparent 45%),
+    radial-gradient(circle at 85% 85%, var(--blue) 0%, transparent 50%),
+    var(--navy-deep);
 }
 
+/* The plain standalone card — ForcedPasswordChangeScreen's only layout,
+   and the shape .login-card falls back to outside .login-shell. Nested
+   inside .login-shell (the sign-in screen itself) it's reshaped into the
+   right-hand half of one seamless card instead; see below. */
 .login-card {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  width: 340px;
+  width: 380px;
+  max-width: 100%;
   padding: 32px;
   background: #fff;
-  border-radius: 12px;
+  border-radius: 16px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
 }
 
 .login-brand {
   font-size: 22px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--navy);
 }
@@ -1136,6 +1163,227 @@ tbody tr.row-warning td {
   margin-top: 4px;
   padding: 10px;
   text-align: center;
+}
+
+/* ---- Sign-in screen's split shell: an animated water-themed panel next
+   to the form, one card, two halves. ---- */
+
+.login-shell {
+  display: flex;
+  width: 100%;
+  max-width: 920px;
+  min-height: 560px;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  background: #fff;
+}
+
+.login-shell .login-card {
+  flex: 1 1 380px;
+  justify-content: center;
+  width: auto;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.login-visual {
+  position: relative;
+  flex: 1 1 380px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 48px 40px;
+  overflow: hidden;
+  color: #fff;
+  background: linear-gradient(160deg, var(--blue-soft) 0%, var(--navy) 55%, var(--navy-deep) 100%);
+}
+
+.login-visual-content {
+  position: relative;
+  z-index: 2;
+}
+
+.login-logos {
+  display: flex;
+  justify-content: center;
+  gap: 56px;
+  margin-bottom: 64px;
+}
+
+.login-logos:empty {
+  display: none;
+}
+
+.login-logo {
+  width: 90px;
+  height: 90px;
+  padding: 5px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+
+.login-visual-brand {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  opacity: 0.85;
+  margin-bottom: 18px;
+}
+
+.login-visual h1 {
+  margin: 0 0 12px;
+  font-size: 27px;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.login-visual p {
+  margin: 0 0 24px;
+  max-width: 320px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.login-features {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.login-features li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.login-features li svg {
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+/* Username/password fields with a leading icon — login-only, so scoped
+   under .login-card rather than touching the shared .field-input rules
+   every other form in the app also uses. */
+.login-card .login-input-wrap {
+  position: relative;
+}
+
+.login-card .login-input-wrap svg {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-faint);
+  pointer-events: none;
+}
+
+.login-card .login-input-wrap input {
+  width: 100%;
+  padding-left: 34px;
+}
+
+/* Waves and rising bubbles — pure CSS/SVG, no image assets, reskins for
+   free through --tint/--blue-soft since OSCARS overrides those tokens the
+   same as everywhere else in the app (see :root[data-satellite] above). */
+.login-waves {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 46%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.login-wave {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 200%;
+  height: 100%;
+}
+
+.login-wave-back {
+  opacity: 0.3;
+  animation: login-wave-drift 22s linear infinite;
+}
+
+.login-wave-front {
+  opacity: 0.4;
+  animation: login-wave-drift 14s linear infinite reverse;
+}
+
+@keyframes login-wave-drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.login-bubbles {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.login-bubble {
+  position: absolute;
+  bottom: -40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  animation-name: login-bubble-rise;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes login-bubble-rise {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  85% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateY(-540px) scale(1.15);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-wave-back,
+  .login-wave-front,
+  .login-bubble {
+    animation: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .login-visual {
+    display: none;
+  }
+  .login-shell {
+    max-width: 400px;
+  }
+  .login-shell .login-card {
+    flex: 1 1 auto;
+  }
 }
 
 .sidebar {
@@ -2887,13 +3135,35 @@ button.primary.big {
   border-radius: 999px;
 }
 
-.tag-future-bills { background: #fbeaea; color: #92312a; }
-.tag-new-charges  { background: #fdf1de; color: #8a5a05; }
-.tag-print        { background: #e5eff8; color: #14547f; }
-.tag-lists        { background: #eaf1f7; color: #3d6b8c; }
-.tag-access       { background: #ece9f7; color: #4a3f8c; }
-.tag-job          { background: #f1f3f5; color: #6b7885; }
-.tag-todo         { background: none; color: var(--text-faint); box-shadow: inset 0 0 0 1px var(--line); }
+.tag-future-bills {
+  background: #fbeaea;
+  color: #92312a;
+}
+.tag-new-charges {
+  background: #fdf1de;
+  color: #8a5a05;
+}
+.tag-print {
+  background: #e5eff8;
+  color: #14547f;
+}
+.tag-lists {
+  background: #eaf1f7;
+  color: #3d6b8c;
+}
+.tag-access {
+  background: #ece9f7;
+  color: #4a3f8c;
+}
+.tag-job {
+  background: #f1f3f5;
+  color: #6b7885;
+}
+.tag-todo {
+  background: none;
+  color: var(--text-faint);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
 
 .setting-note {
   margin: 4px 0 0;
@@ -3059,7 +3329,9 @@ button.primary.big {
   cursor: pointer;
 }
 
-.bulk-toggle button:first-child { border-radius: 6px 0 0 6px; }
+.bulk-toggle button:first-child {
+  border-radius: 6px 0 0 6px;
+}
 .bulk-toggle button:last-child {
   border-right: 1px solid var(--border);
   border-radius: 0 6px 6px 0;
@@ -3096,11 +3368,15 @@ button.primary.big {
   font-size: 16px;
 }
 
-.bulk-total .grand strong { color: var(--navy); }
+.bulk-total .grand strong {
+  color: var(--navy);
+}
 
 /* ---- settings: rates and tariffs ---- */
 
-.bracket-modal { max-width: 680px; }
+.bracket-modal {
+  max-width: 680px;
+}
 
 .bracket-pickers {
   display: grid;
@@ -3109,7 +3385,9 @@ button.primary.big {
   margin: 14px 0;
 }
 
-.bracket-table .amount-input { width: 96px; }
+.bracket-table .amount-input {
+  width: 96px;
+}
 
 .tariff-areas {
   display: flex;
@@ -3138,9 +3416,18 @@ button.primary.big {
   border-radius: 6px;
 }
 
-.badge.tariff-pill.live { background: #e3f4e9; color: #1d6b3f; }
-.badge.tariff-pill.queued { background: #fdf1de; color: #8a5a05; }
-.badge.tariff-pill.superseded { background: #f1f3f5; color: #6b7885; }
+.badge.tariff-pill.live {
+  background: #e3f4e9;
+  color: #1d6b3f;
+}
+.badge.tariff-pill.queued {
+  background: #fdf1de;
+  color: #8a5a05;
+}
+.badge.tariff-pill.superseded {
+  background: #f1f3f5;
+  color: #6b7885;
+}
 
 /* ---- settings: fees grid ---- */
 
@@ -3149,17 +3436,35 @@ button.primary.big {
   margin-top: 10px;
 }
 
-.fee-grid { min-width: 720px; }
-.fee-grid .amount-input { width: 92px; }
+.fee-grid {
+  min-width: 720px;
+}
+.fee-grid .amount-input {
+  width: 92px;
+}
 
-.discount-table { max-width: 560px; margin-top: 10px; }
-.discount-table .amount-input { width: 80px; }
+.discount-table {
+  max-width: 560px;
+  margin-top: 10px;
+}
+.discount-table .amount-input {
+  width: 80px;
+}
 
 /* ---- settings: signatory roles ---- */
 
-.badge.setting-badge.role-prep { background: #e5eff8; color: #14547f; }
-.badge.setting-badge.role-check { background: #fdf1de; color: #8a5a05; }
-.badge.setting-badge.role-appr { background: #e3f4e9; color: #1d6b3f; }
+.badge.setting-badge.role-prep {
+  background: #e5eff8;
+  color: #14547f;
+}
+.badge.setting-badge.role-check {
+  background: #fdf1de;
+  color: #8a5a05;
+}
+.badge.setting-badge.role-appr {
+  background: #e3f4e9;
+  color: #1d6b3f;
+}
 
 .settings-panel code {
   font-size: 12px;
@@ -4221,7 +4526,9 @@ button.primary.big {
   border: 1px solid var(--line);
   border-radius: 10px;
   cursor: pointer;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .report-card:hover:not(.disabled) {
