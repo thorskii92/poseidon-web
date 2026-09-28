@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ReactNode, JSX } from "react";
+import type { ReactNode, JSX, MouseEvent, FocusEvent } from "react";
 import { NavLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "./AuthContext";
@@ -10,8 +10,18 @@ import { IconReceipt, IconInvoice, IconUsers, IconWrench, IconDroplet, type Icon
 import {
   IconGrid, IconIdCard, IconWallet, IconClock, IconSliders, IconCheckCircle,
   IconPowerOff, IconCreditCard, IconChartBar, IconGear, IconGauge, IconLayers, IconListOrdered,
-  IconRefresh, IconAlertTriangle, IconServer,
+  IconRefresh, IconAlertTriangle, IconServer, IconLogout, IconSidebar,
 } from "./NavIcons";
+
+const COLLAPSE_KEY = "poseidon.sidebarCollapsed";
+
+function loadCollapsed() {
+  try {
+    return localStorage.getItem(COLLAPSE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
 
 type IconComponent = (p: IconProps) => JSX.Element;
 
@@ -50,6 +60,40 @@ const SOON: { label: string; icon: IconComponent }[] = [
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, signOut, can, avatarVersion } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
+  const [collapsed, setCollapsed] = useState(loadCollapsed);
+  // The collapsed rail's hover labels. Drawn outside the sidebar (fixed
+  // position), since the sidebar scrolls and would clip anything poking out.
+  const [tip, setTip] = useState<{ label: string; top: number } | null>(null);
+
+  function toggleCollapsed() {
+    setCollapsed((c) => {
+      try {
+        localStorage.setItem(COLLAPSE_KEY, c ? "0" : "1");
+      } catch {
+        /* just won't be remembered */
+      }
+      return !c;
+    });
+    setTip(null);
+  }
+
+  /** Hover handlers that show the label beside an icon — collapsed only. */
+  function tipProps(label: string) {
+    if (!collapsed) return {};
+    return {
+      onMouseEnter: (e: MouseEvent<HTMLElement>) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        setTip({ label, top: r.top + r.height / 2 });
+      },
+      onMouseLeave: () => setTip(null),
+      onFocus: (e: FocusEvent<HTMLElement>) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        setTip({ label, top: r.top + r.height / 2 });
+      },
+      onBlur: () => setTip(null),
+      "aria-label": label,
+    };
+  }
 
   // 403s for anyone who isn't an approver (see permissions.ts) — that's
   // fine, it just means no badge, so this never retries or surfaces an
@@ -85,10 +129,19 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="shell">
-      <nav className="sidebar">
+      <nav className={collapsed ? "sidebar collapsed" : "sidebar"}>
         <div className="brand">
           <img src="/favicon.svg" alt="" className="brand-mark" />
-          <span>{isSatellite ? "OSCARS" : "POSEIDON"}</span>
+          <span className="nav-label">{isSatellite ? "OSCARS" : "POSEIDON"}</span>
+          <button
+            className="sidebar-toggle"
+            onClick={toggleCollapsed}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-expanded={!collapsed}
+          >
+            <IconSidebar size={18} collapsed={collapsed} />
+          </button>
         </div>
         <ul className="nav">
           {visibleNav.map((item) => (
@@ -99,9 +152,19 @@ export default function Layout({ children }: { children: ReactNode }) {
                 className={({ isActive }) =>
                   isActive ? "nav-item active" : "nav-item"
                 }
+                {...tipProps(
+                  item.label === "Approvals" && approvalsWaiting > 0
+                    ? `${item.label} (${approvalsWaiting})`
+                    : item.label,
+                )}
               >
-                <item.icon size={18} />
-                <span>{item.label}</span>
+                <span className="nav-icon">
+                  <item.icon size={18} />
+                  {item.label === "Approvals" && approvalsWaiting > 0 && (
+                    <span className="nav-dot" />
+                  )}
+                </span>
+                <span className="nav-label">{item.label}</span>
                 {item.label === "Approvals" && approvalsWaiting > 0 && (
                   <span className="stage-count">{approvalsWaiting}</span>
                 )}
@@ -110,9 +173,11 @@ export default function Layout({ children }: { children: ReactNode }) {
           ))}
           {SOON.map((item) => (
             <li key={item.label}>
-              <span className="nav-item disabled">
-                <item.icon size={18} />
-                <span>{item.label}</span>
+              <span className="nav-item disabled" {...tipProps(`${item.label} (coming soon)`)}>
+                <span className="nav-icon">
+                  <item.icon size={18} />
+                </span>
+                <span className="nav-label">{item.label}</span>
               </span>
             </li>
           ))}
@@ -124,13 +189,27 @@ export default function Layout({ children }: { children: ReactNode }) {
               <div className="user-name">{user?.fullName}</div>
               <div className="user-role">{user?.position}</div>
             </button>
-            {user && <Avatar userId={user.id} name={user.fullName} version={avatarVersion} size="sidebar" />}
+            {user && (
+              <button
+                className="sidebar-avatar-button"
+                onClick={() => setShowProfile(true)}
+                {...tipProps(user.fullName || "Profile")}
+              >
+                <Avatar userId={user.id} name={user.fullName} version={avatarVersion} size="sidebar" />
+              </button>
+            )}
           </div>
-          <button className="link-button light" onClick={signOut}>
-            Sign out
+          <button className="link-button light sidebar-signout" onClick={signOut} {...tipProps("Sign out")}>
+            <IconLogout size={18} />
+            <span className="nav-label">Sign out</span>
           </button>
         </div>
       </nav>
+      {collapsed && tip && (
+        <div className="sidebar-tip" style={{ top: tip.top }} role="tooltip">
+          {tip.label}
+        </div>
+      )}
       <main className="content">{children}</main>
 
       {showProfile && <ProfileEditorModal onClose={() => setShowProfile(false)} />}

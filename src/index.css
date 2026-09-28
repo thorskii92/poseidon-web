@@ -1774,6 +1774,193 @@ tbody tr.row-warning td {
   color: #cfe0ee;
 }
 
+/* ---- Collapsible sidebar ---- */
+
+.sidebar {
+  transition: width 0.18s ease;
+}
+
+.brand {
+  position: relative;
+}
+
+.sidebar-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  padding: 4px;
+  color: #8fb3cf;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sidebar-toggle:hover,
+.sidebar-toggle:focus-visible {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.nav-icon {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
+.nav-dot {
+  display: none;
+  position: absolute;
+  top: -3px;
+  right: -4px;
+  width: 8px;
+  height: 8px;
+  background: #e5484d;
+  border: 2px solid var(--navy);
+  border-radius: 50%;
+}
+
+.nav-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sidebar-avatar-button {
+  display: inline-flex;
+  flex: none;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.sidebar-signout {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-signout svg {
+  display: none;
+}
+
+.sidebar-tip {
+  position: fixed;
+  left: 72px;
+  z-index: 1000;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  pointer-events: none;
+  background: #1f2a35;
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  transform: translateY(-50%);
+}
+
+.sidebar.collapsed {
+  width: 64px;
+  overflow-x: hidden;
+}
+
+.sidebar.collapsed .brand {
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 0 16px;
+}
+
+.sidebar.collapsed .sidebar-toggle {
+  margin-left: 0;
+}
+
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  gap: 0;
+  padding: 10px 0;
+}
+
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .stage-count,
+.sidebar.collapsed .sidebar-user-info {
+  display: none;
+}
+
+.sidebar.collapsed .nav-dot {
+  display: block;
+}
+
+.sidebar.collapsed .sidebar-user {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 0;
+}
+
+.sidebar.collapsed .sidebar-user-row {
+  justify-content: center;
+}
+
+.sidebar.collapsed .sidebar-signout {
+  margin-top: 0;
+  padding: 6px;
+  border-radius: 6px;
+}
+
+.sidebar.collapsed .sidebar-signout svg {
+  display: block;
+}
+
+.sidebar.collapsed .sidebar-signout:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar {
+    transition: none;
+  }
+}
+
+/* The narrow-screen layout is already a horizontal strip — collapsing
+   doesn't apply there, so every label stays. */
+@media (max-width: 800px) {
+  .sidebar-toggle {
+    display: none;
+  }
+
+  .sidebar.collapsed {
+    width: 100%;
+  }
+
+  .sidebar.collapsed .brand {
+    flex-direction: row;
+    padding: 0 20px 20px;
+  }
+
+  .sidebar.collapsed .nav-item {
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 9px 20px;
+  }
+
+  .sidebar.collapsed .nav-label,
+  .sidebar.collapsed .stage-count,
+  .sidebar.collapsed .sidebar-user-info {
+    display: inline;
+  }
+
+  .sidebar.collapsed .nav-dot,
+  .sidebar-tip {
+    display: none;
+  }
+}
+
 /* ---- Avatar ---- */
 
 .avatar-circle {

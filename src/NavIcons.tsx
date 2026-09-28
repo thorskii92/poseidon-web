@@ -162,6 +162,26 @@ export function IconServer({ size = 20 }: IconProps) {
   );
 }
 
+export function IconLogout({ size = 20 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...base}>
+      <path d="M14 4.5H6.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2H14" />
+      <path d="M10 12h10M16.5 8.5 20 12l-3.5 3.5" />
+    </svg>
+  );
+}
+
+/** Sidebar collapse toggle — a panel with a chevron, flipped when collapsed. */
+export function IconSidebar({ size = 20, collapsed = false }: IconProps & { collapsed?: boolean }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...base}>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+      <path d="M9 4.5v15" />
+      <path d={collapsed ? "M13 10l2 2-2 2" : "M16 10l-2 2 2 2"} />
+    </svg>
+  );
+}
+
 export function IconAlertTriangle({ size = 20 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" {...base}>
