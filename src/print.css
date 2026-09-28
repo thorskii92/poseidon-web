@@ -986,7 +986,9 @@
 
 @media print {
   .rcd-page {
-    width: auto;
+    /* !important beats the on-screen paper width set inline — in print the
+       @page rule already sizes the sheet. */
+    width: auto !important;
     margin: 0;
     padding: 0;
   }

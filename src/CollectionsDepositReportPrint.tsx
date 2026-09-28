@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { apiGet } from "./api";
+import { PAPERS, type PaperKey } from "./orLayout";
+import { REPORT_PAPERS, pageBoxInches } from "./PrintLayoutControls";
 import "./print.css";
 
 /**
@@ -8,8 +10,9 @@ import "./print.css";
  * LGU's paper form: black and white, one outer border per page, fixed row
  * counts on every table, portrait page one (Collections, Remittances /
  * Deposits) then landscape page two (Accountable Forms, Summary,
- * Certification / Verification). No paper/orientation/scale picker — the
- * two pages are fixed by the form itself.
+ * Certification / Verification). Paper size is selectable (Letter / Legal /
+ * A4); orientation isn't — each page's is fixed by the form itself — and
+ * neither is scale, since the fixed tables already fill the page width.
  *
  * LGU name, Fund, Form Type (the "A.F. #" accountable-form designation),
  * Report No. and the three signatory names are free text, typed at print
@@ -50,6 +53,17 @@ type FreeText = {
 };
 
 const STORE_KEY = "poseidon.collectionsDeposit.fields";
+const PAPER_KEY = "poseidon.collectionsDeposit.paper";
+
+function loadPaper(): PaperKey {
+  try {
+    const v = localStorage.getItem(PAPER_KEY) as PaperKey | null;
+    if (v && REPORT_PAPERS.includes(v)) return v;
+  } catch {
+    /* falls back to Letter */
+  }
+  return "letter";
+}
 const DEFAULTS: FreeText = {
   lguName: "", reportNo: "", fund: "", formType: "A.F. #51",
   accountable: "", liquidating: "", treasurer: "",
@@ -95,18 +109,21 @@ function padTo<T>(rows: T[], min: number): (T | null)[] {
  *  inch sizes are injected here (same technique as
  *  PrintLayoutControls.usePrintPageSize), with a named landscape page that
  *  .rcd-page-landscape selects. */
-function useFixedTwoPageSize() {
+function useTwoPageSize(paper: PaperKey) {
+  const portrait = pageBoxInches(paper, "portrait");
+  const landscape = pageBoxInches(paper, "landscape");
   useEffect(() => {
     const style = document.createElement("style");
     style.textContent = `
-      @page { size: 8.5in 11in; margin: 0.45in 0.55in; }
-      @page rcd-landscape { size: 11in 8.5in; margin: 0.45in 0.55in; }
+      @page { size: ${portrait.width}in ${portrait.height}in; margin: 0.45in 0.55in; }
+      @page rcd-landscape { size: ${landscape.width}in ${landscape.height}in; margin: 0.45in 0.55in; }
     `;
     document.head.appendChild(style);
     return () => {
       document.head.removeChild(style);
     };
-  }, []);
+  }, [portrait.width, portrait.height, landscape.width, landscape.height]);
+  return { portrait, landscape };
 }
 
 /** Page one's column grid — shared by all three tables so their lines
@@ -140,7 +157,17 @@ export default function CollectionsDepositReportPrint() {
 
   const [data, setData] = useState<Report | null>(null);
   const [error, setError] = useState("");
-  useFixedTwoPageSize();
+  const [paper, setPaper] = useState<PaperKey>(loadPaper);
+  const pages = useTwoPageSize(paper);
+
+  function choosePaper(p: PaperKey) {
+    setPaper(p);
+    try {
+      localStorage.setItem(PAPER_KEY, p);
+    } catch {
+      /* just won't be remembered */
+    }
+  }
 
   const [fields, setFields] = useState<FreeText>(loadSaved);
 
@@ -199,6 +226,14 @@ export default function CollectionsDepositReportPrint() {
         <button className="primary" onClick={() => window.print()}>
           Print
         </button>
+        <label className="toolbar-check">
+          Paper
+          <select value={paper} onChange={(e) => choosePaper(e.target.value as PaperKey)}>
+            {REPORT_PAPERS.map((k) => (
+              <option key={k} value={k}>{PAPERS[k].label}</option>
+            ))}
+          </select>
+        </label>
         <Field label="LGU" value={fields.lguName} placeholder={data.office.municipality} onChange={(v) => update({ lguName: v })} />
         <Field label="Fund" value={fields.fund} onChange={(v) => update({ fund: v })} />
         <Field label="Report No." value={fields.reportNo} onChange={(v) => update({ reportNo: v })} />
@@ -211,7 +246,7 @@ export default function CollectionsDepositReportPrint() {
       </div>
 
       {/* ---- Page 1 — portrait ---- */}
-      <section className="rcd-page">
+      <section className="rcd-page" style={{ width: `${pages.portrait.width}in` }}>
         <div className="rcd-box">
           <div className="rcd-head">
             <div className="rcd-title">Report of Collections and Deposit</div>
@@ -321,7 +356,7 @@ export default function CollectionsDepositReportPrint() {
       </section>
 
       {/* ---- Page 2 — landscape ---- */}
-      <section className="rcd-page rcd-page-landscape">
+      <section className="rcd-page rcd-page-landscape" style={{ width: `${pages.landscape.width}in` }}>
         <div className="rcd-box">
           <table className="rcd-table rcd-table-first">
             <colgroup>
