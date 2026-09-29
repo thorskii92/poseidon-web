@@ -5408,3 +5408,57 @@ button.primary.big {
   font-size: 12px;
   color: #a82b23;
 }
+
+/* ---- Settings → Report header (ReportHeaderEditor.tsx) ---- */
+
+.rh-preview {
+  margin-top: 12px;
+  padding: 12px;
+  background: #eef1f4;
+  border-radius: 8px;
+}
+
+.rh-preview-label {
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-muted);
+}
+
+/* A strip of white "paper", so colours and sizes read as they'll print. */
+.rh-preview-sheet {
+  padding: 18px 24px 14px;
+  overflow-x: auto;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
+.rh-preview-title {
+  margin-top: 10px;
+  font-size: 14pt;
+  font-weight: 700;
+  text-align: center;
+  color: #000;
+}
+
+.rh-lines {
+  margin-top: 14px;
+}
+
+.rh-lines td {
+  vertical-align: middle;
+}
+
+.rh-lines input.rh-size {
+  width: 70px;
+}
+
+.rh-lines input[type="color"] {
+  width: 38px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--line);
+  background: none;
+}

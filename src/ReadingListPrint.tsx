@@ -16,6 +16,7 @@ import {
   type SignatorySlot,
 } from "./Signatories";
 import "./print.css";
+import ReportHeader from "./ReportHeader";
 
 /**
  * Reading List print view. See readingList.ts for why the reference
@@ -184,12 +185,7 @@ export default function ReadingListPrint() {
       </div>
 
       <article className="soa-sheet" style={scaledSheetStyle(box.width, scale)}>
-        <header style={{ textAlign: "center", lineHeight: 1.3 }}>
-          <div>Republic of the Philippines</div>
-          <div>PROVINCE OF PALAWAN</div>
-          <div>{data.office.officeHeader || data.office.municipalHeader}</div>
-          <div className="soa-office">{data.office.officeName}</div>
-        </header>
+        <ReportHeader />
 
         <h1 className="soa-title">Reading List</h1>
         <p className="soa-issued">{data.areaTitle}</p>

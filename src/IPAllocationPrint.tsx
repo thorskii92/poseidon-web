@@ -1,4 +1,4 @@
-import { useEffect, useState, type SyntheticEvent } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { apiGet } from "./api";
 import { peso } from "./collectionTypes";
@@ -10,6 +10,7 @@ import {
   SignatoryBlock, SignatoryPickers, useSignatories, type SignatorySlot,
 } from "./Signatories";
 import "./print.css";
+import ReportHeader from "./ReportHeader";
 
 /**
  * IP Community Fund Allocation — 1% of everything collected in the chosen
@@ -17,18 +18,6 @@ import "./print.css";
  * Palawan. Specific to that municipality; the API refuses (notApplicable)
  * anywhere else.
  */
-
-const LOGO_SRC = {
-  municipal: "/api/settings/logo/municipal",
-  office: "/api/settings/logo/office",
-} as const;
-
-function Seal({ which }: { which: keyof typeof LOGO_SRC }) {
-  function hide(e: SyntheticEvent<HTMLImageElement>) {
-    e.currentTarget.style.visibility = "hidden";
-  }
-  return <img className="bill-seal" src={LOGO_SRC[which]} alt="" onError={hide} />;
-}
 
 type Grouped = { key: string; count: number; amount: number };
 type TrendRow = { month: string; monthLabel: string; total: number; allocation: number };
@@ -96,17 +85,7 @@ export default function IPAllocationPrint() {
       </div>
 
       <article className="soa-sheet" style={scaledSheetStyle(box.width, scale)}>
-        <header className="ecpay-head">
-          <Seal which="municipal" />
-          <div>
-            <div>Republic of the Philippines</div>
-            <div>PROVINCE OF PALAWAN</div>
-            <div>{data.office.officeHeader || data.office.municipalHeader}</div>
-            <div className="soa-office">{data.office.officeName}</div>
-            {data.office.officeAddress && <div className="soa-address">{data.office.officeAddress}</div>}
-          </div>
-          <Seal which="office" />
-        </header>
+        <ReportHeader />
 
         <p className="ecpay-kicker">IP Community Fund Allocation Report</p>
         <h1 className="soa-title" style={{ margin: "0 0 8px" }}>{data.monthLabel}</h1>

@@ -1,4 +1,4 @@
-import { useEffect, useState, type SyntheticEvent } from "react";
+import { useEffect, useState } from "react";
 import { apiGet } from "./api";
 import type { PaperKey } from "./orLayout";
 import {
@@ -8,6 +8,7 @@ import {
   SignatoryBlock, SignatoryPickers, useSignatories, type SignatorySlot,
 } from "./Signatories";
 import "./print.css";
+import ReportHeader from "./ReportHeader";
 
 /**
  * Service Request Backlog — a live snapshot of every account currently
@@ -17,18 +18,6 @@ import "./print.css";
  * resolved cohorts rather than what's stuck in the queue right now. A
  * live snapshot, not a period report — no date picker.
  */
-
-const LOGO_SRC = {
-  municipal: "/api/settings/logo/municipal",
-  office: "/api/settings/logo/office",
-} as const;
-
-function Seal({ which }: { which: keyof typeof LOGO_SRC }) {
-  function hide(e: SyntheticEvent<HTMLImageElement>) {
-    e.currentTarget.style.visibility = "hidden";
-  }
-  return <img className="bill-seal" src={LOGO_SRC[which]} alt="" onError={hide} />;
-}
 
 type Grouped = { key: string; count: number };
 type StageRow = { label: string; count: number; avgDays: number };
@@ -107,17 +96,7 @@ export default function ServiceBacklogPrint() {
       </div>
 
       <article className="soa-sheet" style={scaledSheetStyle(box.width, scale)}>
-        <header className="ecpay-head">
-          <Seal which="municipal" />
-          <div>
-            <div>Republic of the Philippines</div>
-            <div>PROVINCE OF PALAWAN</div>
-            <div>{data.office.officeHeader || data.office.municipalHeader}</div>
-            <div className="soa-office">{data.office.officeName}</div>
-            {data.office.officeAddress && <div className="soa-address">{data.office.officeAddress}</div>}
-          </div>
-          <Seal which="office" />
-        </header>
+        <ReportHeader />
 
         <p className="ecpay-kicker">Service Request Backlog</p>
         <h1 className="soa-title" style={{ margin: "0 0 8px" }}>

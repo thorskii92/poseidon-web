@@ -10,6 +10,7 @@ import {
   type SignatorySlot,
 } from "./Signatories";
 import "./print.css";
+import ReportHeader from "./ReportHeader";
 
 /**
  * Monthly Consumption Report — four breakdowns of the same year's billed
@@ -110,12 +111,7 @@ export default function MonthlyConsumptionPrint() {
       </div>
 
       <article className="soa-sheet" style={scaledSheetStyle(box.width, scale)}>
-        <header style={{ textAlign: "center", lineHeight: 1.3 }}>
-          <div>Republic of the Philippines</div>
-          <div>PROVINCE OF PALAWAN</div>
-          <div>{data.office.officeHeader || data.office.municipalHeader}</div>
-          <div className="soa-office">{data.office.officeName}</div>
-        </header>
+        <ReportHeader />
 
         <h1 className="soa-title">Monthly Consumption Report for the Year {data.year}</h1>
 

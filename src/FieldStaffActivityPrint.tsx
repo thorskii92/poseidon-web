@@ -1,4 +1,4 @@
-import { useEffect, useState, type SyntheticEvent } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { apiGet } from "./api";
 import type { PaperKey } from "./orLayout";
@@ -9,6 +9,7 @@ import {
   SignatoryBlock, SignatoryPickers, useSignatories, type SignatorySlot,
 } from "./Signatories";
 import "./print.css";
+import ReportHeader from "./ReportHeader";
 
 /**
  * Field Staff Activity — account actions logged in tblaccountlogs for the
@@ -16,18 +17,6 @@ import "./print.css";
  * a lookup, and some of it embeds the actor's name in the string instead
  * of the resname column — the API normalises both before this renders.
  */
-
-const LOGO_SRC = {
-  municipal: "/api/settings/logo/municipal",
-  office: "/api/settings/logo/office",
-} as const;
-
-function Seal({ which }: { which: keyof typeof LOGO_SRC }) {
-  function hide(e: SyntheticEvent<HTMLImageElement>) {
-    e.currentTarget.style.visibility = "hidden";
-  }
-  return <img className="bill-seal" src={LOGO_SRC[which]} alt="" onError={hide} />;
-}
 
 type Grouped = { key: string; count: number };
 type DetailRow = { date: string; staff: string; category: string; accountNo: string; acctName: string };
@@ -114,17 +103,7 @@ export default function FieldStaffActivityPrint() {
       </div>
 
       <article className="soa-sheet" style={scaledSheetStyle(box.width, scale)}>
-        <header className="ecpay-head">
-          <Seal which="municipal" />
-          <div>
-            <div>Republic of the Philippines</div>
-            <div>PROVINCE OF PALAWAN</div>
-            <div>{data.office.officeHeader || data.office.municipalHeader}</div>
-            <div className="soa-office">{data.office.officeName}</div>
-            {data.office.officeAddress && <div className="soa-address">{data.office.officeAddress}</div>}
-          </div>
-          <Seal which="office" />
-        </header>
+        <ReportHeader />
 
         <p className="ecpay-kicker">Field Staff Activity Report</p>
         <h1 className="soa-title" style={{ margin: "0 0 8px" }}>{data.monthLabel}</h1>

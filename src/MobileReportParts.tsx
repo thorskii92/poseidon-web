@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode, type SyntheticEvent } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { apiGet } from "./api";
 import type { PaperKey } from "./orLayout";
@@ -9,24 +9,13 @@ import {
   SignatoryBlock, SignatoryPickers, useSignatories, type SignatorySlot,
 } from "./Signatories";
 import "./print.css";
+import ReportHeader from "./ReportHeader";
 
 /**
  * The frame the three Mobile App reports share — the same masthead, toolbar
  * (print, signatories, paper/orientation/scale) and footer every report in
  * this app has, so each report file only lays out its own content.
  */
-
-const LOGO_SRC = {
-  municipal: "/api/settings/logo/municipal",
-  office: "/api/settings/logo/office",
-} as const;
-
-function Seal({ which }: { which: keyof typeof LOGO_SRC }) {
-  function hide(e: SyntheticEvent<HTMLImageElement>) {
-    e.currentTarget.style.visibility = "hidden";
-  }
-  return <img className="bill-seal" src={LOGO_SRC[which]} alt="" onError={hide} />;
-}
 
 export type Office = {
   municipality: string; municipalHeader: string; officeHeader: string;
@@ -131,17 +120,7 @@ export function MobileReportFrame<T extends BaseReport>({
       </div>
 
       <article className="soa-sheet" style={scaledSheetStyle(box.width, scale)}>
-        <header className="ecpay-head">
-          <Seal which="municipal" />
-          <div>
-            <div>Republic of the Philippines</div>
-            <div>PROVINCE OF PALAWAN</div>
-            <div>{data.office.officeHeader || data.office.municipalHeader}</div>
-            <div className="soa-office">{data.office.officeName}</div>
-            {data.office.officeAddress && <div className="soa-address">{data.office.officeAddress}</div>}
-          </div>
-          <Seal which="office" />
-        </header>
+        <ReportHeader />
 
         <p className="ecpay-kicker">{kicker}</p>
         <h1 className="soa-title" style={{ margin: "0 0 8px" }}>{data.monthLabel}</h1>

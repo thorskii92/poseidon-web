@@ -5,6 +5,7 @@ import type { PaperKey } from "./orLayout";
 import { PrintLayoutControls, usePrintPageSize, scaledSheetStyle, type Orientation } from "./PrintLayoutControls";
 import { SignatoryBlock, SignatoryPickers, useSignatories, type SignatorySlot } from "./Signatories";
 import "./print.css";
+import ReportHeader from "./ReportHeader";
 
 /**
  * Annual Collection Report — the desktop's biggest report: collections and
@@ -463,12 +464,7 @@ export default function AnnualCollectionPrint() {
       </div>
 
       <article className="soa-sheet" style={scaledSheetStyle(box.width, scale)}>
-        <header style={{ textAlign: "center", lineHeight: 1.3 }}>
-          <div>Republic of the Philippines</div>
-          <div>PROVINCE OF PALAWAN</div>
-          <div>{data.office.officeHeader || data.office.municipalHeader}</div>
-          <div className="soa-office">{data.office.officeName}</div>
-        </header>
+        <ReportHeader />
 
         <h1 className="soa-title">Annual Collection Report</h1>
         <p className="soa-issued" style={{ textAlign: "center" }}>Calendar Year {data.year}</p>

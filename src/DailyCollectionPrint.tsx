@@ -10,6 +10,7 @@ import {
   type SignatorySlot,
 } from "./Signatories";
 import "./print.css";
+import ReportHeader from "./ReportHeader";
 
 /**
  * Daily Collection Report — Rizal's, for now (see poseidon-api's receipts.ts
@@ -157,12 +158,7 @@ export default function DailyCollectionPrint() {
         className="soa-sheet"
         style={{ ...scaledSheetStyle(box.width, scale), width: "fit-content", minWidth: `${box.width}in` }}
       >
-        <header style={{ textAlign: "center", lineHeight: 1.3 }}>
-          <div>Republic of the Philippines</div>
-          <div>PROVINCE OF PALAWAN</div>
-          <div>{data.office.officeHeader || data.office.municipalHeader}</div>
-          <div className="soa-office">{data.office.officeName}</div>
-        </header>
+        <ReportHeader />
 
         <h1 className="soa-title">Report of Daily Water Collections</h1>
         <p className="soa-issued">For {longDate(data.reportDate)}</p>

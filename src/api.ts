@@ -41,6 +41,15 @@ export function apiGet<T>(url: string): Promise<T> {
   return fetch(url).then((r) => handle<T>(r));
 }
 
+/** PUT JSON to an endpoint. Throws ApiError on anything other than 2xx. */
+export function apiPut<T>(url: string, body: unknown): Promise<T> {
+  return fetch(url, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).then((r) => handle<T>(r));
+}
+
 /** POST JSON to an endpoint. Throws ApiError on anything other than 2xx. */
 export function apiPost<T>(url: string, body: unknown): Promise<T> {
   return fetch(url, {

@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPost } from "./api";
 import DOMPurify from "dompurify";
 import { peso } from "./collectionTypes";
+import ReportHeaderEditor from "./ReportHeaderEditor";
 
 /**
  * Settings, laid out in the same groups as the desktop's Settings dialog so an
@@ -29,7 +30,8 @@ type Panel =
   | "other-fees" | "schema" | "logos" | "profile" | "rates" | "tariffs"
   | "fees" | "people" | "classification" | "bulk" | "sizes"
   | "consumer-types" | "addresses" | "readers" | "or-counter"
-  | "batch-reading" | "notice" | "batch-bills" | "account-series" | "backup";
+  | "batch-reading" | "notice" | "batch-bills" | "account-series" | "backup"
+  | "report-header";
 
 /** What a change on this row reaches. */
 type Tag =
@@ -65,6 +67,12 @@ const AREAS: Area[] = [
         note: "The municipal seal and the waterworks seal, as the bill prints them",
         tag: "print",
         panel: "logos",
+      },
+      {
+        label: "Report header",
+        note: "The letterhead on every printed report — fonts, sizes, colours, seal placement",
+        tag: "print",
+        panel: "report-header",
       },
       {
         label: "Disconnection notice",
@@ -295,6 +303,7 @@ export default function SettingsPage() {
               {panel === "batch-bills" && <BatchBillsPanel onClose={close} />}
               {panel === "account-series" && <AccountSeriesPanel onClose={close} />}
               {panel === "backup" && <BackupPanel onClose={close} />}
+              {panel === "report-header" && <ReportHeaderEditor onClose={close} />}
             </>
           ) : (
             <div className={area === "overview" ? "area-grid" : "area-grid single"}>
@@ -1008,6 +1017,8 @@ type Profile = {
   includePreviousAppFee: number;
   includeCurrentAppFee: number;
   partialPaymentEnabled: number;
+  autoReconnectEnabled: number;
+  autoReconnectMonths: number;
 };
 
 /**
@@ -1159,6 +1170,36 @@ function ProfilePanel({ onClose }: { onClose: () => void }) {
           { value: 3, label: "Name" },
         ])}
         {text("Bill type", "billType")}
+      </div>
+
+      <h3 className="profile-head">Disconnection</h3>
+      <p className="count">
+        What happens when an account listed For Disconnection pays before the crew gets to it.
+      </p>
+      <div className="profile-grid">
+        <div className="field-input">
+          <span>Automatic reconnection</span>
+          {flag("Return it to Connected automatically", "autoReconnectEnabled")}
+          <span className="setting-note">
+            Checked after every payment. When off, staff return it from the Disconnection page's Pending tab.
+          </span>
+        </div>
+        <label className="field-input">
+          <span>Unpaid months it may still have</span>
+          <input
+            type="number"
+            min={0}
+            max={12}
+            value={Number(value.autoReconnectMonths ?? 1)}
+            disabled={Number(value.autoReconnectEnabled) !== 1}
+            onChange={(e) => set("autoReconnectMonths", Number(e.target.value))}
+          />
+          <span className="setting-note">
+            {Number(value.autoReconnectMonths) === 0
+              ? "Only once every bill is paid."
+              : `Once it's down to ${Number(value.autoReconnectMonths)} unpaid bill${Number(value.autoReconnectMonths) === 1 ? "" : "s"} or fewer.`}
+          </span>
+        </label>
       </div>
 
       <h3 className="profile-head">Computation</h3>

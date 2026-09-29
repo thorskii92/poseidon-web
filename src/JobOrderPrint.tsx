@@ -10,6 +10,7 @@ import {
   type SignatorySlot,
 } from "./Signatories";
 import "./print.css";
+import ReportHeader from "./ReportHeader";
 
 /**
  * The printed Job Order — one generic layout serving all six types, since
@@ -209,13 +210,9 @@ export default function JobOrderPrint() {
       </div>
 
       <article className="soa-sheet" style={scaledSheetStyle(box.width, scale)}>
-        <header style={{ textAlign: "center", lineHeight: 1.3 }}>
-          <div>Republic of the Philippines</div>
-          {data.office.municipalHeader && <div>{data.office.municipalHeader}</div>}
-          {data.office.officeHeader && <div>{data.office.officeHeader}</div>}
-          <div className="soa-office">{data.office.officeName}</div>
-          <div>BILLING SECTION</div>
-        </header>
+        <ReportHeader />
+        {/* The slip's own section line, under the shared letterhead. */}
+        <div style={{ textAlign: "center", fontWeight: 600 }}>BILLING SECTION</div>
 
         <h1 className="soa-title">{data.label}</h1>
         <p className="soa-issued">Job Order No. {data.jobOrderNo} · Issued {longDate(data.dateIssued)}</p>

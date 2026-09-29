@@ -1,4 +1,4 @@
-import { useEffect, useState, type SyntheticEvent } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { apiGet } from "./api";
 import { peso } from "./collectionTypes";
@@ -10,6 +10,7 @@ import {
   SignatoryBlock, SignatoryPickers, useSignatories, type SignatorySlot,
 } from "./Signatories";
 import "./print.css";
+import ReportHeader from "./ReportHeader";
 
 /**
  * Field Collection Report — the one report kept on a satellite's own
@@ -19,18 +20,6 @@ import "./print.css";
  * offline. Each line shows its own upload status so a collector can see
  * at a glance what's still waiting to reach main.
  */
-
-const LOGO_SRC = {
-  municipal: "/api/settings/logo/municipal",
-  office: "/api/settings/logo/office",
-} as const;
-
-function Seal({ which }: { which: keyof typeof LOGO_SRC }) {
-  function hide(e: SyntheticEvent<HTMLImageElement>) {
-    e.currentTarget.style.visibility = "hidden";
-  }
-  return <img className="bill-seal" src={LOGO_SRC[which]} alt="" onError={hide} />;
-}
 
 type NatureRow = { nature: string; count: number; amount: number };
 type PaymentRow = {
@@ -118,17 +107,7 @@ export default function FieldCollectionPrint() {
       </div>
 
       <article className="soa-sheet" style={scaledSheetStyle(box.width, scale)}>
-        <header className="ecpay-head">
-          <Seal which="municipal" />
-          <div>
-            <div>Republic of the Philippines</div>
-            <div>PROVINCE OF PALAWAN</div>
-            <div>{data.office.officeHeader || data.office.municipalHeader}</div>
-            <div className="soa-office">{data.office.officeName}</div>
-            {data.office.officeAddress && <div className="soa-address">{data.office.officeAddress}</div>}
-          </div>
-          <Seal which="office" />
-        </header>
+        <ReportHeader />
 
         <p className="ecpay-kicker">
           Field Collection Report{data.satelliteName ? ` — ${data.satelliteName}` : ""}

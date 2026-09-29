@@ -10,6 +10,7 @@ import {
   useSignatories,
   type SignatorySlot,
 } from "./Signatories";
+import ReportHeader from "./ReportHeader";
 
 /**
  * The pending disconnection list, as the crew carries it.
@@ -124,15 +125,7 @@ export default function DisconnectionPrint() {
       </div>
 
       <article className="disc-sheet" style={scaledSheetStyle(box.width, scale)}>
-        <header className="disc-head">
-          <div>Republic of the Philippines</div>
-          {data.office.municipalHeader && <div>{data.office.municipalHeader}</div>}
-          {data.office.officeHeader && <div>{data.office.officeHeader}</div>}
-          <div className="disc-office">{data.office.officeName}</div>
-          {data.office.officeAddress && (
-            <div className="disc-address">{data.office.officeAddress}</div>
-          )}
-        </header>
+        <ReportHeader />
 
         <h1 className="disc-title">List of Accounts for Disconnection</h1>
         {data.scope && <p className="disc-scope">{data.scope}</p>}

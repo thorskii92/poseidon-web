@@ -5,6 +5,7 @@ import type { PaperKey } from "./orLayout";
 import { PrintLayoutControls, usePrintPageSize, scaledSheetStyle, type Orientation } from "./PrintLayoutControls";
 import { SignatoryBlock, SignatoryPickers, useSignatories, type SignatorySlot } from "./Signatories";
 import "./print.css";
+import ReportHeader from "./ReportHeader";
 
 /**
  * Revenue from Consumption (by Cluster) — same billed volume/amount by
@@ -112,12 +113,7 @@ export default function RevenueFromConsumptionClusterPrint() {
       </div>
 
       <article className="soa-sheet" style={scaledSheetStyle(box.width, scale)}>
-        <header style={{ textAlign: "center", lineHeight: 1.3 }}>
-          <div>Republic of the Philippines</div>
-          <div>PROVINCE OF PALAWAN</div>
-          <div>{data.office.officeHeader || data.office.municipalHeader}</div>
-          <div className="soa-office">{data.office.officeName}</div>
-        </header>
+        <ReportHeader />
 
         <h1 className="soa-title">Revenue from Consumption (by Cluster)</h1>
         <p className="soa-issued">{data.month} {data.year}</p>

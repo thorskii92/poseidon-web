@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import type { SyntheticEvent } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { apiGet } from "./api";
 import type { PaperKey } from "./orLayout";
@@ -11,6 +10,7 @@ import {
   type SignatorySlot,
 } from "./Signatories";
 import "./print.css";
+import ReportHeader from "./ReportHeader";
 
 /**
  * The Account Transaction History sheet.
@@ -74,20 +74,6 @@ function shortDate(value: string | null) {
   if (!value) return "—";
   const [y, m, d] = value.slice(0, 10).split("-");
   return `${m}/${d}/${y}`;
-}
-
-const LOGO_SRC = {
-  municipal: "/api/settings/logo/municipal",
-  office: "/api/settings/logo/office",
-} as const;
-
-function Seal({ which }: { which: keyof typeof LOGO_SRC }) {
-  function hide(e: SyntheticEvent<HTMLImageElement>) {
-    e.currentTarget.style.visibility = "hidden";
-  }
-  return (
-    <img className="soa-seal" src={LOGO_SRC[which]} alt="" onError={hide} />
-  );
 }
 
 type BillPayment = {
@@ -236,21 +222,7 @@ export default function TransactionsPrint() {
       </div>
 
       <article className="soa-sheet" style={scaledSheetStyle(box.width, scale)}>
-        <header className="soa-head">
-          <Seal which="municipal" />
-          <div className="soa-head-text">
-            <div>Republic of the Philippines</div>
-            {data.office.municipalHeader && (
-              <div>{data.office.municipalHeader}</div>
-            )}
-            {data.office.officeHeader && <div>{data.office.officeHeader}</div>}
-            <div className="soa-office">{data.office.officeName}</div>
-            {data.office.officeAddress && (
-              <div className="soa-address">{data.office.officeAddress}</div>
-            )}
-          </div>
-          <Seal which="office" />
-        </header>
+        <ReportHeader />
 
         <h1 className="soa-title">Account Transaction History</h1>
         <p className="soa-issued">
