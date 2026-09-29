@@ -3,6 +3,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPost, ApiError } from "./api";
 import { useAuth } from "./AuthContext";
 
+import PasswordStrength from "./PasswordStrength";
+import { passwordStrength } from "./passwordPolicy";
 /**
  * User Management — accounts, system roles, and which pages/capabilities
  * each role grants.
@@ -418,7 +420,8 @@ function UserEditor({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const shortPassword = !record && newPassword.length > 0 && newPassword.length < 8;
+  // The same rules the server enforces (passwordPolicy.ts).
+  const passwordOk = passwordStrength(newPassword, username).meetsRules;
 
   async function save() {
     setBusy(true);
@@ -467,9 +470,10 @@ function UserEditor({
               autoComplete="new-password"
               onChange={(e) => setNewPassword(e.target.value)}
             />
+            <PasswordStrength password={newPassword} username={username} />
             <span className="setting-note">
-              At least 8 characters. Stored as a hash — nothing here can read it
-              back, so a lost password is reset, not recovered.
+              Stored as a hash — nothing here can read it back, so a lost
+              password is reset, not recovered.
             </span>
           </label>
         )}
@@ -509,15 +513,12 @@ function UserEditor({
           )}
         </label>
 
-        {shortPassword && (
-          <div className="form-error">The password must be at least 8 characters.</div>
-        )}
         {error && <div className="form-error">{error}</div>}
 
         <div className="form-actions">
           <button
             className="primary"
-            disabled={busy || !username.trim() || !fullName.trim() || (!record && newPassword.length < 8)}
+            disabled={busy || !username.trim() || !fullName.trim() || (!record && !passwordOk)}
             onClick={save}
           >
             {busy ? "Saving…" : "Save"}
@@ -541,7 +542,7 @@ function PasswordEditor({
   const [error, setError] = useState("");
 
   const mismatch = again.length > 0 && next !== again;
-  const tooShort = next.length > 0 && next.length < 8;
+  const strong = passwordStrength(next, user.username).meetsRules;
 
   async function save() {
     setBusy(true);
@@ -594,6 +595,7 @@ function PasswordEditor({
             onChange={(e) => setNext(e.target.value)}
           />
         </label>
+        <PasswordStrength password={next} username={user.username} />
 
         <label className="field-input">
           <span>New password again</span>
@@ -605,14 +607,13 @@ function PasswordEditor({
           />
         </label>
 
-        {tooShort && <div className="form-error">At least 8 characters.</div>}
         {mismatch && <div className="form-error">The two do not match.</div>}
         {error && <div className="form-error">{error}</div>}
 
         <div className="form-actions">
           <button
             className="primary"
-            disabled={busy || next.length < 8 || next !== again || (isSelf && current.length === 0)}
+            disabled={busy || !strong || next !== again || (isSelf && current.length === 0)}
             onClick={save}
           >
             {busy ? "Saving…" : "Set password"}

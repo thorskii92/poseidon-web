@@ -171,6 +171,17 @@ export function IconLogout({ size = 20 }: IconProps) {
   );
 }
 
+/** Contact support — a speech bubble with a question mark. */
+export function IconSupport({ size = 20 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...base}>
+      <path d="M5 18.5 3.5 21l3.2-1.4A8.5 8.5 0 1 0 5 18.5Z" />
+      <path d="M9.7 9.4a2.4 2.4 0 1 1 3.4 2.2c-.7.3-1.1.9-1.1 1.6v.3" />
+      <circle cx="12" cy="16.4" r="0.15" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 /** Sidebar collapse toggle — a panel with a chevron, flipped when collapsed. */
 export function IconSidebar({ size = 20, collapsed = false }: IconProps & { collapsed?: boolean }) {
   return (

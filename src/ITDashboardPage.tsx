@@ -5,6 +5,7 @@ import {
 } from "recharts";
 import { apiGet } from "./api";
 import ITBottlenecksPanel, { type Bottlenecks } from "./ITBottlenecksPanel";
+import ITMobileAppPanel, { type MobileAppStatus } from "./ITMobileAppPanel";
 
 /**
  * IT Dashboard — the running server's own health, performance and
@@ -114,6 +115,8 @@ type Status = {
   slowRequests: ReqEvent[];
   /** Absent from a server still running the build before this existed. */
   bottlenecks?: Bottlenecks;
+  /** Main server only; null on a satellite. */
+  mobileApp?: MobileAppStatus | null;
   history: Sample[];
 };
 
@@ -239,6 +242,8 @@ export default function ITDashboardPage() {
           </div>
 
           {data.bottlenecks && <ITBottlenecksPanel b={data.bottlenecks} />}
+
+          {data.mobileApp && <ITMobileAppPanel m={data.mobileApp} now={dataUpdatedAt} />}
 
           <UptimePanel uptime={data.uptime} />
 

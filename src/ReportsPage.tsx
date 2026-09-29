@@ -44,7 +44,7 @@ import JobOrderCompletionDetailDialog from "./JobOrderCompletionDetailDialog";
 import IPAllocationDialog from "./IPAllocationDialog";
 import MonthReportDialog from "./MonthReportDialog";
 import { useAuth } from "./AuthContext";
-import { IconClock, IconIdCard, IconListOrdered, IconMegaphone } from "./NavIcons";
+import { IconChartBar, IconClock, IconIdCard, IconListOrdered, IconMegaphone } from "./NavIcons";
 import {
   IconReceipt, IconInvoice, IconUsers, IconWrench, IconTrendUp,
   IconCalendarBars, IconDroplet, type IconProps,
@@ -78,7 +78,7 @@ export default function ReportsPage() {
     "consumption-brackets" | "billing-completeness" | "environmental-fee" | "consumption-trend" |
     "field-staff-activity" | "adjustment-processing" | "job-order-register" | "job-order-turnaround" | "job-order-completion-detail" |
     "ip-allocation" | "collections-deposit" |
-    "incident-register" | "incident-response" | "mobile-adjustment-requests" | null
+    "incident-register" | "incident-response" | "mobile-adjustment-requests" | "mobile-app-usage" | null
   >(null);
   const { can } = useAuth();
 
@@ -176,6 +176,7 @@ export default function ReportsPage() {
       title: "Mobile App Reports",
       icon: IconMegaphone,
       reports: [
+        { title: "Mobile App Usage Report", note: "How much the mobile app was used in one month, day by day — phones, account checks, and incidents and adjustment requests sent in.", icon: IconChartBar, action: { kind: "dialog" as const, open: () => setDialog("mobile-app-usage") } },
         ...(can("incidents")
           ? [
               { title: "Incident Report Register", note: "Every incident reported from the mobile app in one month — leaks, pipe theft, illegal connections — by category and status.", icon: IconMegaphone, action: { kind: "dialog" as const, open: () => setDialog("incident-register") } },
@@ -432,6 +433,14 @@ export default function ReportsPage() {
           title="Incident Response Time Report"
           blurb="How quickly the month's incident reports were first acted on and closed, by category and staff member, plus every report still open."
           printPath="/reports/incident-response/print"
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog === "mobile-app-usage" && (
+        <MonthReportDialog
+          title="Mobile App Usage Report"
+          blurb="How much the consumer mobile app was used in the chosen month, day by day."
+          printPath="/reports/mobile-app-usage/print"
           onClose={() => setDialog(null)}
         />
       )}

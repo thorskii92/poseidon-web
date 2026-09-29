@@ -10,8 +10,9 @@ import { IconReceipt, IconInvoice, IconUsers, IconWrench, IconDroplet, type Icon
 import {
   IconGrid, IconIdCard, IconWallet, IconClock, IconSliders, IconCheckCircle,
   IconPowerOff, IconCreditCard, IconChartBar, IconGear, IconGauge, IconLayers, IconListOrdered,
-  IconRefresh, IconAlertTriangle, IconServer, IconLogout, IconSidebar, IconMegaphone,
+  IconRefresh, IconAlertTriangle, IconServer, IconLogout, IconSidebar, IconMegaphone, IconSupport,
 } from "./NavIcons";
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "./support";
 import { useMobileInbox, type InboxCounts } from "./mobileInbox";
 
 const COLLAPSE_KEY = "poseidon.sidebarCollapsed";
@@ -287,6 +288,20 @@ export default function Layout({ children }: { children: ReactNode }) {
             <IconLogout size={18} />
             <span className="nav-label">Sign out</span>
           </button>
+          <a
+            className="sidebar-support"
+            href={SUPPORT_MAILTO}
+            title={`Email ${SUPPORT_EMAIL}`}
+            {...tipProps(`Contact support — ${SUPPORT_EMAIL}`)}
+          >
+            <IconSupport size={18} />
+            <span className="nav-label">
+              Contact support
+              {/* Spelled out: a shared office PC often has no email app,
+                  so clicking the link may do nothing. */}
+              <span className="sidebar-support-email">{SUPPORT_EMAIL}</span>
+            </span>
+          </a>
         </div>
       </nav>
       {collapsed && tip && (

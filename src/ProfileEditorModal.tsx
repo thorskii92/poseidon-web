@@ -3,6 +3,8 @@ import { useAuth } from "./AuthContext";
 import Avatar from "./Avatar";
 import AvatarCropper from "./AvatarCropper";
 import { ApiError } from "./api";
+import PasswordStrength from "./PasswordStrength";
+import { passwordStrength } from "./passwordPolicy";
 
 /**
  * Opened by clicking your own name in the sidebar — editing your profile,
@@ -195,12 +197,14 @@ export function PasswordTab({ onChanged }: { onChanged: () => void }) {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [again, setAgain] = useState("");
+  const { user } = useAuth();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
   const mismatch = again.length > 0 && next !== again;
-  const tooShort = next.length > 0 && next.length < 8;
+  // The same rules the server enforces (passwordPolicy.ts).
+  const strong = passwordStrength(next, user?.username ?? "").meetsRules;
 
   async function save() {
     setBusy(true);
@@ -246,6 +250,7 @@ export function PasswordTab({ onChanged }: { onChanged: () => void }) {
           onChange={(e) => setNext(e.target.value)}
         />
       </label>
+      <PasswordStrength password={next} username={user?.username} />
 
       <label className="field-input">
         <span>New password again</span>
@@ -257,7 +262,6 @@ export function PasswordTab({ onChanged }: { onChanged: () => void }) {
         />
       </label>
 
-      {tooShort && <div className="form-error" style={{ marginTop: 12 }}>At least 8 characters.</div>}
       {mismatch && <div className="form-error" style={{ marginTop: 12 }}>The two do not match.</div>}
       {notice && <div className="form-notice" style={{ marginTop: 12 }}>{notice}</div>}
       {error && <div className="form-error" style={{ marginTop: 12 }}>{error}</div>}
@@ -265,7 +269,7 @@ export function PasswordTab({ onChanged }: { onChanged: () => void }) {
       <div className="form-actions" style={{ marginTop: 14 }}>
         <button
           className="primary"
-          disabled={busy || !current || next.length < 8 || next !== again}
+          disabled={busy || !current || !strong || next !== again}
           onClick={save}
         >
           {busy ? "Saving…" : "Change password"}

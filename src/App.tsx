@@ -41,6 +41,7 @@ import IncidentReportsPage from "./IncidentReportsPage";
 import IncidentRegisterPrint from "./IncidentRegisterPrint";
 import IncidentResponsePrint from "./IncidentResponsePrint";
 import MobileAdjustmentRequestsPrint from "./MobileAdjustmentRequestsPrint";
+import MobileAppUsagePrint from "./MobileAppUsagePrint";
 import AbstractMonthlyCollectionPrint from "./AbstractMonthlyCollectionPrint";
 import MonthlyConsumptionPrint from "./MonthlyConsumptionPrint";
 import AnnualFinancialPerformancePrint from "./AnnualFinancialPerformancePrint";
@@ -181,6 +182,7 @@ export default function App() {
         <Route path="/reports/incident-register/print" element={<IncidentRegisterPrint />} />
         <Route path="/reports/incident-response/print" element={<IncidentResponsePrint />} />
         <Route path="/reports/mobile-adjustment-requests/print" element={<MobileAdjustmentRequestsPrint />} />
+        <Route path="/reports/mobile-app-usage/print" element={<MobileAppUsagePrint />} />
         <Route
           path="/reports/abstract-monthly-collection/print"
           element={<AbstractMonthlyCollectionPrint />}
