@@ -32,6 +32,8 @@ const ACCOUNTABILITY_ROWS = 10;
 type Collection = { from: string; to: string; amount: number };
 type Accountability = {
   initial: string; final: string; serial: string;
+  /** A booklet continued from an earlier remittance — already on hand. */
+  beginningQty: number; beginningFrom: string; beginningTo: string;
   receiptQty: number; receiptFrom: string; receiptTo: string;
   issuedQty: number; issuedFrom: string; issuedTo: string;
   endingQty: number; endingFrom: string; endingTo: string;
@@ -153,7 +155,11 @@ function Field({ label, value, onChange, placeholder }: {
 
 export default function CollectionsDepositReportPrint() {
   const [params] = useSearchParams();
+  // `ranges` (ogid:from-to, a selective remittance) or `ogIds` (whole
+  // booklets) — passed straight through; the API reads either.
+  const ranges = params.get("ranges") ?? "";
   const ogIds = params.get("ogIds") ?? "";
+  const scope = ranges ? `ranges=${encodeURIComponent(ranges)}` : ogIds ? `ogIds=${encodeURIComponent(ogIds)}` : "";
 
   const [data, setData] = useState<Report | null>(null);
   const [error, setError] = useState("");
@@ -172,14 +178,14 @@ export default function CollectionsDepositReportPrint() {
   const [fields, setFields] = useState<FreeText>(loadSaved);
 
   useEffect(() => {
-    if (!ogIds) return;
-    apiGet<Report>(`/api/receipts/collections-deposit-report?ogIds=${encodeURIComponent(ogIds)}`)
+    if (!scope) return;
+    apiGet<Report>(`/api/receipts/collections-deposit-report?${scope}`)
       .then((d) => {
         setData(d);
         setError("");
       })
       .catch((e) => setError((e as Error).message));
-  }, [ogIds]);
+  }, [scope]);
 
   function update(patch: Partial<FreeText>) {
     setFields((prev) => {
@@ -189,7 +195,7 @@ export default function CollectionsDepositReportPrint() {
     });
   }
 
-  if (!ogIds) {
+  if (!scope) {
     return (
       <div className="print-root">
         <div className="form-error">No O.R. bundle chosen.</div>
@@ -396,10 +402,10 @@ export default function CollectionsDepositReportPrint() {
               {accountRows.map((a, i) => (
                 <tr key={i}>
                   <td className="rcd-l">{i === 0 ? fields.formType : ""}</td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                  <td>{a ? plain.format(a.receiptQty) : ""}</td>
+                  <td>{a && a.beginningQty > 0 ? plain.format(a.beginningQty) : ""}</td>
+                  <td>{a?.beginningFrom ?? ""}</td>
+                  <td>{a?.beginningTo ?? ""}</td>
+                  <td>{a && a.receiptQty > 0 ? plain.format(a.receiptQty) : ""}</td>
                   <td>{a?.receiptFrom ?? ""}</td>
                   <td>{a?.receiptTo ?? ""}</td>
                   <td>{a ? plain.format(a.issuedQty) : ""}</td>

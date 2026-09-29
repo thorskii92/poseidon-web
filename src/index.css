@@ -5367,3 +5367,44 @@ button.primary.big {
   line-height: 1.45;
   color: var(--text-muted);
 }
+
+/* ---- Report of Collections and Deposit: picked booklets, with the part
+   of each being remitted (selective remittance) ---- */
+
+.rcd-picks table {
+  width: 100%;
+  margin-top: 8px;
+  border-collapse: collapse;
+}
+
+.rcd-picks th {
+  padding: 2px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  color: var(--text-muted);
+}
+
+.rcd-picks td {
+  padding: 4px 6px;
+  vertical-align: top;
+}
+
+.rcd-picks input.filter-input {
+  width: 110px;
+}
+
+.rcd-picks-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.rcd-picks-note {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.rcd-picks-problem {
+  font-size: 12px;
+  color: #a82b23;
+}
