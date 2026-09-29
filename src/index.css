@@ -5269,3 +5269,101 @@ button.primary.big {
     transform: none;
   }
 }
+/* ---- IT Dashboard: Bottlenecks panel ---- */
+
+.it-split-bar {
+  display: flex;
+  height: 14px;
+  overflow: hidden;
+  background: #eef1f4;
+  border-radius: 7px;
+}
+
+.it-split.compact .it-split-bar {
+  height: 8px;
+  border-radius: 4px;
+}
+
+/* Same colours as the Responsiveness chart: database navy, app green,
+   and amber for time spent queueing. */
+.it-split-db {
+  background: var(--navy);
+}
+
+.it-split-wait {
+  background: #c9992f;
+}
+
+.it-split-app {
+  background: #2e8b57;
+}
+
+.it-split-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 6px 0 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.it-split-legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  vertical-align: -1px;
+  border-radius: 2px;
+}
+
+.it-split-legend b {
+  color: var(--text);
+}
+
+.it-finding {
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--line);
+  border-left-width: 4px;
+  border-radius: 8px;
+}
+
+.it-finding.it-fail {
+  border-left-color: #d03b3b;
+}
+
+.it-finding.it-warn {
+  border-left-color: #c9992f;
+}
+
+.it-finding.it-info {
+  border-left-color: var(--blue-soft);
+}
+
+.it-finding-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.it-finding-area {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-muted);
+}
+
+.it-finding-detail {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.it-finding-fix {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}

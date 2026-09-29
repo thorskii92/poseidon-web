@@ -4,6 +4,7 @@ import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from "recharts";
 import { apiGet } from "./api";
+import ITBottlenecksPanel, { type Bottlenecks } from "./ITBottlenecksPanel";
 
 /**
  * IT Dashboard — the running server's own health, performance and
@@ -111,6 +112,8 @@ type Status = {
   startupLog: string[];
   recentErrors: ReqEvent[];
   slowRequests: ReqEvent[];
+  /** Absent from a server still running the build before this existed. */
+  bottlenecks?: Bottlenecks;
   history: Sample[];
 };
 
@@ -234,6 +237,8 @@ export default function ITDashboardPage() {
             <Kpi label="Requests / min" value={String(data.live.requestsPerMin)} sub={`${data.live.errors15m} errors in the last 15 min`} />
             <Kpi label="Server uptime" value={duration(data.server.uptimeSec)} sub={`since ${when(data.server.startedAt)}`} />
           </div>
+
+          {data.bottlenecks && <ITBottlenecksPanel b={data.bottlenecks} />}
 
           <UptimePanel uptime={data.uptime} />
 
