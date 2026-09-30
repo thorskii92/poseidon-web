@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import * as maplibregl from "maplibre-gl";
@@ -13,6 +13,8 @@ import {
   BAND_ORDER, BGY_LINE, COLOR_BY, MASK_FILL, MUNI_LINE, NO_FILTERS, SAVED_FILTERS_KEY, activeFilterCount, legendOf, matches, toCsv,
   type BasemapStatus, type ColorBy, type Filters, type MapAccount, type MapArea,
 } from "./gisShared";
+import { GROUPS, addFeatureLayers, type FeatureGroup, type MapFeature } from "./gisFeatures";
+import GisDrawing, { FeatureLegend } from "./GisDrawing";
 
 /**
  * GIS Map — every account's meter on a street map of the LGU, coloured by
@@ -23,10 +25,13 @@ import {
  * falls back to the online OpenStreetMap tiles. Satellite is online only.
  * Accounts get a location by being placed on the map here (the reader app
  * will fill them in from the phone's GPS later). The municipal and barangay
- * boundaries are PSA's, downloaded with the street map.
+ * boundaries are PSA's, downloaded with the street map. The water system
+ * (pipes, stand pipes, valves…) and notes/areas are drawn with the tools in
+ * GisDrawing.tsx, by roles with the "Edit the GIS map" permission.
  */
 
-type Settings = { area: MapArea; basemap: BasemapStatus };
+type Settings = { area: MapArea; basemap: BasemapStatus; canEdit: boolean };
+const ALL_GROUPS = Object.fromEntries(GROUPS.map((g) => [g.id, true])) as Record<FeatureGroup, boolean>;
 type Base = "street" | "satellite";
 
 let pmtilesReady = false;
@@ -97,6 +102,10 @@ function GisMap({ settings }: { settings: Settings }) {
   const holder = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [ready, setReady] = useState(false);
+  const [mapObj, setMapObj] = useState<maplibregl.Map | null>(null);
+  const [groups, setGroups] = useState<Record<FeatureGroup, boolean>>(ALL_GROUPS);
+  const [featureId, setFeatureId] = useState<number | null>(null);
+  const drawingRef = useRef(false);
 
   const [colorBy, setColorBy] = useState<ColorBy>("status");
   const [base, setBase] = useState<Base>("street");
@@ -117,6 +126,18 @@ function GisMap({ settings }: { settings: Settings }) {
     queryFn: () => apiGet("/api/gis/accounts"),
   });
   const all = useMemo(() => data?.rows ?? [], [data]);
+  const { data: featureData } = useQuery<{ rows: MapFeature[] }>({
+    queryKey: ["gis", "features"],
+    queryFn: () => apiGet("/api/gis/features"),
+  });
+  const features = useMemo(() => featureData?.rows ?? [], [featureData]);
+  const onBusy = useCallback((b: boolean) => {
+    drawingRef.current = b;
+  }, []);
+  const selectFeature = useCallback((id: number | null) => {
+    setFeatureId(id);
+    if (id != null) setSelectedId(null);
+  }, []);
 
   const classOrder = useMemo(() => [...new Set(all.map((a) => a.classId))].sort((x, y) => x - y), [all]);
   const matching = useMemo(() => all.filter((a) => matches(a, filters)), [all, filters]);
@@ -218,6 +239,7 @@ function GisMap({ settings }: { settings: Settings }) {
           paint: { "text-color": BGY_LINE.color, "text-halo-color": "#fff", "text-halo-width": 1.6 },
         });
       }
+      addFeatureLayers(map);
       map.addSource("accounts", {
         type: "geojson", data: { type: "FeatureCollection", features: [] },
         cluster: true, clusterMaxZoom: 15, clusterRadius: 40,
@@ -262,9 +284,12 @@ function GisMap({ settings }: { settings: Settings }) {
         map.easeTo({ center: f.geometry.coordinates as [number, number], zoom });
       });
       map.on("click", "acct-points", (e) => {
-        if (placingRef.current) return;
+        if (placingRef.current || drawingRef.current) return;
         const id = Number(e.features?.[0]?.properties?.id);
-        if (id) setSelectedId(id);
+        if (id) {
+          setSelectedId(id);
+          setFeatureId(null);
+        }
       });
       map.on("click", (e) => {
         const p = placingRef.current;
@@ -275,8 +300,10 @@ function GisMap({ settings }: { settings: Settings }) {
         map.on("mouseleave", layer, () => { map.getCanvas().style.cursor = placingRef.current ? "crosshair" : ""; });
       }
       setReady(true);
+      setMapObj(map);
     });
     return () => {
+      setMapObj(null);
       map.remove();
       mapRef.current = null;
     };
@@ -429,6 +456,13 @@ function GisMap({ settings }: { settings: Settings }) {
           ) : (
             <div className="count" style={{ marginTop: 6 }}>Boundaries: not downloaded yet</div>
           )}
+          <div style={{ marginTop: 6 }}>
+            {GROUPS.map((g) => (
+              <label key={g.id} style={{ display: "block" }}>
+                <input type="checkbox" checked={groups[g.id]} onChange={(e) => setGroups((x) => ({ ...x, [g.id]: e.target.checked }))} /> {g.label}
+              </label>
+            ))}
+          </div>
         </fieldset>
 
         <details open={nFilters > 0}>
@@ -579,7 +613,7 @@ function GisMap({ settings }: { settings: Settings }) {
         <div ref={holder} style={{ position: "absolute", inset: 0 }} />
 
         {!bm.installed && (
-          <div className="action-notice" style={{ position: "absolute", top: 8, left: 8, right: 60, animation: "none", zIndex: 2 }}>
+          <div className="action-notice" style={{ position: "absolute", top: 96, left: 8, right: 360, animation: "none", zIndex: 2 }}>
             The offline street map isn't downloaded yet, so this uses the online map (needs internet).
           </div>
         )}
@@ -598,7 +632,7 @@ function GisMap({ settings }: { settings: Settings }) {
         )}
 
         {/* Legend */}
-        {((showAccounts && legend.length > 0) || (bm.boundaries && (showMuni || showBarangays))) && (
+        {((showAccounts && legend.length > 0) || (bm.boundaries && (showMuni || showBarangays)) || features.length > 0) && (
           <div style={{ position: "absolute", left: 8, bottom: 28, zIndex: 2, background: "var(--surface, #fff)", color: "var(--text, #111)", borderRadius: 8, padding: "8px 10px", boxShadow: "0 1px 6px rgba(0,0,0,.2)", maxHeight: "45%", overflowY: "auto", fontSize: 13 }}>
             {showAccounts && legend.length > 0 && <div style={{ fontWeight: 600, marginBottom: 4 }}>{COLOR_BY.find((c) => c.id === colorBy)?.label}</div>}
             {showAccounts && legend.map((l) => (
@@ -627,8 +661,24 @@ function GisMap({ settings }: { settings: Settings }) {
                 <span>Barangay boundary</span>
               </div>
             )}
+            <FeatureLegend features={features} groups={groups} />
           </div>
         )}
+
+        <GisDrawing
+          map={mapObj}
+          canEdit={settings.canEdit}
+          features={features}
+          groups={groups}
+          accounts={all}
+          selectedId={featureId}
+          onSelect={selectFeature}
+          onBusy={onBusy}
+          onChanged={() => qc.invalidateQueries({ queryKey: ["gis", "features"] })}
+          onNotice={setNotice}
+          onError={setErr}
+          onFilterStandpipe={(name) => setFilters({ ...NO_FILTERS, standpipe: name })}
+        />
 
         {/* Selected account */}
         {selected && (
