@@ -9,7 +9,7 @@ import ProfileEditorModal from "./ProfileEditorModal";
 import { IconReceipt, IconInvoice, IconUsers, IconWrench, IconDroplet, type IconProps } from "./ReportIcons";
 import {
   IconGrid, IconIdCard, IconWallet, IconClock, IconSliders, IconCheckCircle,
-  IconPowerOff, IconCreditCard, IconChartBar, IconGear, IconGauge, IconLayers, IconListOrdered,
+  IconPowerOff, IconCreditCard, IconChartBar, IconGear, IconGauge, IconLayers, IconListOrdered, IconBox,
   IconRefresh, IconAlertTriangle, IconServer, IconLogout, IconSidebar, IconMegaphone, IconSupport,
 } from "./NavIcons";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "./support";
@@ -99,7 +99,7 @@ function useInboxAlerts(inbox: InboxCounts | undefined) {
   };
 }
 
-const NAV: { label: string; to: string; perm: string | null; icon: IconComponent; satelliteOnly?: boolean; mainOnly?: boolean; satelliteAlwaysOn?: boolean }[] = [
+const NAV: { label: string; to: string; perm: string | null; icon: IconComponent; satelliteOnly?: boolean; mainOnly?: boolean; satelliteAlwaysOn?: boolean; alsoFor?: string[] }[] = [
   { label: "Dashboard", to: "/", perm: null, icon: IconGrid },
   { label: "Accounts", to: "/accounts", perm: "accounts", icon: IconIdCard },
   { label: "Collection", to: "/collection", perm: "collection", icon: IconWallet },
@@ -118,6 +118,8 @@ const NAV: { label: string; to: string; perm: string | null; icon: IconComponent
   { label: "Incident Reports", to: "/incidents", perm: "incidents", icon: IconMegaphone, mainOnly: true },
   { label: "Disconnection", to: "/disconnection", perm: "disconnection", icon: IconPowerOff },
   { label: "ECPay", to: "/ecpay", perm: "ecpay", icon: IconCreditCard, mainOnly: true },
+  // Staff who can only file or approve supply requests get just the Requests tab.
+  { label: "Inventory", to: "/inventory", perm: "inventory", icon: IconBox, mainOnly: true, alsoFor: ["invrequest", "invapprove"] },
   { label: "Reports", to: "/reports", perm: "reports", icon: IconChartBar },
   { label: "User Management", to: "/users", perm: "users", icon: IconUsers },
   { label: "Settings", to: "/settings", perm: "settings", icon: IconGear },
@@ -209,7 +211,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   };
 
   const visibleNav = NAV.filter((item) => {
-    const permOk = item.perm === null || can(item.perm) || (item.satelliteAlwaysOn && isSatellite);
+    const permOk = item.perm === null || can(item.perm) || (item.alsoFor ?? []).some((p) => can(p)) || (item.satelliteAlwaysOn && isSatellite);
     if (!permOk) return false;
     if (item.satelliteOnly && !isSatellite) return false;
     if (item.mainOnly && isSatellite) return false;

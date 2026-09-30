@@ -44,7 +44,7 @@ import JobOrderCompletionDetailDialog from "./JobOrderCompletionDetailDialog";
 import IPAllocationDialog from "./IPAllocationDialog";
 import MonthReportDialog from "./MonthReportDialog";
 import { useAuth } from "./AuthContext";
-import { IconChartBar, IconClock, IconIdCard, IconListOrdered, IconMegaphone } from "./NavIcons";
+import { IconBox, IconChartBar, IconClock, IconIdCard, IconListOrdered, IconMegaphone } from "./NavIcons";
 import {
   IconReceipt, IconInvoice, IconUsers, IconWrench, IconTrendUp,
   IconCalendarBars, IconDroplet, type IconProps,
@@ -78,7 +78,9 @@ export default function ReportsPage() {
     "consumption-brackets" | "billing-completeness" | "environmental-fee" | "consumption-trend" |
     "field-staff-activity" | "adjustment-processing" | "job-order-register" | "job-order-turnaround" | "job-order-completion-detail" |
     "ip-allocation" | "collections-deposit" |
-    "incident-register" | "incident-response" | "mobile-adjustment-requests" | "mobile-app-usage" | null
+    "incident-register" | "incident-response" | "mobile-adjustment-requests" | "mobile-app-usage" |
+    "inv-rsmi" | "inv-deliveries" | "inv-movement-summary" | "inv-requests" |
+    "reader-field-reading" | "reader-exceptions" | null
   >(null);
   const { can } = useAuth();
 
@@ -189,6 +191,34 @@ export default function ReportsPage() {
             ]
           : []),
       ],
+    },
+    {
+      // Needs Meter Reading as well as Reports (poseidon-api fieldReadingReports.ts).
+      title: "Meter Reader App Reports",
+      icon: IconDroplet,
+      reports: can("reading")
+        ? [
+            { title: "Meter Reading Field Report", note: "How the field reading went for one billing month — routes downloaded, coverage, each reader's pace, and readings by day.", icon: IconChartBar, action: { kind: "dialog" as const, open: () => setDialog("reader-field-reading") } },
+            { title: "Field Reading Exceptions", note: "Readings that need a second look — warnings and notes from the phone, readings changed by the biller, and printed bills that differ from the generated bill.", icon: IconDroplet, action: { kind: "dialog" as const, open: () => setDialog("reader-exceptions") } },
+          ]
+        : [],
+    },
+    {
+      // Needs the Inventory page as well as Reports (poseidon-api inventoryReports.ts).
+      title: "Inventory Reports",
+      icon: IconBox,
+      reports: can("inventory")
+        ? [
+            { title: "Report of Supplies and Materials Issued (RSMI)", note: "Every supply released on an RIS in one month, with the recapitulation by item — the COA monthly report.", icon: IconListOrdered, action: { kind: "dialog" as const, open: () => setDialog("inv-rsmi") } },
+            { title: "Stock on Hand and Valuation", note: "What is in stock and what it is worth at moving-average cost, by category, as of any date.", icon: IconBox, action: { kind: "dialog" as const, open: () => window.open("/reports/inventory/stock-on-hand/print", "_blank") } },
+            { title: "Items Below Reorder Level", note: "Items at or below their reorder level, how fast they are used, and a suggested order — a live snapshot.", icon: IconTrendUp, action: { kind: "dialog" as const, open: () => window.open("/reports/inventory/below-reorder/print", "_blank") } },
+            { title: "Deliveries Received (IAR Register)", note: "Every delivery received in one month, by supplier, with PO, DR and invoice numbers.", icon: IconReceipt, action: { kind: "dialog" as const, open: () => setDialog("inv-deliveries") } },
+            { title: "Stock Movement Summary", note: "Beginning balance, received, issued, adjusted and ending — quantity and value per item for one month.", icon: IconChartBar, action: { kind: "dialog" as const, open: () => setDialog("inv-movement-summary") } },
+            { title: "Equipment Custody Report", note: "Every piece of equipment out on an ICS or PAR, by accountable person — a live snapshot.", icon: IconUsers, action: { kind: "dialog" as const, open: () => window.open("/reports/inventory/custody/print", "_blank") } },
+            { title: "Water Meter Status Report", note: "Every water meter by serial number: in stock, installed (and where), defective or disposed.", icon: IconDroplet, action: { kind: "dialog" as const, open: () => window.open("/reports/inventory/meters/print", "_blank") } },
+            { title: "Supply Requests Report", note: "Supply requests filed in one month — approved, released or declined, by office, and how long they took.", icon: IconClock, action: { kind: "dialog" as const, open: () => setDialog("inv-requests") } },
+          ]
+        : [],
     },
   ];
   // A category left with no cards for this role isn't shown at all.
@@ -435,6 +465,24 @@ export default function ReportsPage() {
           printPath="/reports/incident-response/print"
           onClose={() => setDialog(null)}
         />
+      )}
+      {dialog === "reader-field-reading" && (
+        <MonthReportDialog title="Meter Reading Field Report" blurb="Routes read with the meter reader app for the chosen billing month — coverage, readers and days." printPath="/reports/reader-field-reading/print" onClose={() => setDialog(null)} />
+      )}
+      {dialog === "reader-exceptions" && (
+        <MonthReportDialog title="Field Reading Exceptions" blurb="Readings from the meter reader app that need a second look, for the chosen billing month." printPath="/reports/reader-exceptions/print" onClose={() => setDialog(null)} />
+      )}
+      {dialog === "inv-rsmi" && (
+        <MonthReportDialog title="Report of Supplies and Materials Issued" blurb="Every supply released on an RIS in the chosen month, with the recapitulation by item." printPath="/reports/inventory/rsmi/print" onClose={() => setDialog(null)} />
+      )}
+      {dialog === "inv-deliveries" && (
+        <MonthReportDialog title="Deliveries Received (IAR Register)" blurb="Every delivery received in the chosen month, by supplier." printPath="/reports/inventory/deliveries/print" onClose={() => setDialog(null)} />
+      )}
+      {dialog === "inv-movement-summary" && (
+        <MonthReportDialog title="Stock Movement Summary" blurb="Beginning, received, issued, adjusted and ending balances per item for the chosen month." printPath="/reports/inventory/movement-summary/print" onClose={() => setDialog(null)} />
+      )}
+      {dialog === "inv-requests" && (
+        <MonthReportDialog title="Supply Requests Report" blurb="Supply requests filed in the chosen month and how they were handled." printPath="/reports/inventory/requests/print" onClose={() => setDialog(null)} />
       )}
       {dialog === "mobile-app-usage" && (
         <MonthReportDialog

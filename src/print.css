@@ -1560,3 +1560,105 @@
     font-size: 18px !important;
   }
 }
+
+/* ---- Government inventory forms (InventoryFormPrint.tsx) ---- */
+.coa-toolbar-field {
+  display: inline-flex;
+  flex-direction: column;
+  font-size: 11px;
+  color: #555;
+  gap: 2px;
+}
+.coa-toolbar-field input {
+  padding: 4px 6px;
+  font: inherit;
+  font-size: 13px;
+  border: 1px solid #ccd3db;
+  border-radius: 5px;
+}
+.coa-form .coa-appendix {
+  text-align: right;
+  font-size: 9pt;
+  font-style: italic;
+}
+.coa-form .coa-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 24px;
+  margin: 6px 0 8px;
+  font-size: 9.5pt;
+}
+.coa-form .coa-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 10px;
+  font-size: 9pt;
+}
+.coa-form .coa-table th,
+.coa-form .coa-table td {
+  border: 1px solid #000;
+  padding: 3px 5px;
+  vertical-align: top;
+  text-align: left;
+}
+.coa-form .coa-table th {
+  text-align: center;
+  font-weight: 700;
+  background: #f2f2f2;
+}
+.coa-form .coa-table .n {
+  text-align: right;
+  white-space: nowrap;
+}
+.coa-form .coa-table .c {
+  text-align: center;
+}
+.coa-form .coa-signs td {
+  height: 22px;
+}
+.coa-form .coa-sign-row {
+  display: flex;
+  gap: 24px;
+  margin-top: 18px;
+}
+.coa-form .coa-sign-row > * {
+  flex: 1;
+}
+.coa-form .coa-box {
+  border: 1px solid #000;
+  padding: 6px 10px;
+  font-size: 9pt;
+}
+.coa-form .coa-box p {
+  margin: 4px 0;
+}
+.coa-form .coa-box-title {
+  text-align: center;
+  font-weight: 700;
+}
+.coa-form .coa-sign {
+  font-size: 9pt;
+  text-align: center;
+}
+.coa-form .coa-sign-label {
+  text-align: left;
+  margin-bottom: 26px;
+}
+.coa-form .coa-sign-line {
+  border-bottom: 1px solid #000;
+  font-weight: 700;
+  text-transform: uppercase;
+  min-height: 16px;
+}
+.coa-form .coa-sign-role {
+  font-size: 8.5pt;
+}
+.coa-form .coa-void {
+  text-align: center;
+  font-weight: 700;
+  color: #b00020;
+  border: 2px solid #b00020;
+  padding: 4px;
+  margin: 0 0 8px;
+}

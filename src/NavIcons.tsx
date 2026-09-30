@@ -129,6 +129,17 @@ export function IconLayers({ size = 20 }: IconProps) {
   );
 }
 
+/** A box — Inventory. */
+export function IconBox({ size = 20 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...base}>
+      <path d="M3.5 7.5 12 3.5l8.5 4v9L12 20.5l-8.5-4Z" />
+      <path d="M3.5 7.5 12 11.5l8.5-4M12 11.5v9" />
+      <path d="M7.8 5.5l8.4 4" />
+    </svg>
+  );
+}
+
 export function IconListOrdered({ size = 20 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" {...base}>

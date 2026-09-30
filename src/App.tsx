@@ -38,10 +38,14 @@ import SyncPage from "./SyncPage";
 import SyncConflictsPage from "./SyncConflictsPage";
 import ITDashboardPage from "./ITDashboardPage";
 import IncidentReportsPage from "./IncidentReportsPage";
+import InventoryPage from "./InventoryPage";
 import IncidentRegisterPrint from "./IncidentRegisterPrint";
 import IncidentResponsePrint from "./IncidentResponsePrint";
 import MobileAdjustmentRequestsPrint from "./MobileAdjustmentRequestsPrint";
 import MobileAppUsagePrint from "./MobileAppUsagePrint";
+import InventoryReportPrint from "./InventoryReportPrint";
+import InventoryFormPrint from "./InventoryFormPrint";
+import { ReaderExceptionsPrint, ReaderFieldReportPrint } from "./ReaderReportsPrint";
 import AbstractMonthlyCollectionPrint from "./AbstractMonthlyCollectionPrint";
 import MonthlyConsumptionPrint from "./MonthlyConsumptionPrint";
 import AnnualFinancialPerformancePrint from "./AnnualFinancialPerformancePrint";
@@ -183,6 +187,10 @@ export default function App() {
         <Route path="/reports/incident-response/print" element={<IncidentResponsePrint />} />
         <Route path="/reports/mobile-adjustment-requests/print" element={<MobileAdjustmentRequestsPrint />} />
         <Route path="/reports/mobile-app-usage/print" element={<MobileAppUsagePrint />} />
+        <Route path="/reports/inventory/:report/print" element={<InventoryReportPrint />} />
+        <Route path="/inventory/print/:form/:id" element={<InventoryFormPrint />} />
+        <Route path="/reports/reader-field-reading/print" element={<ReaderFieldReportPrint />} />
+        <Route path="/reports/reader-exceptions/print" element={<ReaderExceptionsPrint />} />
         <Route
           path="/reports/abstract-monthly-collection/print"
           element={<AbstractMonthlyCollectionPrint />}
@@ -405,6 +413,7 @@ export default function App() {
                 <Route path="/sync-conflicts" element={<SyncConflictsPage />} />
                 <Route path="/it" element={<ITDashboardPage />} />
                 <Route path="/incidents" element={<IncidentReportsPage />} />
+                <Route path="/inventory" element={<InventoryPage />} />
               </Routes>
             </Layout>
           }

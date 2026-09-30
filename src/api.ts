@@ -50,6 +50,11 @@ export function apiPut<T>(url: string, body: unknown): Promise<T> {
   }).then((r) => handle<T>(r));
 }
 
+/** DELETE an endpoint. Throws ApiError on anything other than 2xx. */
+export function apiDelete<T>(url: string): Promise<T> {
+  return fetch(url, { method: "DELETE" }).then((r) => handle<T>(r));
+}
+
 /** POST JSON to an endpoint. Throws ApiError on anything other than 2xx. */
 export function apiPost<T>(url: string, body: unknown): Promise<T> {
   return fetch(url, {
