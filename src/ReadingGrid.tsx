@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { apiPost } from "./api";
+import { apiGet, apiPost } from "./api";
 import type { Computed, Row, Run } from "./ReadingPage";
 
 const peso = new Intl.NumberFormat("en-PH", {
@@ -54,6 +54,9 @@ export default function ReadingGrid({
   const [scanning, setScanning] = useState(false);
   const [scanSummary, setScanSummary] = useState<{ found: number; review: number; unmatched: string[] } | null>(null);
   const [scanError, setScanError] = useState("");
+  const [loadingDevices, setLoadingDevices] = useState(false);
+  const [deviceSummary, setDeviceSummary] = useState<{ loaded: number; printed: number; review: number; keptTyped: number; none: boolean } | null>(null);
+  const [deviceError, setDeviceError] = useState("");
 
   // Accounts edited since the last flush.
   const dirty = useRef(new Set<number>());
@@ -250,6 +253,64 @@ export default function ReadingGrid({
     }
   }
 
+  /**
+   * Fill in readings uploaded from the reader app for this area and period
+   * (poseidon-api readerApi.ts). Same safety as the scan: it only proposes
+   * values through the path typing uses, never overwrites a reading already
+   * keyed in by hand, and flags anything odd for review. Bills are still
+   * only made by "Review and generate bills".
+   */
+  async function loadDeviceReadings() {
+    setLoadingDevices(true);
+    setDeviceError("");
+    setDeviceSummary(null);
+    try {
+      type DeviceReading = {
+        acctId: number; previousReading: number; presentReading: number; printed: boolean;
+        printedTotal: number | null; flags: string[]; note: string; readerName: string; device: string;
+      };
+      const body = await apiGet<{ readings: DeviceReading[] }>(
+        `/api/reading/field?month=${run.month}&year=${run.year}&barangayId=${run.barangayId}&clusterId=${run.clusterId || 0}`,
+      );
+      const byAcct = new Map(body.readings.map((d) => [d.acctId, d]));
+      let loaded = 0, printed = 0, review = 0, keptTyped = 0;
+      const next: Row[] = rows.map((r) => {
+        const d = byAcct.get(r.acctId);
+        if (!d) return r;
+        // A reading already keyed in by hand stays; the clerk decides.
+        if (r.entered && !r.deviceNote && r.presentReading !== d.presentReading) {
+          keptTyped += 1;
+          return r;
+        }
+        const reasons: string[] = [];
+        if (d.previousReading !== r.previousReading) {
+          reasons.push(`the phone had a previous reading of ${d.previousReading}, the system has ${r.previousReading}`);
+        }
+        if (d.flags.includes("lower")) reasons.push("lower than the previous reading");
+        if (d.flags.includes("high")) reasons.push("much higher than usual");
+        if (d.note) reasons.push(`reader: ${d.note}`);
+        loaded += 1;
+        if (d.printed) printed += 1;
+        if (reasons.length) review += 1;
+        dirty.current.add(r.acctId);
+        return {
+          ...r,
+          presentReading: d.presentReading,
+          entered: true,
+          scanReason: reasons.length ? reasons.join("; ") : undefined,
+          deviceNote: [d.readerName || d.device, d.printed && d.printedTotal != null ? `bill printed ${peso.format(d.printedTotal)}` : ""]
+            .filter(Boolean).join(" · ") || "from device",
+        };
+      });
+      setRows(() => next);
+      setDeviceSummary({ loaded, printed, review, keptTyped, none: body.readings.length === 0 });
+    } catch (err) {
+      setDeviceError((err as Error).message);
+    } finally {
+      setLoadingDevices(false);
+    }
+  }
+
   /** Enter moves to the next meter that still has no reading. */
   function focusNext(acctId: number) {
     const index = visible.findIndex((r) => r.acctId === acctId);
@@ -317,6 +378,9 @@ export default function ReadingGrid({
           >
             {scanning ? "Reading scan…" : "Upload scanned reading"}
           </button>
+          <button className="clear-filters" disabled={loadingDevices} onClick={loadDeviceReadings}>
+            {loadingDevices ? "Loading…" : "Readings from devices"}
+          </button>
           <button
             className="clear-filters"
             onClick={async () => {
@@ -334,6 +398,28 @@ export default function ReadingGrid({
       {scanError && (
         <div className="form-error" style={{ marginBottom: 12 }}>
           {scanError}
+        </div>
+      )}
+      {deviceError && (
+        <div className="form-error" style={{ marginBottom: 12 }}>
+          {deviceError}
+        </div>
+      )}
+      {deviceSummary && (
+        <div className="notice">
+          <span>
+            {deviceSummary.none
+              ? "No readings have been uploaded from the reader app for this area and period yet."
+              : <>
+                  {deviceSummary.loaded} reading{deviceSummary.loaded === 1 ? "" : "s"} filled in from the reader app
+                  {deviceSummary.printed > 0 && ` (${deviceSummary.printed} already handed a printed bill)`}
+                  {deviceSummary.review > 0 && `, ${deviceSummary.review} flagged for review`}.
+                  {deviceSummary.keptTyped > 0 && ` ${deviceSummary.keptTyped} already typed in by hand were left as they are.`}
+                </>}
+          </span>
+          <button className="link-button" onClick={() => setDeviceSummary(null)}>
+            Dismiss
+          </button>
         </div>
       )}
       {scanSummary && (
@@ -473,6 +559,7 @@ export default function ReadingGrid({
                           presentReading: Number(e.target.value) || 0,
                           entered: true,
                           scanReason: undefined,
+                          deviceNote: undefined,
                         })
                       }
                       onKeyDown={(e) => {
@@ -483,7 +570,8 @@ export default function ReadingGrid({
                         }
                       }}
                     />
-                    {r.scanReason && <span className="cell-sub">scan: {r.scanReason}</span>}
+                    {r.scanReason && <span className="cell-sub">{r.deviceNote ? "check" : "scan"}: {r.scanReason}</span>}
+                    {r.deviceNote && <span className="cell-sub">device: {r.deviceNote}</span>}
                   </td>
                   <td className="num">
                     {r.entered ? (

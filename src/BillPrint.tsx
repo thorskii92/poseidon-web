@@ -128,6 +128,8 @@ type PrintData = {
     waterSystemName: string;
     officeAddress: string | null;
     officeContact: string;
+    /** From Settings → Report header; empty when that line is hidden. */
+    provinceText?: string;
   };
   bills: Bill[];
 };
@@ -167,6 +169,9 @@ function BillCard({
         <Seal which="municipal" />
         <div className="bill-head-text">
           <div className="bill-republic">Republic of the Philippines</div>
+          {settings.provinceText ? (
+            <div className="bill-org">{settings.provinceText}</div>
+          ) : null}
           <div className="bill-org">{settings.municipalHeader}</div>
           <div className="bill-org">{settings.officeHeader}</div>
           <div className="bill-system">{settings.waterSystemName}</div>

@@ -58,6 +58,11 @@ export default function ReadingReview({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [created, setCreated] = useState<number | null>(null);
+  // Bills that came out different from the one the reader app printed for
+  // the consumer on the spot (see poseidon-api readerApi.ts).
+  const [printedMismatches, setPrintedMismatches] = useState<
+    { acctId: number; printedTotal: number; billedTotal: number; readingChanged: boolean }[]
+  >([]);
   const queryClient = useQueryClient();
 
   const summary = useMemo(() => {
@@ -106,7 +111,10 @@ export default function ReadingReview({
     setSaving(true);
     setError("");
     try {
-      const body = await apiPost<{ created: number }>("/api/reading/save", {
+      const body = await apiPost<{
+        created: number;
+        printedMismatches?: { acctId: number; printedTotal: number; billedTotal: number; readingChanged: boolean }[];
+      }>("/api/reading/save", {
         month: run.month,
         year: run.year,
         readerId: run.readerId,
@@ -135,6 +143,7 @@ export default function ReadingReview({
       });
 
       setCreated(body.created);
+      setPrintedMismatches(body.printedMismatches ?? []);
       queryClient.invalidateQueries({ queryKey: ["bill-groups"] });
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
       queryClient.invalidateQueries({ queryKey: ["reading-session"] });
@@ -158,6 +167,28 @@ export default function ReadingReview({
           </span>
           <span className="preview-value">{created} bills created</span>
         </div>
+        {printedMismatches.length > 0 && (
+          <div className="form-notice" style={{ marginBottom: 14 }}>
+            <strong>
+              {printedMismatches.length} consumer{printedMismatches.length === 1 ? " was" : "s were"} handed a printed
+              bill in the field that differs from the bill just generated:
+            </strong>
+            <ul style={{ margin: "6px 0 0", paddingLeft: 20 }}>
+              {printedMismatches.map((m) => {
+                const row = rows.find((r) => r.acctId === m.acctId);
+                return (
+                  <li key={m.acctId}>
+                    {row ? `${row.accountNo} — ${row.name}` : `Account ${m.acctId}`}: printed{" "}
+                    {m.printedTotal.toLocaleString("en-PH", { minimumFractionDigits: 2 })}, billed{" "}
+                    {m.billedTotal.toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+                    {m.readingChanged ? " (the reading was changed in the office)" : ""}
+                  </li>
+                );
+              })}
+            </ul>
+            <div style={{ marginTop: 6 }}>Give them a corrected bill.</div>
+          </div>
+        )}
         <div className="form-actions">
           <button className="primary" onClick={onDone}>
             Start another run

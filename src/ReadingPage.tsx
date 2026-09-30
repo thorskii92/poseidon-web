@@ -42,6 +42,8 @@ export type Row = {
   excluded: boolean;
   /** Set once a scanned-reading upload prefilled this row; cleared on manual edit. */
   scanReason?: string;
+  /** Set when the reading came from the reader app ("Readings from devices"). */
+  deviceNote?: string;
   applicationFee: number;
   arrearCount: number;
   unpaidMonths: string;
