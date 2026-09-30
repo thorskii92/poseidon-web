@@ -1,3 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
+import { apiGet } from "./api";
+
 /** Types and formatting shared by the Inventory page's tabs (API: poseidon-api/src/inventory.ts). */
 
 export type ItemKind = "consumable" | "equipment" | "meter";
@@ -17,6 +20,7 @@ export type Item = {
   avgCost: number;
   active: boolean;
   belowReorder: boolean;
+  trackExpiry: boolean;
 };
 
 export type ItemsResponse = { rows: Item[]; categories: string[]; units: string[] };
@@ -29,7 +33,7 @@ export type Movement = {
   unit?: string;
   date: string;
   atMs: number;
-  kind: "opening" | "receive" | "issue" | "return" | "adjust" | "void";
+  kind: "opening" | "receive" | "issue" | "return" | "adjust" | "void" | "transfer";
   qty: number;
   unitCost: number;
   totalCost: number;
@@ -42,6 +46,7 @@ export type Movement = {
   party: string;
   remarks: string;
   by: string;
+  location?: string;
 };
 
 export type Summary = {
@@ -65,6 +70,9 @@ export type Receipt = {
   totalCost: number;
   status: "posted" | "voided";
   voidReason: string;
+  location?: string;
+  fundCluster: string;
+  editedMs: number | null;
   lines?: number;
   by: string;
   items?: Movement[];
@@ -81,6 +89,8 @@ export type CountSummary = {
   differences: number;
   by: string;
   approvedBy: string;
+  fundCluster: string;
+  location?: string;
 };
 
 export type CountLine = {
@@ -113,6 +123,7 @@ export const MOVE_LABEL: Record<Movement["kind"], string> = {
   return: "Returned",
   adjust: "Count adjustment",
   void: "Voided delivery",
+  transfer: "Moved between storehouses",
 };
 
 export const peso = new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -150,6 +161,7 @@ export type SupplyRequest = {
   releasedMs: number | null;
   releaseDate: string;
   receivedBy: string;
+  fundCluster: string;
   createdMs: number;
   lines?: number;
   value?: number;
@@ -201,11 +213,12 @@ export type Asset = {
   accountMeterNo: string;
   statusDate: string;
   remarks: string;
+  location?: string;
 };
 
 export type AssetEvent = {
   id: number; date: string; event: string; custodian: string; office: string;
-  docNo: string; accountNo: string; remarks: string; by: string;
+  docNo: string; docType?: string; accountNo: string; remarks: string; by: string;
 };
 
 export type UnregisteredItem = {
@@ -214,8 +227,8 @@ export type UnregisteredItem = {
 };
 
 export type CustodyDoc = {
-  id: number; type: "ICS" | "PAR"; docNo: string; date: string; custodian: string; position: string;
-  office: string; remarks: string; units: number; stillHeld: number; by: string;
+  id: number; type: string; docNo: string; date: string; custodian: string; position: string;
+  office: string; remarks: string; units: number; stillHeld: number; by: string; fundCluster: string;
 };
 
 export const EVENT_LABEL: Record<string, string> = {
@@ -225,7 +238,8 @@ export const EVENT_LABEL: Record<string, string> = {
 };
 
 export type ListEntry ={ id: number; name: string; description: string; active: boolean; items: number };
-export type Lists = { categories: ListEntry[]; units: ListEntry[] };
+export type StoreLocation = { id: number; name: string; description: string; active: boolean; isDefault: boolean; items: number };
+export type Lists = { categories: ListEntry[]; units: ListEntry[]; locations: StoreLocation[] };
 
 export const INV_KEYS = {
   lists: ["inv-lists"],
@@ -238,6 +252,22 @@ export const INV_KEYS = {
 };
 
 /** Opens a printable COA form in a new tab. */
-export function openForm(form: "iar" | "ris" | "custody" | "rpci" | "stock-card" | "ledger-card", id: number, query = "") {
+export function openForm(form: "iar" | "ris" | "custody" | "rpci" | "stock-card" | "ledger-card" | "pr" | "po" | "property-card" | "disposal" | "asset-count" | "transfer" | "return" | "wmr" | "labels", id: number, query = "") {
   window.open(`/inventory/print/${form}/${id}${query ? `?${query}` : ""}`, "_blank");
+}
+
+/** When this browser last opened Inventory → Requests (for the sidebar badge). */
+export const INV_REQUESTS_SEEN_KEY = "inv.requests.seen";
+
+export type ItemStock = {
+  locations: { id: number; name: string; qty: number; isDefault: boolean }[];
+  lots: { id: number; locationId: number; location: string; lotNo: string; expiry: string; qty: number }[];
+};
+
+/** The storehouses, for pickers — default first. */
+export function useLocations() {
+  const { data } = useQuery<Lists>({ queryKey: INV_KEYS.lists, queryFn: () => apiGet("/api/inventory/lists") });
+  const all = data?.locations ?? [];
+  const active = all.filter((l) => l.active);
+  return { all, active, defaultId: active.find((l) => l.isDefault)?.id ?? active[0]?.id ?? 0 };
 }

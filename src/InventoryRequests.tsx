@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPost } from "./api";
+import { LocationPicker } from "./InventoryLocationPicker";
 import {
-  INV_KEYS, REQUEST_STATUS, longDate, openForm, peso, qty, todayIso,
+  INV_KEYS, INV_REQUESTS_SEEN_KEY, REQUEST_STATUS, longDate, openForm, peso, qty, todayIso,
   type RequestDetail, type RequestStatus, type Rights, type SupplyRequest,
 } from "./inventoryShared";
 
@@ -23,6 +24,16 @@ const FILTERS: { id: string; label: string }[] = [
 ];
 
 export default function InventoryRequests({ onChanged }: { onChanged: (message: string) => void }) {
+  const qc = useQueryClient();
+  // Opening Requests counts as having seen the news on your own requests.
+  useEffect(() => {
+    try {
+      localStorage.setItem(INV_REQUESTS_SEEN_KEY, String(Date.now()));
+    } catch {
+      /* storage blocked: the badge just keeps counting */
+    }
+    qc.invalidateQueries({ queryKey: [...INV_KEYS.requests, "waiting", "nav"] });
+  }, [qc]);
   const [status, setStatus] = useState("pending");
   const [creating, setCreating] = useState(false);
   const [open, setOpen] = useState<number | null>(null);
@@ -118,6 +129,7 @@ function RequestForm({ onClose, onSaved }: { onClose: () => void; onSaved: (mess
   const byLabel = useMemo(() => new Map((catalog?.rows ?? []).map((i) => [`${i.code} — ${i.name}`, i])), [catalog]);
   const [office, setOffice] = useState("");
   const [purpose, setPurpose] = useState("");
+  const [fundCluster, setFundCluster] = useState("");
   const [lines, setLines] = useState<Line[]>([blankLine(), blankLine()]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -135,7 +147,7 @@ function RequestForm({ onClose, onSaved }: { onClose: () => void; onSaved: (mess
     setBusy(true);
     try {
       const r = await apiPost<{ risNo: string }>("/api/inventory/requests", {
-        office, purpose,
+        office, purpose, fundCluster,
         lines: used.map((l) => ({ itemId: byLabel.get(l.pick.trim())!.id, qty: Number(l.qty), remarks: l.remarks })),
       });
       onSaved(`Request filed as RIS No. ${r.risNo} — it now waits for approval.`);
@@ -155,6 +167,10 @@ function RequestForm({ onClose, onSaved }: { onClose: () => void; onSaved: (mess
           <label className="field-input">
             <span>Office / division</span>
             <input value={office} onChange={(e) => setOffice(e.target.value)} maxLength={150} placeholder="e.g. MEEDO — Waterworks" />
+          </label>
+          <label className="field-input">
+            <span>Fund cluster (optional)</span>
+            <input value={fundCluster} onChange={(e) => setFundCluster(e.target.value)} maxLength={30} />
           </label>
           <label className="field-input wide">
             <span>Purpose</span>
@@ -198,7 +214,7 @@ function RequestForm({ onClose, onSaved }: { onClose: () => void; onSaved: (mess
   );
 }
 
-function RequestView({ id, onClose, onDone }: { id: number; onClose: () => void; onDone: (message: string) => void }) {
+export function RequestView({ id, onClose, onDone }: { id: number; onClose: () => void; onDone: (message: string) => void }) {
   const { data: r, error } = useQuery<RequestDetail>({
     queryKey: [...INV_KEYS.requests, "one", id],
     queryFn: () => apiGet(`/api/inventory/requests/${id}`),
@@ -224,6 +240,7 @@ function RequestActions({ r, onClose, onDone }: { r: RequestDetail; onClose: () 
   const [note, setNote] = useState("");
   const [receivedBy, setReceivedBy] = useState(r.requestedBy);
   const [date, setDate] = useState(todayIso());
+  const [locationId, setLocationId] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const can = r.rights;
@@ -313,6 +330,7 @@ function RequestActions({ r, onClose, onDone }: { r: RequestDetail; onClose: () 
             <span>Date released</span>
             <input type="date" value={date} max={todayIso()} onChange={(e) => setDate(e.target.value)} />
           </label>
+          <LocationPicker label="Issue from" value={locationId} onChange={setLocationId} />
         </div>
       )}
 
@@ -365,7 +383,7 @@ function RequestActions({ r, onClose, onDone }: { r: RequestDetail; onClose: () 
             className="primary"
             disabled={busy || !receivedBy.trim()}
             onClick={() => run(async () => {
-              await apiPost(`/api/inventory/requests/${r.id}/release`, { receivedBy, date, lines: r.items.map((l) => ({ itemId: l.itemId, qtyIssued: Number(qtys[l.itemId] || 0) })) });
+              await apiPost(`/api/inventory/requests/${r.id}/release`, { receivedBy, date, locationId, lines: r.items.map((l) => ({ itemId: l.itemId, qtyIssued: Number(qtys[l.itemId] || 0) })) });
               return `RIS No. ${r.risNo} released to ${receivedBy}.`;
             })}
           >

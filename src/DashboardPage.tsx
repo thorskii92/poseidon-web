@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "./api";
+import { Link } from "react-router-dom";
+import { useAuth } from "./AuthContext";
 import { peso } from "./collectionTypes";
 import {
   ComposedChart, BarChart, LineChart, Bar, Line, Cell, LabelList,
@@ -124,6 +126,39 @@ function ChartCard({
   );
 }
 
+/**
+ * For the supply office: stock to reorder and requests to hand over. Shown
+ * only to roles with Inventory, and only when there's something to act on.
+ */
+function InventoryAlert() {
+  const { can } = useAuth();
+  const enabled = can("inventory");
+  const { data: sum } = useQuery<{ belowReorder: number; outOfStock: number }>({
+    queryKey: ["inv-summary"],
+    queryFn: () => apiGet("/api/inventory/summary"),
+    enabled,
+    staleTime: 60_000,
+  });
+  const { data: req } = useQuery<{ toRelease: number }>({
+    queryKey: ["inv-requests", "waiting"],
+    queryFn: () => apiGet("/api/inventory/requests/waiting"),
+    enabled,
+    staleTime: 60_000,
+  });
+  if (!enabled) return null;
+  const parts = [
+    sum?.belowReorder ? `${sum.belowReorder} item(s) at or below the reorder level` : "",
+    sum?.outOfStock ? `${sum.outOfStock} out of stock` : "",
+    req?.toRelease ? `${req.toRelease} approved supply request(s) waiting to be released` : "",
+  ].filter(Boolean);
+  if (!parts.length) return null;
+  return (
+    <div className="action-notice no-print" style={{ animation: "none", marginBottom: 14 }}>
+      Inventory: {parts.join(" · ")}. <Link to="/inventory">Open Inventory</Link>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { data, isLoading, error } = useQuery<DashboardData>({
     queryKey: ["dashboard"],
@@ -144,6 +179,8 @@ export default function DashboardPage() {
           </button>
         </div>
       </div>
+
+      <InventoryAlert />
 
       {isLoading && <p className="count">Loading…</p>}
       {error && <div className="form-error">{(error as Error).message}</div>}

@@ -1,3 +1,4 @@
+import { INV_REQUESTS_SEEN_KEY } from "./inventoryShared";
 import { useEffect, useState } from "react";
 import type { ReactNode, JSX, MouseEvent, FocusEvent } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
@@ -114,7 +115,7 @@ const NAV: { label: string; to: string; perm: string | null; icon: IconComponent
   { label: "Pendings", to: "/pendings", perm: "pendings", icon: IconClock },
   { label: "Job Orders", to: "/joborders", perm: "joborders", icon: IconWrench },
   { label: "Adjustments", to: "/adjustments", perm: "adjustments", icon: IconSliders },
-  { label: "Approvals", to: "/approvals", perm: "approvals", icon: IconCheckCircle },
+  { label: "Approvals", to: "/approvals", perm: "approvals", icon: IconCheckCircle, alsoFor: ["invapprove"] },
   { label: "Incident Reports", to: "/incidents", perm: "incidents", icon: IconMegaphone, mainOnly: true },
   { label: "Disconnection", to: "/disconnection", perm: "disconnection", icon: IconPowerOff },
   { label: "ECPay", to: "/ecpay", perm: "ecpay", icon: IconCreditCard, mainOnly: true },
@@ -183,7 +184,35 @@ export default function Layout({ children }: { children: ReactNode }) {
     refetchInterval: 60_000,
     enabled: can("approvals"),
   });
-  const approvalsWaiting = approvals?.length ?? 0;
+  // Supply requests waiting for approval count toward the same badge
+  // (Approvals → Inventory Requests). Same query key as that tab and
+  // Inventory → Requests, so a decision there updates this too.
+  // One call feeds both badges: Approvals (requests to approve) and
+  // Inventory (to release, and the requester's own news since they last
+  // opened Requests — see InventoryRequests.tsx, which records that).
+  const { data: invWaiting } = useQuery<{ toApprove: number; toRelease: number; mine: { updates: number } }>({
+    queryKey: ["inv-requests", "waiting", "nav"],
+    queryFn: () => {
+      let since = 0;
+      try {
+        since = Number(localStorage.getItem(INV_REQUESTS_SEEN_KEY)) || 0;
+      } catch {
+        /* storage blocked: every update counts as new */
+      }
+      return apiGet(`/api/inventory/requests/waiting?since=${since}`);
+    },
+    retry: false,
+    refetchInterval: 60_000,
+    enabled: can("invapprove") || can("invrequest") || can("inventory"),
+  });
+  const { data: prWaiting } = useQuery<{ toApprove: number }>({
+    queryKey: ["inv-purchasing", "waiting"],
+    queryFn: () => apiGet<{ toApprove: number }>("/api/inventory/purchasing/waiting"),
+    retry: false,
+    refetchInterval: 60_000,
+    enabled: can("invapprove"),
+  });
+  const approvalsWaiting = (approvals?.length ?? 0) + (invWaiting?.toApprove ?? 0) + (prWaiting?.toApprove ?? 0);
 
   // Synchronization only makes sense on a satellite deployment — hidden on
   // the ordinary main server, where /api/sync/status still 200s (just with
@@ -206,6 +235,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   /** The red count beside a nav item, if it has anything waiting. */
   const badges: Record<string, number> = {
     Approvals: approvalsWaiting,
+    Inventory: (invWaiting?.toRelease ?? 0) + (invWaiting?.mine?.updates ?? 0),
     "Incident Reports": inbox?.incidents ?? 0,
     Adjustments: inbox?.adjustmentRequests ?? 0,
   };

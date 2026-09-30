@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { apiGet, apiPost } from "./api";
+import { apiGet, apiPost, apiPut } from "./api";
+import { Attachments, ChangeHistory } from "./InventoryParts";
+import { LocationPicker } from "./InventoryLocationPicker";
 import { INV_KEYS, longDate, openForm, peso, qty, todayIso, type ItemsResponse, type Receipt } from "./inventoryShared";
 
 /**
@@ -90,17 +92,31 @@ export default function InventoryDeliveries({ onChanged }: { onChanged: (message
   );
 }
 
-type Line = { key: number; pick: string; qty: string; unitCost: string };
+type Line = { key: number; pick: string; qty: string; unitCost: string; lot: string; expiry: string };
 let lineKey = 1;
-const blankLine = (): Line => ({ key: lineKey++, pick: "", qty: "", unitCost: "" });
+const blankLine = (): Line => ({ key: lineKey++, pick: "", qty: "", unitCost: "", lot: "", expiry: "" });
 
-function DeliveryForm({ onClose, onSaved }: { onClose: () => void; onSaved: (message: string) => void }) {
+/** A delivery received against a PO: its supplier and what is still outstanding. */
+export type FromPo = {
+  id: number; poNo: string; supplier: string; fundCluster: string;
+  lines: { code: string; name: string; qty: number; unitCost: number }[];
+};
+
+export function DeliveryForm({ onClose, onSaved, fromPo }: { onClose: () => void; onSaved: (message: string) => void; fromPo?: FromPo }) {
   const { data: items } = useQuery<ItemsResponse>({
     queryKey: [...INV_KEYS.items, "active=1"],
     queryFn: () => apiGet("/api/inventory/items?active=1"),
   });
-  const [head, setHead] = useState({ date: todayIso(), supplier: "", poNumber: "", drNumber: "", invoiceNo: "", iarNo: "", remarks: "" });
-  const [lines, setLines] = useState<Line[]>([blankLine(), blankLine(), blankLine()]);
+  const [head, setHead] = useState({
+    date: todayIso(), supplier: fromPo?.supplier ?? "", poNumber: fromPo?.poNo ?? "", drNumber: "", invoiceNo: "", iarNo: "",
+    remarks: "", fundCluster: fromPo?.fundCluster ?? "",
+  });
+  const [locationId, setLocationId] = useState(0);
+  const [lines, setLines] = useState<Line[]>(() =>
+    fromPo
+      ? fromPo.lines.map((l) => ({ ...blankLine(), pick: `${l.code} — ${l.name}`, qty: String(l.qty), unitCost: String(l.unitCost) }))
+      : [blankLine(), blankLine(), blankLine()],
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -125,7 +141,12 @@ function DeliveryForm({ onClose, onSaved }: { onClose: () => void; onSaved: (mes
     try {
       const r = await apiPost<{ id: number; iarNo: string }>("/api/inventory/receipts", {
         ...head,
-        lines: resolved.map((x) => ({ itemId: x.item!.id, qty: Number(x.line.qty), unitCost: Number(x.line.unitCost) })),
+        locationId,
+        poId: fromPo?.id,
+        lines: resolved.map((x) => ({
+          itemId: x.item!.id, qty: Number(x.line.qty), unitCost: Number(x.line.unitCost),
+          lot: x.line.lot, expiry: x.line.expiry,
+        })),
       });
       onSaved(`Delivery recorded as IAR No. ${r.iarNo} — ₱${peso.format(total)}.`);
     } catch (e) {
@@ -138,7 +159,7 @@ function DeliveryForm({ onClose, onSaved }: { onClose: () => void; onSaved: (mes
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal wide" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-        <h2 className="modal-title">Record a delivery</h2>
+        <h2 className="modal-title">Record a delivery{fromPo ? ` against PO No. ${fromPo.poNo}` : ""}</h2>
         <p className="modal-sub">Inspection and Acceptance Report — adds the stock and updates each item's average cost.</p>
 
         <div className="form-grid">
@@ -161,6 +182,11 @@ function DeliveryForm({ onClose, onSaved }: { onClose: () => void; onSaved: (mes
           <label className="field-input">
             <span>Invoice No.</span>
             <input value={head.invoiceNo} onChange={setH("invoiceNo")} maxLength={60} />
+          </label>
+          <LocationPicker label="Receive into" value={locationId} onChange={setLocationId} />
+          <label className="field-input">
+            <span>Fund cluster</span>
+            <input value={head.fundCluster} onChange={setH("fundCluster")} maxLength={30} placeholder="e.g. 01" />
           </label>
           <label className="field-input">
             <span>IAR No. (blank = next number)</span>
@@ -190,6 +216,12 @@ function DeliveryForm({ onClose, onSaved }: { onClose: () => void; onSaved: (mes
                       placeholder="Type a code or name…"
                     />
                     {item && <div className="muted">{qty(item.qtyOnHand)} {item.unit} on hand · avg ₱{peso.format(item.avgCost)}</div>}
+                    {item?.trackExpiry && (
+                      <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                        <input className="table-input" style={{ flex: 1 }} value={l.lot} maxLength={60} placeholder="Lot no." onChange={(e) => setL(l.key, "lot", e.target.value)} />
+                        <input className="table-input" type="date" title="Expiry date" value={l.expiry} onChange={(e) => setL(l.key, "expiry", e.target.value)} />
+                      </div>
+                    )}
                   </td>
                   <td className="num">
                     <input className="table-input" type="number" min={0} step="any" style={{ width: 100, textAlign: "right" }} value={l.qty} onChange={(e) => setL(l.key, "qty", e.target.value)} />
@@ -237,6 +269,8 @@ function DeliveryView({ id, onClose, onVoided }: { id: number; onClose: () => vo
     queryFn: () => apiGet(`/api/inventory/receipts/${id}`),
   });
   const [voiding, setVoiding] = useState(false);
+  const [editing, setEditing] = useState<null | { supplier: string; poNumber: string; drNumber: string; invoiceNo: string; fundCluster: string; remarks: string }>(null);
+  const [showHistory, setShowHistory] = useState(false);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -265,6 +299,7 @@ function DeliveryView({ id, onClose, onVoided }: { id: number; onClose: () => vo
             </h2>
             <p className="modal-sub">
               {longDate(r.date)} · {r.supplier}
+              {r.location ? ` · into ${r.location}` : ""}
               {[r.poNumber && ` · PO ${r.poNumber}`, r.drNumber && ` · DR ${r.drNumber}`, r.invoiceNo && ` · Invoice ${r.invoiceNo}`].filter(Boolean).join("")}
               {r.by && ` · recorded by ${r.by}`}
             </p>
@@ -289,6 +324,50 @@ function DeliveryView({ id, onClose, onVoided }: { id: number; onClose: () => vo
               </tbody>
             </table>
             {r.remarks && <p className="count">Remarks: {r.remarks}</p>}
+            {r.fundCluster && <p className="count">Fund cluster: {r.fundCluster}</p>}
+
+            {editing && (
+              <div className="delete-auth" style={{ marginTop: 12 }}>
+                <div className="form-grid">
+                  {([["supplier", "Supplier", 200], ["poNumber", "PO No.", 60], ["drNumber", "DR No.", 60], ["invoiceNo", "Invoice No.", 60], ["fundCluster", "Fund cluster", 30], ["remarks", "Remarks", 500]] as const).map(([k, label, max]) => (
+                    <label className="field-input" key={k}>
+                      <span>{label}</span>
+                      <input value={editing[k]} maxLength={max} onChange={(e) => setEditing({ ...editing, [k]: e.target.value })} />
+                    </label>
+                  ))}
+                </div>
+                <p className="count">Quantities and costs can't be edited — they have already moved the stock. Void the delivery and enter it again to correct them.</p>
+                <div className="form-actions">
+                  <button
+                    className="primary"
+                    disabled={busy || !editing.supplier.trim()}
+                    onClick={async () => {
+                      setBusy(true);
+                      setErr("");
+                      try {
+                        await apiPut(`/api/inventory/receipts/${id}`, editing);
+                        onVoided(`IAR No. ${r.iarNo} details saved.`);
+                      } catch (e) {
+                        setErr((e as Error).message);
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
+                  >
+                    Save details
+                  </button>
+                  <button className="clear-filters" onClick={() => setEditing(null)}>Cancel</button>
+                </div>
+              </div>
+            )}
+
+            <Attachments refkind="iar" refid={r.id} title="Scanned DR / invoice / IAR" />
+            {showHistory && (
+              <div style={{ marginTop: 12 }}>
+                <strong>Changes to the details</strong>
+                <ChangeHistory refkind="iar" refid={r.id} />
+              </div>
+            )}
 
             {r.status === "posted" && voiding && (
               <label className="field-input" style={{ marginTop: 12 }}>
@@ -299,6 +378,12 @@ function DeliveryView({ id, onClose, onVoided }: { id: number; onClose: () => vo
             {err && <div className="form-error">{err}</div>}
             <div className="form-actions">
               {!voiding && <button className="clear-filters" onClick={() => openForm("iar", r.id)}>Print IAR</button>}
+              {!voiding && !editing && r.status === "posted" && (
+                <button className="clear-filters" onClick={() => setEditing({ supplier: r.supplier, poNumber: r.poNumber, drNumber: r.drNumber, invoiceNo: r.invoiceNo, fundCluster: r.fundCluster, remarks: r.remarks })}>
+                  Edit details
+                </button>
+              )}
+              {!voiding && <button className="clear-filters" onClick={() => setShowHistory((s) => !s)}>{showHistory ? "Hide changes" : "Changes"}</button>}
               {r.status === "posted" && !voiding && (
                 <button className="danger" onClick={() => setVoiding(true)}>Void this delivery</button>
               )}

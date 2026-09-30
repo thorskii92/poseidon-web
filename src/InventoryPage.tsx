@@ -6,10 +6,14 @@ import InventoryCounts from "./InventoryCounts";
 import InventoryLists from "./InventoryLists";
 import InventoryRequests from "./InventoryRequests";
 import InventoryAssets from "./InventoryAssets";
+import InventoryImport from "./InventoryImport";
+import InventoryPurchasing from "./InventoryPurchasing";
+import { ChangeHistory } from "./InventoryParts";
 import { useAuth } from "./AuthContext";
+import { LocationPicker } from "./InventoryLocationPicker";
 import {
-  INV_KEYS, KIND_LABEL, MOVE_LABEL, longDate, openForm, peso, qty, todayIso,
-  type Item, type ItemKind, type ItemsResponse, type ListEntry, type Lists, type Movement, type Summary,
+  INV_KEYS, KIND_LABEL, MOVE_LABEL, longDate, openForm, peso, qty, todayIso, useLocations,
+  type Item, type ItemKind, type ItemStock, type ItemsResponse, type ListEntry, type Lists, type Movement, type Summary,
 } from "./inventoryShared";
 
 /**
@@ -18,7 +22,7 @@ import {
  * adjustment — so every item has a full stock card.
  */
 
-const TABS = ["Items", "Requests", "Deliveries", "Equipment & meters", "Physical count", "Categories & units"] as const;
+const TABS = ["Items", "Requests", "Purchasing", "Deliveries", "Equipment & meters", "Physical count", "Lists & storehouses"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function InventoryPage() {
@@ -82,10 +86,11 @@ export default function InventoryPage() {
 
       {tab === "Items" && <ItemsTab onChanged={changed} />}
       {tab === "Requests" && <InventoryRequests onChanged={changed} />}
+      {tab === "Purchasing" && <InventoryPurchasing onChanged={changed} />}
       {tab === "Deliveries" && <InventoryDeliveries onChanged={changed} />}
       {tab === "Equipment & meters" && <InventoryAssets onChanged={changed} />}
       {tab === "Physical count" && <InventoryCounts onChanged={changed} />}
-      {tab === "Categories & units" && <InventoryLists onChanged={changed} />}
+      {tab === "Lists & storehouses" && <InventoryLists onChanged={changed} />}
 
       {tab === "Items" && summary && summary.recent.length > 0 && (
         <section className="record-section">
@@ -136,6 +141,7 @@ function ItemsTab({ onChanged }: { onChanged: (message: string) => void }) {
   const [kind, setKind] = useState("");
   const [show, setShow] = useState<"1" | "0" | "low">("1");
   const [open, setOpen] = useState<Item | "new" | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const qs = new URLSearchParams({
     search, category, kind,
@@ -152,7 +158,10 @@ function ItemsTab({ onChanged }: { onChanged: (message: string) => void }) {
     <section className="record-section">
       <div className="record-head">
         <h2>Items</h2>
-        <button className="primary" onClick={() => setOpen("new")}>New item</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="clear-filters" onClick={() => setImporting(true)}>Import from Excel</button>
+          <button className="primary" onClick={() => setOpen("new")}>New item</button>
+        </div>
       </div>
 
       <div className="form-grid" style={{ marginBottom: 14 }}>
@@ -223,10 +232,19 @@ function ItemsTab({ onChanged }: { onChanged: (message: string) => void }) {
         </table>
       )}
 
+      {importing && (
+        <InventoryImport
+          onClose={() => setImporting(false)}
+          onDone={(m) => {
+            setImporting(false);
+            onChanged(m);
+          }}
+        />
+      )}
       {open && (
         <ItemDialog
           item={open === "new" ? null : open}
-          lists={lists ?? { categories: [], units: [] }}
+          lists={lists ?? { categories: [], units: [], locations: [] }}
           onClose={() => setOpen(null)}
           onSaved={(m) => {
             onChanged(m);
@@ -252,7 +270,7 @@ function ItemDialog({
   onClose: () => void;
   onSaved: (message: string) => void;
 }) {
-  const [view, setView] = useState<"details" | "card">(item ? "card" : "details");
+  const [view, setView] = useState<"details" | "card" | "history">(item ? "card" : "details");
   const [form, setForm] = useState({
     code: item?.code ?? "",
     name: item?.name ?? "",
@@ -263,6 +281,7 @@ function ItemDialog({
     location: item?.location ?? "",
     reorderLevel: item ? String(item.reorderLevel || "") : "",
     active: item?.active ?? true,
+    trackExpiry: item?.trackExpiry ?? false,
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -303,10 +322,12 @@ function ItemDialog({
           <div className="stage-tabs">
             <button className={view === "card" ? "stage-tab current" : "stage-tab"} onClick={() => setView("card")}>Stock card</button>
             <button className={view === "details" ? "stage-tab current" : "stage-tab"} onClick={() => setView("details")}>Details</button>
+            <button className={view === "history" ? "stage-tab current" : "stage-tab"} onClick={() => setView("history")}>Changes</button>
           </div>
         )}
 
         {view === "card" && item && <StockCard item={item} onSaved={onSaved} />}
+        {view === "history" && item && <ChangeHistory refkind="item" refid={item.id} />}
 
         {view === "details" && (
           <>
@@ -352,6 +373,10 @@ function ItemDialog({
                 <input value={form.description} onChange={set("description")} maxLength={500} placeholder="Size, brand, specifications" />
               </label>
             </div>
+            <label style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12 }}>
+              <input type="checkbox" checked={form.trackExpiry} onChange={(e) => setForm((f) => ({ ...f, trackExpiry: e.target.checked }))} />
+              Keeps lots and expiry dates (e.g. chlorine) — deliveries record the lot, releases take the earliest expiry first
+            </label>
             {item && (
               <label style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12 }}>
                 <input type="checkbox" checked={form.active} onChange={(e) => setForm((f) => ({ ...f, active: e.target.checked }))} />
@@ -383,6 +408,8 @@ function StockCard({ item, onSaved }: { item: Item; onSaved: (message: string) =
   });
   const empty = data && !from && !to && data.rows.length === 0;
   const [returning, setReturning] = useState(false);
+  const [moving, setMoving] = useState(false);
+  const [wasting, setWasting] = useState(false);
 
   return (
     <>
@@ -390,6 +417,7 @@ function StockCard({ item, onSaved }: { item: Item; onSaved: (message: string) =
         <OpeningBalance item={item} onSaved={onSaved} />
       ) : (
         <>
+          <StockByStorehouse item={item} />
           <div className="form-grid" style={{ marginBottom: 12 }}>
             <label className="field-input">
               <span>From</span>
@@ -404,8 +432,12 @@ function StockCard({ item, onSaved }: { item: Item; onSaved: (message: string) =
             <button className="clear-filters" onClick={() => openForm("stock-card", item.id, new URLSearchParams({ from, to }).toString())}>Print Stock Card</button>
             <button className="clear-filters" onClick={() => openForm("ledger-card", item.id, new URLSearchParams({ from, to }).toString())}>Print Supplies Ledger Card</button>
             {item.kind === "consumable" && !returning && <button className="clear-filters" onClick={() => setReturning(true)}>Return to stock…</button>}
+            {!moving && <MoveButton onClick={() => setMoving(true)} />}
+            {item.kind === "consumable" && item.qtyOnHand > 0 && !wasting && <button className="clear-filters" onClick={() => setWasting(true)}>Write off as waste…</button>}
           </div>
+          {wasting && <WriteOff item={item} onClose={() => setWasting(false)} onSaved={onSaved} />}
           {returning && <ReturnToStock item={item} onClose={() => setReturning(false)} onSaved={onSaved} />}
+          {moving && <MoveStock item={item} onClose={() => setMoving(false)} onSaved={onSaved} />}
         </>
       )}
       {isLoading && <p className="count">Loading…</p>}
@@ -414,7 +446,7 @@ function StockCard({ item, onSaved }: { item: Item; onSaved: (message: string) =
         <table>
           <thead>
             <tr>
-              <th>Date</th><th>Movement</th><th>Reference</th>
+              <th>Date</th><th>Movement</th><th>Reference</th><th>Storehouse</th>
               <th className="num">In</th><th className="num">Out</th><th className="num">Unit cost</th>
               <th className="num">Balance</th><th className="num">Value</th><th>By</th>
             </tr>
@@ -431,6 +463,7 @@ function StockCard({ item, onSaved }: { item: Item; onSaved: (message: string) =
                 <td style={{ whiteSpace: "nowrap" }}>{longDate(m.date)}</td>
                 <td>{MOVE_LABEL[m.kind] ?? m.kind}{m.remarks && <div className="muted">{m.remarks}</div>}</td>
                 <td>{m.reference}{m.party && <div className="muted">{m.party}</div>}</td>
+                <td>{m.location}</td>
                 <td className="num">{m.qty > 0 ? qty(m.qty) : ""}</td>
                 <td className="num">{m.qty < 0 ? qty(-m.qty) : ""}</td>
                 <td className="num">{peso.format(m.unitCost)}</td>
@@ -452,6 +485,7 @@ function StockCard({ item, onSaved }: { item: Item; onSaved: (message: string) =
 /** Unused supplies coming back to the stockroom, at the current average cost. */
 function ReturnToStock({ item, onClose, onSaved }: { item: Item; onClose: () => void; onSaved: (message: string) => void }) {
   const [q, setQ] = useState("");
+  const [locationId, setLocationId] = useState(0);
   const [from, setFrom] = useState("");
   const [reference, setReference] = useState("");
   const [date, setDate] = useState(todayIso());
@@ -462,7 +496,7 @@ function ReturnToStock({ item, onClose, onSaved }: { item: Item; onClose: () => 
     setBusy(true);
     setError("");
     try {
-      await apiPost(`/api/inventory/items/${item.id}/return`, { qty: Number(q), from, reference, date });
+      await apiPost(`/api/inventory/items/${item.id}/return`, { qty: Number(q), from, reference, date, locationId });
       onSaved(`${q} ${item.unit} of ${item.name} returned to stock.`);
     } catch (e) {
       setError((e as Error).message);
@@ -482,6 +516,7 @@ function ReturnToStock({ item, onClose, onSaved }: { item: Item; onClose: () => 
           <span>Returned by (person / office)</span>
           <input value={from} onChange={(e) => setFrom(e.target.value)} maxLength={200} />
         </label>
+        <LocationPicker label="Back into" value={locationId} onChange={setLocationId} />
         <label className="field-input">
           <span>Reference (e.g. RIS No.)</span>
           <input value={reference} onChange={(e) => setReference(e.target.value)} maxLength={60} />
@@ -500,9 +535,72 @@ function ReturnToStock({ item, onClose, onSaved }: { item: Item; onClose: () => 
   );
 }
 
+/** Spoiled or scrap supplies leaving the stock on a Waste Materials Report. */
+function WriteOff({ item, onClose, onSaved }: { item: Item; onClose: () => void; onSaved: (message: string) => void }) {
+  const [q, setQ] = useState("");
+  const [locationId, setLocationId] = useState(0);
+  const [why, setWhy] = useState("");
+  const [mode, setMode] = useState("Destruction");
+  const [date, setDate] = useState(todayIso());
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function save() {
+    setBusy(true);
+    setError("");
+    try {
+      const r = await apiPost<{ docId: number; docNo: string }>("/api/inventory/assets/wmr", {
+        lines: [{ itemId: item.id, qty: Number(q), remarks: why }], mode, date, locationId,
+      });
+      openForm("wmr", r.docId);
+      onSaved(`${q} ${item.unit} of ${item.name} written off — WMR ${r.docNo}.`);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="delete-auth" style={{ marginBottom: 12 }}>
+      <div className="form-grid">
+        <label className="field-input">
+          <span>Quantity ({item.unit})</span>
+          <input type="number" min={0} step="any" value={q} onChange={(e) => setQ(e.target.value)} />
+        </label>
+        <label className="field-input">
+          <span>Why (spoiled, expired, scrap…)</span>
+          <input value={why} onChange={(e) => setWhy(e.target.value)} maxLength={200} />
+        </label>
+        <LocationPicker label="Taken from" value={locationId} onChange={setLocationId} />
+        <label className="field-input">
+          <span>To be disposed of by</span>
+          <select value={mode} onChange={(e) => setMode(e.target.value)}>
+            <option>Destruction</option>
+            <option>Sale</option>
+            <option>Transfer to another agency</option>
+          </select>
+        </label>
+        <label className="field-input">
+          <span>Date</span>
+          <input type="date" value={date} max={todayIso()} onChange={(e) => setDate(e.target.value)} />
+        </label>
+      </div>
+      {error && <div className="form-error">{error}</div>}
+      <div className="form-actions">
+        <button className="danger" disabled={busy || !(Number(q) > 0) || !why.trim()} onClick={save}>Write off and print the WMR</button>
+        <button className="clear-filters" onClick={onClose}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
 /** What was already on the shelf when the item was set up — once, before anything else. */
 function OpeningBalance({ item, onSaved }: { item: Item; onSaved: (message: string) => void }) {
   const [q, setQ] = useState("");
+  const [locationId, setLocationId] = useState(0);
+  const [lot, setLot] = useState("");
+  const [expiry, setExpiry] = useState("");
   const [cost, setCost] = useState("");
   const [date, setDate] = useState(todayIso());
   const [busy, setBusy] = useState(false);
@@ -512,7 +610,7 @@ function OpeningBalance({ item, onSaved }: { item: Item; onSaved: (message: stri
     setBusy(true);
     setError("");
     try {
-      await apiPost(`/api/inventory/items/${item.id}/opening`, { qty: Number(q), unitCost: Number(cost), date });
+      await apiPost(`/api/inventory/items/${item.id}/opening`, { qty: Number(q), unitCost: Number(cost), date, locationId, lot, expiry });
       onSaved(`Opening balance of ${q} ${item.unit} recorded for ${item.name}.`);
     } catch (e) {
       setError((e as Error).message);
@@ -540,6 +638,19 @@ function OpeningBalance({ item, onSaved }: { item: Item; onSaved: (message: stri
           <span>As of</span>
           <input type="date" value={date} max={todayIso()} onChange={(e) => setDate(e.target.value)} />
         </label>
+        <LocationPicker label="Kept in" value={locationId} onChange={setLocationId} />
+        {item.trackExpiry && (
+          <>
+            <label className="field-input">
+              <span>Lot no. (optional)</span>
+              <input value={lot} onChange={(e) => setLot(e.target.value)} maxLength={60} />
+            </label>
+            <label className="field-input">
+              <span>Expiry date (optional)</span>
+              <input type="date" value={expiry} onChange={(e) => setExpiry(e.target.value)} />
+            </label>
+          </>
+        )}
       </div>
       {Number(q) > 0 && Number(cost) >= 0 && (
         <p className="count" style={{ marginTop: 8 }}>Value: ₱{peso.format(Number(q) * Number(cost))}</p>
@@ -549,6 +660,131 @@ function OpeningBalance({ item, onSaved }: { item: Item; onSaved: (message: stri
         <button className="primary" disabled={busy || !(Number(q) > 0) || cost === "" || !date} onClick={save}>
           Record opening balance
         </button>
+      </div>
+    </div>
+  );
+}
+
+/** Where the item is, per storehouse — and its lots, when it keeps them. */
+function StockByStorehouse({ item }: { item: Item }) {
+  const { data } = useQuery<ItemStock>({
+    queryKey: [...INV_KEYS.items, "stock", item.id],
+    queryFn: () => apiGet(`/api/inventory/items/${item.id}/stock`),
+  });
+  const { active } = useLocations();
+  if (!data || (active.length < 2 && !item.trackExpiry)) return null;
+  const today = new Date(`${todayIso()}T00:00:00`).getTime();
+  return (
+    <div className="form-grid" style={{ marginBottom: 12 }}>
+      {active.length >= 2 && (
+        <div>
+          <strong>By storehouse</strong>
+          {data.locations.length === 0 ? (
+            <p className="count">None in stock.</p>
+          ) : (
+            <table>
+              <tbody>
+                {data.locations.map((l) => (
+                  <tr key={l.id}><td>{l.name}</td><td className="num">{qty(l.qty)} {item.unit}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+      {item.trackExpiry && (
+        <div>
+          <strong>Lots (earliest expiry goes out first)</strong>
+          {data.lots.length === 0 ? (
+            <p className="count">No lots in stock.</p>
+          ) : (
+            <table>
+              <thead><tr><th>Lot</th><th>Expiry</th>{active.length >= 2 && <th>Storehouse</th>}<th className="num">Qty</th></tr></thead>
+              <tbody>
+                {data.lots.map((l) => {
+                  const days = l.expiry ? Math.round((new Date(`${l.expiry}T00:00:00`).getTime() - today) / 86400000) : null;
+                  return (
+                    <tr key={l.id}>
+                      <td>{l.lotNo || <span className="muted">unlabelled</span>}</td>
+                      <td style={days != null && days < 30 ? { color: "#c0392b", fontWeight: 600 } : undefined}>
+                        {l.expiry ? longDate(l.expiry) : "—"}{days != null && days < 0 ? " (expired)" : ""}
+                      </td>
+                      {active.length >= 2 && <td>{l.location}</td>}
+                      <td className="num">{qty(l.qty)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MoveButton({ onClick }: { onClick: () => void }) {
+  const { active } = useLocations();
+  if (active.length < 2) return null;
+  return <button className="clear-filters" onClick={onClick}>Move to another storehouse…</button>;
+}
+
+/** Move stock between storehouses — the item's total and average cost stay the same. */
+function MoveStock({ item, onClose, onSaved }: { item: Item; onClose: () => void; onSaved: (message: string) => void }) {
+  const { active, defaultId } = useLocations();
+  const [from, setFrom] = useState(defaultId);
+  const [to, setTo] = useState(active.find((l) => l.id !== defaultId)?.id ?? 0);
+  const [q, setQ] = useState("");
+  const [date, setDate] = useState(todayIso());
+  const [remarks, setRemarks] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function save() {
+    setBusy(true);
+    setError("");
+    try {
+      await apiPost(`/api/inventory/items/${item.id}/transfer`, { fromLocationId: from, toLocationId: to, qty: Number(q), date, remarks });
+      onSaved(`${q} ${item.unit} of ${item.name} moved to ${active.find((l) => l.id === to)?.name ?? "the other storehouse"}.`);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="delete-auth" style={{ marginBottom: 12 }}>
+      <div className="form-grid">
+        <label className="field-input">
+          <span>From</span>
+          <select value={from} onChange={(e) => setFrom(Number(e.target.value))}>
+            {active.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </select>
+        </label>
+        <label className="field-input">
+          <span>To</span>
+          <select value={to} onChange={(e) => setTo(Number(e.target.value))}>
+            {active.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </select>
+        </label>
+        <label className="field-input">
+          <span>Quantity ({item.unit})</span>
+          <input type="number" min={0} step="any" value={q} onChange={(e) => setQ(e.target.value)} />
+        </label>
+        <label className="field-input">
+          <span>Date</span>
+          <input type="date" value={date} max={todayIso()} onChange={(e) => setDate(e.target.value)} />
+        </label>
+        <label className="field-input wide">
+          <span>Remarks (optional)</span>
+          <input value={remarks} onChange={(e) => setRemarks(e.target.value)} maxLength={300} />
+        </label>
+      </div>
+      {error && <div className="form-error">{error}</div>}
+      <div className="form-actions">
+        <button className="primary" disabled={busy || !(Number(q) > 0) || from === to} onClick={save}>Move the stock</button>
+        <button className="clear-filters" onClick={onClose}>Cancel</button>
       </div>
     </div>
   );

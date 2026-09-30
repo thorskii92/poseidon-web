@@ -50,6 +50,14 @@ export function apiPut<T>(url: string, body: unknown): Promise<T> {
   }).then((r) => handle<T>(r));
 }
 
+/** POST a file (multipart) with extra fields. Throws ApiError on anything other than 2xx. */
+export function apiUpload<T>(url: string, file: File, fields: Record<string, string> = {}): Promise<T> {
+  const body = new FormData();
+  body.append("file", file);
+  for (const [k, v] of Object.entries(fields)) body.append(k, v);
+  return fetch(url, { method: "POST", body }).then((r) => handle<T>(r));
+}
+
 /** DELETE an endpoint. Throws ApiError on anything other than 2xx. */
 export function apiDelete<T>(url: string): Promise<T> {
   return fetch(url, { method: "DELETE" }).then((r) => handle<T>(r));

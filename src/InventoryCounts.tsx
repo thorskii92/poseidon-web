@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiDelete, apiGet, apiPost, apiPut } from "./api";
 import AdminAuth from "./AdminAuth";
+import { LocationPicker } from "./InventoryLocationPicker";
 import { INV_KEYS, longDate, openForm, peso, qty, todayIso, type CountDetail, type CountSummary, type ItemsResponse } from "./inventoryShared";
 
 /**
@@ -45,7 +46,7 @@ export default function InventoryCounts({ onChanged }: { onChanged: (message: st
               <tr key={c.id} className="row-link" onClick={() => setOpen(c.id)}>
                 <td>#{c.id}</td>
                 <td style={{ whiteSpace: "nowrap" }}>{longDate(c.date)}</td>
-                <td>{c.category || "All items"}</td>
+                <td>{c.category || "All items"}{c.location ? <div className="muted">{c.location}</div> : null}</td>
                 <td className="num">{c.counted} of {c.lines}</td>
                 <td className="num">{c.differences}</td>
                 <td>
@@ -93,6 +94,8 @@ function StartCount({ onClose, onStarted }: { onClose: () => void; onStarted: (i
   const [date, setDate] = useState(todayIso());
   const [category, setCategory] = useState("");
   const [remarks, setRemarks] = useState("");
+  const [fundCluster, setFundCluster] = useState("");
+  const [locationId, setLocationId] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -100,7 +103,7 @@ function StartCount({ onClose, onStarted }: { onClose: () => void; onStarted: (i
     setBusy(true);
     setError("");
     try {
-      const r = await apiPost<{ id: number }>("/api/inventory/counts", { date, category, remarks });
+      const r = await apiPost<{ id: number }>("/api/inventory/counts", { date, category, remarks, fundCluster, locationId });
       onStarted(r.id);
     } catch (e) {
       setError((e as Error).message);
@@ -119,12 +122,17 @@ function StartCount({ onClose, onStarted }: { onClose: () => void; onStarted: (i
             <span>Count date</span>
             <input type="date" value={date} max={todayIso()} onChange={(e) => setDate(e.target.value)} />
           </label>
+          <LocationPicker label="Storehouse" value={locationId} onChange={setLocationId} />
           <label className="field-input">
             <span>Items to count</span>
             <select value={category} onChange={(e) => setCategory(e.target.value)}>
               <option value="">All active items</option>
               {items?.categories.map((c) => <option key={c} value={c}>{c} only</option>)}
             </select>
+          </label>
+          <label className="field-input">
+            <span>Fund cluster (optional)</span>
+            <input value={fundCluster} onChange={(e) => setFundCluster(e.target.value)} maxLength={30} />
           </label>
           <label className="field-input wide">
             <span>Remarks (optional)</span>
@@ -218,7 +226,7 @@ function CountEditor({ c, onClose, onDone }: { c: CountDetail; onClose: () => vo
   return (
           <>
             <h2 className="modal-title">
-              Physical count #{c.id} <span className="muted">· {longDate(c.date)} · {c.category || "All items"}</span>
+              Physical count #{c.id} <span className="muted">· {longDate(c.date)} · {c.category || "All items"}{c.location ? ` · ${c.location}` : ""}</span>
             </h2>
             <p className="modal-sub">
               {countedN} of {c.items.length} counted · {diffs.length} difference(s) · net ₱{peso.format(net)}

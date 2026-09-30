@@ -17,7 +17,7 @@ import "./print.css";
 
 type Base = { title: string; subtitle: string; empty: boolean; signatories?: SignatorySlot[] };
 
-const LANDSCAPE = new Set(["rsmi", "stock-on-hand", "movement-summary", "custody", "meters", "requests", "deliveries"]);
+const LANDSCAPE = new Set(["depreciation", "regspi", "purchase-orders", "expiring", "rsmi", "stock-on-hand", "movement-summary", "custody", "meters", "requests", "deliveries"]);
 
 const STATUS: Record<string, string> = {
   "in-stock": "In stock", issued: "Issued", installed: "Installed", defective: "Defective",
@@ -52,6 +52,24 @@ export default function InventoryReportPrint() {
     <div className="print-root">
       <div className="print-toolbar no-print">
         <button className="primary" onClick={() => window.print()}>Print</button>
+        {report === "expiring" && (
+          <label className="coa-toolbar-field">
+            <span>Within (days)</span>
+            <input type="number" min={1} max={730} value={params.get("days") ?? "90"} style={{ width: 80 }} onChange={(e) => setParams({ days: e.target.value })} />
+          </label>
+        )}
+        {report === "depreciation" && (
+          <label className="coa-toolbar-field">
+            <span>As of</span>
+            <input type="date" value={params.get("asOf") ?? todayIso()} onChange={(e) => setParams({ asOf: e.target.value })} />
+          </label>
+        )}
+        {report === "regspi" && (
+          <label className="coa-toolbar-field">
+            <span>Year</span>
+            <input type="number" min={2000} max={2100} value={params.get("year") ?? String(new Date().getFullYear())} style={{ width: 80 }} onChange={(e) => setParams({ year: e.target.value })} />
+          </label>
+        )}
         {report === "stock-on-hand" && (
           <label className="coa-toolbar-field">
             <span>As of</span>
@@ -97,7 +115,21 @@ type Rsmi = Base & {
   total: number;
   slips: number;
 };
+type PurchaseOrders = Base & {
+  pos: { poNo: string; date: string; supplier: string; prNo: string; status: string; total: number; received: number; outstanding: number }[];
+  suppliers: { supplier: string; pos: number; total: number; outstanding: number }[];
+  total: number; received: number; outstanding: number; cancelled: number;
+};
+type Expiring = Base & {
+  days: number;
+  lots: { code: string; name: string; unit: string; location: string; lotNo: string; expiry: string; daysLeft: number; qty: number; value: number }[];
+  expired: unknown[];
+  expiredValue: number;
+  soonValue: number;
+  undatedLots: number;
+};
 type StockOnHand = Base & {
+  byLocation?: { location: string; items: number; value: number }[];
   items: { code: string; name: string; unit: string; category: string; qty: number; avgCost: number; value: number }[];
   categories: { category: string; items: number; value: number }[];
   total: number;
@@ -138,8 +170,101 @@ type Requests = Base & {
   avgDaysToRelease: number | null;
 };
 
+type DepreciationReport = Base & {
+  units: {
+    propertyNo: string; serialNo: string; name: string; category: string; acquired: string; cost: number; usefulLife: number | null;
+    status: string; custodian: string; monthly: number; months: number; accumulated: number; bookValue: number; missingLife: boolean;
+  }[];
+  totals: { cost: number; accumulated: number; bookValue: number; monthly: number };
+  missingLife: number;
+};
+type RegSpi = Base & {
+  entries: {
+    date: string; event: string; docNo: string; docType: string; propertyNo: string; serialNo: string; name: string;
+    usefulLife: number | null; custodian: string; office: string; amount: number; remarks: string;
+  }[];
+  issuedNow: number; issuedValue: number;
+};
+const REGSPI_EVENT: Record<string, string> = {
+  issued: "Issued", transferred: "Transferred", returned: "Returned", "returned-damaged": "Returned unserviceable", disposed: "Disposed", lost: "Lost",
+};
+
 function Body({ report, d: raw }: { report: string; d: Base }) {
   switch (report) {
+    case "depreciation": {
+      const d = raw as DepreciationReport;
+      return (
+        <>
+          <div className="dash-kpis ecpay-kpis ecpay-kpis-4">
+            <KpiTile label="Acquisition cost" value={`₱${m(d.totals.cost)}`} sub={`${d.units.length} unit(s)`} />
+            <KpiTile label="Accumulated depreciation" value={`₱${m(d.totals.accumulated)}`} />
+            <KpiTile label="Book value" value={`₱${m(d.totals.bookValue)}`} />
+            <KpiTile label="Monthly depreciation" value={`₱${m(d.totals.monthly)}`} />
+          </div>
+          {d.missingLife > 0 && <p className="count">{d.missingLife} unit(s) have no useful life set and are shown at cost — set it in Inventory → Equipment → Edit details.</p>}
+          <Section title="Straight-line over the useful life, from the month after acquisition">
+            <table>
+              <thead>
+                <tr>
+                  <th>Property No.</th><th>Item</th><th>Category</th><th>Acquired</th><th className="n">Cost</th><th className="n">Life (yr)</th>
+                  <th className="n">Monthly</th><th className="n">Months</th><th className="n">Accumulated</th><th className="n">Book value</th><th>Accountable</th>
+                </tr>
+              </thead>
+              <tbody>
+                {d.units.map((u, i) => (
+                  <tr key={i}>
+                    <td>{u.propertyNo}</td><td>{u.name}{u.serialNo && <div className="muted">S/N {u.serialNo}</div>}</td><td>{u.category}</td>
+                    <td>{u.acquired ? longDate(u.acquired) : ""}</td><td className="n">{m(u.cost)}</td><td className="n">{u.usefulLife ?? "—"}</td>
+                    <td className="n">{u.monthly ? m(u.monthly) : ""}</td><td className="n">{u.months || ""}</td>
+                    <td className="n">{u.accumulated ? m(u.accumulated) : ""}</td><td className="n">{m(u.bookValue)}</td>
+                    <td>{u.custodian || STATUS[u.status] || u.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={4}>Total</td><td className="n">{m(d.totals.cost)}</td><td /><td className="n">{m(d.totals.monthly)}</td><td />
+                  <td className="n">{m(d.totals.accumulated)}</td><td className="n">{m(d.totals.bookValue)}</td><td />
+                </tr>
+              </tfoot>
+            </table>
+          </Section>
+        </>
+      );
+    }
+
+    case "regspi": {
+      const d = raw as RegSpi;
+      return (
+        <>
+          <div className="dash-kpis ecpay-kpis ecpay-kpis-4">
+            <KpiTile label="Entries this year" value={String(d.entries.length)} />
+            <KpiTile label="Out with people now" value={String(d.issuedNow)} sub={`worth ₱${m(d.issuedValue)}`} />
+          </div>
+          <Section title="Semi-expendable property issued, transferred, returned and disposed">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th><th>Reference</th><th>Item No.</th><th>Description</th><th className="n">Useful life</th>
+                  <th>Transaction</th><th>Officer / Office</th><th className="n">Amount</th><th>Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                {d.entries.map((e, i) => (
+                  <tr key={i}>
+                    <td>{longDate(e.date)}</td><td>{[e.docType, e.docNo].filter(Boolean).join(" ")}</td><td>{e.propertyNo}</td>
+                    <td>{e.name}{e.serialNo && <div className="muted">S/N {e.serialNo}</div>}</td><td className="n">{e.usefulLife ?? ""}</td>
+                    <td>{REGSPI_EVENT[e.event] ?? e.event}</td><td>{[e.custodian, e.office].filter(Boolean).join(", ")}</td>
+                    <td className="n">{m(e.amount)}</td><td>{e.remarks}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Section>
+        </>
+      );
+    }
+
     case "rsmi": {
       const d = raw as Rsmi;
       return (
@@ -179,6 +304,66 @@ function Body({ report, d: raw }: { report: string; d: Base }) {
 
     }
 
+    case "purchase-orders": {
+      const d = raw as PurchaseOrders;
+      return (
+        <>
+          <div className="dash-kpis ecpay-kpis ecpay-kpis-4">
+            <KpiTile label="Ordered" value={`₱${m(d.total)}`} sub={`${d.pos.length - d.cancelled} PO(s)${d.cancelled ? `, ${d.cancelled} cancelled` : ""}`} />
+            <KpiTile label="Delivered" value={`₱${m(d.received)}`} />
+            <KpiTile label="Still to be delivered" value={`₱${m(d.outstanding)}`} />
+          </div>
+          <Section title="Purchase orders">
+            <table>
+              <thead><tr><th>PO No.</th><th>Date</th><th>Supplier</th><th>PR</th><th>Status</th><th className="n">Amount</th><th className="n">Delivered</th><th className="n">Outstanding</th></tr></thead>
+              <tbody>
+                {d.pos.map((p) => (
+                  <tr key={p.poNo} className={p.status === "cancelled" ? "muted" : undefined}>
+                    <td>{p.poNo}</td><td>{longDate(p.date)}</td><td>{p.supplier}</td><td>{p.prNo}</td><td>{p.status}</td>
+                    <td className="n">{m(p.total)}</td><td className="n">{m(p.received)}</td><td className="n">{m(p.outstanding)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot><tr><td colSpan={5}>Total (excluding cancelled)</td><td className="n">{m(d.total)}</td><td className="n">{m(d.received)}</td><td className="n">{m(d.outstanding)}</td></tr></tfoot>
+            </table>
+          </Section>
+          <Section title="By supplier">
+            <table>
+              <thead><tr><th>Supplier</th><th className="n">POs</th><th className="n">Amount</th><th className="n">Outstanding</th></tr></thead>
+              <tbody>{d.suppliers.map((s) => <tr key={s.supplier}><td>{s.supplier}</td><td className="n">{s.pos}</td><td className="n">{m(s.total)}</td><td className="n">{m(s.outstanding)}</td></tr>)}</tbody>
+            </table>
+          </Section>
+        </>
+      );
+    }
+
+    case "expiring": {
+      const d = raw as Expiring;
+      return (
+        <>
+          <div className="dash-kpis ecpay-kpis ecpay-kpis-4">
+            <KpiTile label="Already expired" value={String(d.expired.length)} sub={`lot(s) worth ₱${m(d.expiredValue)}`} />
+            <KpiTile label={`Expiring within ${d.days} days`} value={String(d.lots.length - d.expired.length)} sub={`lot(s) worth ₱${m(d.soonValue)}`} />
+          </div>
+          <Section title="Lots, earliest expiry first">
+            <table>
+              <thead><tr><th>Expiry</th><th>Days left</th><th>Stock No.</th><th>Item</th><th>Lot</th><th>Storehouse</th><th className="n">Qty</th><th className="n">Value</th></tr></thead>
+              <tbody>
+                {d.lots.map((l, i) => (
+                  <tr key={i} style={l.daysLeft < 0 ? { color: "#b00020", fontWeight: 600 } : undefined}>
+                    <td>{longDate(l.expiry)}</td><td>{l.daysLeft < 0 ? `expired ${-l.daysLeft} day(s) ago` : l.daysLeft}</td>
+                    <td>{l.code}</td><td>{l.name}</td><td>{l.lotNo || "—"}</td><td>{l.location}</td>
+                    <td className="n">{qty(l.qty)} {l.unit}</td><td className="n">{m(l.value)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Section>
+          {d.undatedLots > 0 && <p className="count">{d.undatedLots} lot(s) in stock have no expiry date recorded and aren’t listed.</p>}
+        </>
+      );
+    }
+
     case "stock-on-hand": {
       const d = raw as StockOnHand;
       return (
@@ -188,6 +373,14 @@ function Body({ report, d: raw }: { report: string; d: Base }) {
             <KpiTile label="Items" value={String(d.items.length)} />
             <KpiTile label="Out of stock" value={String(d.outOfStock)} />
           </div>
+          {(d.byLocation ?? []).length > 1 && (
+            <Section title="By storehouse (today)">
+              <table>
+                <thead><tr><th>Storehouse</th><th className="n">Items</th><th className="n">Value</th></tr></thead>
+                <tbody>{(d.byLocation ?? []).map((l) => <tr key={l.location}><td>{l.location}</td><td className="n">{l.items}</td><td className="n">{m(l.value)}</td></tr>)}</tbody>
+              </table>
+            </Section>
+          )}
           <Section title="By category">
             <table>
               <thead><tr><th>Category</th><th className="n">Items</th><th className="n">Value</th></tr></thead>

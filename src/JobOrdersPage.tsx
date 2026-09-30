@@ -321,6 +321,106 @@ function JobOrderList({ type, blurb }: { type: JobType; blurb: string }) {
 
 type ResultEntry = { joId: number; status: string; result: Record<ResultKey, string | number | null> };
 
+/** Job types that put a meter from Inventory in the ground, or use supplies. */
+const TAKES_METER: JobType[] = ["installation", "meter-replacement"];
+const TAKES_SUPPLIES: JobType[] = ["installation", "repair-adjustment", "meter-replacement", "reconnection"];
+
+type JoStock = {
+  meters: { id: number; serialNo: string; name: string; location: string }[];
+  items: { id: number; code: string; name: string; unit: string; onHand: number }[];
+  locations: { id: number; name: string; isDefault: boolean }[];
+  drawn: { name: string; unit: string; qty: number }[];
+};
+type StockDraw = { meterId: string; updateAccountMeter: boolean; locationId: string; lines: { itemId: string; qty: string }[] };
+
+/**
+ * Optional: take the meter and supplies for this job from Inventory, so
+ * the stock goes down with the job. The free-text Materials box stays for
+ * anything that isn't tracked.
+ */
+function FromStock({ type, joId, draw, onDraw, onMeter }: {
+  type: JobType; joId: number; draw: StockDraw; onDraw: (d: StockDraw) => void; onMeter: (serial: string, brand: string) => void;
+}) {
+  const { data } = useQuery<JoStock>({
+    queryKey: ["joborders", "stock", joId],
+    queryFn: () => apiGet(`/api/joborders/inventory/stock?joid=${joId}`),
+  });
+  if (!data) return null;
+  const meter = TAKES_METER.includes(type) && data.meters.length > 0;
+  const supplies = TAKES_SUPPLIES.includes(type) && (data.items.length > 0 || data.drawn.length > 0);
+  if (!meter && !supplies) return null;
+  const setLine = (i: number, patch: Partial<StockDraw["lines"][number]>) =>
+    onDraw({ ...draw, lines: draw.lines.map((l, n) => (n === i ? { ...l, ...patch } : l)) });
+
+  return (
+    <div className="delete-auth" style={{ marginBottom: 12 }}>
+      <div className="balance-label" style={{ marginBottom: 8 }}>From Inventory (optional)</div>
+      {meter && (
+        <>
+          <label className="field-input" style={{ marginBottom: 8 }}>
+            <span>Meter from stock</span>
+            <select
+              value={draw.meterId}
+              onChange={(e) => {
+                const m = data.meters.find((x) => String(x.id) === e.target.value);
+                onDraw({ ...draw, meterId: e.target.value });
+                if (m) onMeter(m.serialNo, m.name);
+              }}
+            >
+              <option value="">— not from stock —</option>
+              {data.meters.map((m) => (
+                <option key={m.id} value={m.id}>{m.serialNo} — {m.name}{m.location ? ` (${m.location})` : ""}</option>
+              ))}
+            </select>
+          </label>
+          {draw.meterId && (
+            <label style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+              <input type="checkbox" checked={draw.updateAccountMeter} onChange={(e) => onDraw({ ...draw, updateAccountMeter: e.target.checked })} />
+              Also set the account's meter no. to this serial
+            </label>
+          )}
+        </>
+      )}
+      {supplies && data.drawn.length > 0 && (
+        <p className="count">
+          Already taken from stock for this job: {data.drawn.map((d) => `${d.qty} ${d.unit} ${d.name}`).join(", ")}.
+        </p>
+      )}
+      {supplies && data.drawn.length === 0 && (
+        <>
+          {draw.lines.map((l, i) => {
+            const item = data.items.find((x) => String(x.id) === l.itemId);
+            return (
+              <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+                <select value={l.itemId} onChange={(e) => setLine(i, { itemId: e.target.value })} style={{ flex: 1, minWidth: 0 }}>
+                  <option value="">— supply —</option>
+                  {data.items.map((x) => <option key={x.id} value={x.id}>{x.name} ({x.onHand} {x.unit} on hand)</option>)}
+                </select>
+                <input
+                  type="number" min={0} step="any" placeholder={item?.unit ?? "Qty"} value={l.qty}
+                  onChange={(e) => setLine(i, { qty: e.target.value })} style={{ width: 90 }}
+                />
+                <button className="clear-filters" onClick={() => onDraw({ ...draw, lines: draw.lines.filter((_, n) => n !== i) })}>Remove</button>
+              </div>
+            );
+          })}
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <button className="clear-filters" onClick={() => onDraw({ ...draw, lines: [...draw.lines, { itemId: "", qty: "" }] })}>Add a supply</button>
+            {draw.lines.length > 0 && data.locations.length > 1 && (
+              <label className="field-input" style={{ margin: 0 }}>
+                <span>Taken from</span>
+                <select value={draw.locationId} onChange={(e) => onDraw({ ...draw, locationId: e.target.value })}>
+                  {data.locations.map((x) => <option key={x.id} value={x.isDefault ? "" : x.id}>{x.name}</option>)}
+                </select>
+              </label>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function RecordResultsDialog({
   type, joId, accountNo, onClose, onDone,
 }: { type: JobType; joId: number; accountNo: string; onClose: () => void; onDone: () => void }) {
@@ -329,21 +429,22 @@ function RecordResultsDialog({
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [draw, setDraw] = useState<StockDraw>({ meterId: "", updateAccountMeter: true, locationId: "", lines: [] });
 
   useEffect(() => {
     apiGet<ResultEntry>(`/api/joborders/entry/${joId}`)
       .then((d) => {
         const initial: Record<string, string> = {};
         for (const f of fields) {
-          const v = (d as any).result?.[f.key];
+          const v = d.result?.[f.key];
           initial[f.key] = v === null || v === undefined ? "" : String(v);
         }
         setValues(initial);
         setLoaded(true);
       })
       .catch(() => setLoaded(true));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- fields is a
-    // constant lookup by `type`, not something that changes for a mounted dialog.
+    // fields is a constant lookup by `type`, not something that changes for a mounted dialog.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [joId]);
 
   function set(key: string, v: string) {
@@ -357,7 +458,13 @@ function RecordResultsDialog({
       const r = await fetch(`/api/joborders/${joId}/complete`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          stockMeterId: draw.meterId ? Number(draw.meterId) : undefined,
+          updateAccountMeter: draw.meterId ? draw.updateAccountMeter : undefined,
+          stockItems: draw.lines.filter((l) => l.itemId && Number(l.qty) > 0).map((l) => ({ itemId: Number(l.itemId), qty: Number(l.qty) })),
+          stockLocationId: draw.locationId ? Number(draw.locationId) : undefined,
+        }),
       });
       if (!r.ok) throw new Error((await r.json().catch(() => null))?.error ?? "Could not save");
       onDone();
@@ -373,6 +480,16 @@ function RecordResultsDialog({
       <div className="modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
         <h2 className="modal-title">Record results</h2>
         <p className="modal-sub">{accountNo}</p>
+
+        {loaded && (
+          <FromStock
+            type={type}
+            joId={joId}
+            draw={draw}
+            onDraw={setDraw}
+            onMeter={(serial, brand) => setValues((prev) => ({ ...prev, meterSerial: serial, meterBrand: prev.meterBrand || brand }))}
+          />
+        )}
 
         {!loaded ? (
           <p className="count">Loading…</p>

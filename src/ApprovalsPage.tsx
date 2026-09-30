@@ -2,6 +2,11 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPost, ApiError } from "./api";
 import { peso, ApprovalDialog, type Context, type Detail } from "./AdjustmentShared";
+import { useAuth } from "./AuthContext";
+import { RequestView } from "./InventoryRequests";
+import { PrView, type PrRow } from "./InventoryPurchasing";
+import { peso as pesoFmt } from "./inventoryShared";
+import { INV_KEYS, longDate, type SupplyRequest } from "./inventoryShared";
 
 /**
  * Approvals — every request in the app that waits on a role-gated decision
@@ -23,15 +28,31 @@ type Row = {
   inspector: string;
 };
 
-type TabKey = "adjustments" | "temp-closure";
+type TabKey = "adjustments" | "temp-closure" | "inventory" | "purchase";
 
-const TABS: { key: TabKey; label: string }[] = [
-  { key: "adjustments", label: "Bill Adjustments" },
-  { key: "temp-closure", label: "Temporary Closure" },
+const TABS: { key: TabKey; label: string; perm: string }[] = [
+  { key: "adjustments", label: "Bill Adjustments", perm: "approvals" },
+  { key: "temp-closure", label: "Temporary Closure", perm: "approvals" },
+  // Its own right: a department head can approve supplies without seeing bills.
+  { key: "inventory", label: "Inventory Requests", perm: "invapprove" },
+  { key: "purchase", label: "Purchase Requests", perm: "invapprove" },
 ];
 
 export default function ApprovalsPage() {
-  const [tab, setTab] = useState<TabKey>("adjustments");
+  const { can } = useAuth();
+  const tabs = TABS.filter((t) => can(t.perm));
+  const [picked, setTab] = useState<TabKey | null>(null);
+  const tab = picked ?? tabs[0]?.key ?? "adjustments";
+  const { data: invWaiting } = useQuery<{ toApprove: number }>({
+    queryKey: [...INV_KEYS.requests, "waiting"],
+    queryFn: () => apiGet("/api/inventory/requests/waiting"),
+    enabled: can("invapprove"),
+  });
+  const { data: prWaiting } = useQuery<{ toApprove: number }>({
+    queryKey: ["inv-purchasing", "waiting"],
+    queryFn: () => apiGet("/api/inventory/purchasing/waiting"),
+    enabled: can("invapprove"),
+  });
 
   return (
     <div className="settings-page">
@@ -43,19 +64,133 @@ export default function ApprovalsPage() {
       </div>
 
       <div className="stage-tabs">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button
             key={t.key}
             className={tab === t.key ? "stage-tab current" : "stage-tab"}
             onClick={() => setTab(t.key)}
           >
             {t.label}
+            {t.key === "inventory" && !!invWaiting?.toApprove && <span className="stage-count">{invWaiting.toApprove}</span>}
+            {t.key === "purchase" && !!prWaiting?.toApprove && <span className="stage-count">{prWaiting.toApprove}</span>}
           </button>
         ))}
       </div>
 
-      {tab === "adjustments" ? <AdjustmentApprovals /> : <TempClosureApprovals />}
+      {tab === "adjustments" && <AdjustmentApprovals />}
+      {tab === "temp-closure" && <TempClosureApprovals />}
+      {tab === "inventory" && <InventoryRequestApprovals />}
+      {tab === "purchase" && <PurchaseRequestApprovals />}
     </div>
+  );
+}
+
+/**
+ * Supply requests (RIS) waiting for approval — the same list and dialog as
+ * Inventory → Requests (InventoryRequests.tsx), so approving here and there
+ * is one and the same action.
+ */
+function InventoryRequestApprovals() {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState<number | null>(null);
+  const [notice, setNotice] = useState("");
+  const { data, isLoading, error } = useQuery<{ rows: SupplyRequest[] }>({
+    queryKey: [...INV_KEYS.requests, "pending"],
+    queryFn: () => apiGet("/api/inventory/requests?status=pending"),
+  });
+
+  return (
+    <section className="record-section">
+      {notice && (
+        <div className="action-notice" onAnimationEnd={() => setNotice("")}>
+          {notice}
+        </div>
+      )}
+      {isLoading && <p className="count">Loading…</p>}
+      {error && <p className="form-error">{(error as Error).message}</p>}
+      {data && data.rows.length === 0 && <p className="count">No supply requests are waiting for approval.</p>}
+      {data && data.rows.length > 0 && (
+        <table>
+          <thead>
+            <tr><th>RIS No.</th><th>Filed</th><th>Office</th><th>Purpose</th><th>Requested by</th><th className="num">Items</th><th /></tr>
+          </thead>
+          <tbody>
+            {data.rows.map((r) => (
+              <tr key={r.id} className="row-link" onClick={() => setOpen(r.id)}>
+                <td>{r.risNo}</td>
+                <td style={{ whiteSpace: "nowrap" }}>{longDate(r.date)}</td>
+                <td>{r.office}</td>
+                <td className="incident-details">{r.purpose}</td>
+                <td>{r.requestedBy}</td>
+                <td className="num">{r.lines}</td>
+                <td>
+                  <button className="primary small" onClick={(e) => { e.stopPropagation(); setOpen(r.id); }}>Review</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {open != null && (
+        <RequestView
+          id={open}
+          onClose={() => setOpen(null)}
+          onDone={(m) => {
+            setOpen(null);
+            setNotice(m);
+            qc.invalidateQueries({ queryKey: INV_KEYS.requests });
+          }}
+        />
+      )}
+    </section>
+  );
+}
+
+/** Purchase requests waiting for approval — the same dialog as Inventory → Purchasing. */
+function PurchaseRequestApprovals() {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState<number | null>(null);
+  const [notice, setNotice] = useState("");
+  const { data, isLoading, error } = useQuery<{ rows: PrRow[] }>({
+    queryKey: ["inv-purchasing", "prs", "pending"],
+    queryFn: () => apiGet("/api/inventory/purchasing/prs?status=pending"),
+  });
+  return (
+    <section className="record-section">
+      {notice && <div className="action-notice" onAnimationEnd={() => setNotice("")}>{notice}</div>}
+      {isLoading && <p className="count">Loading…</p>}
+      {error && <p className="form-error">{(error as Error).message}</p>}
+      {data && data.rows.length === 0 && <p className="count">No purchase requests are waiting for approval.</p>}
+      {data && data.rows.length > 0 && (
+        <table>
+          <thead><tr><th>PR No.</th><th>Date</th><th>Office</th><th>Purpose</th><th className="num">Items</th><th className="num">Estimate</th><th /></tr></thead>
+          <tbody>
+            {data.rows.map((p) => (
+              <tr key={p.id} className="row-link" onClick={() => setOpen(p.id)}>
+                <td>{p.prNo}</td>
+                <td style={{ whiteSpace: "nowrap" }}>{longDate(p.date)}</td>
+                <td>{p.office}</td>
+                <td className="incident-details">{p.purpose}</td>
+                <td className="num">{p.lines}</td>
+                <td className="num">{pesoFmt.format(p.estimate ?? 0)}</td>
+                <td><button className="primary small" onClick={(e) => { e.stopPropagation(); setOpen(p.id); }}>Review</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {open != null && (
+        <PrView
+          id={open}
+          onClose={() => setOpen(null)}
+          onDone={(m) => {
+            setOpen(null);
+            setNotice(m);
+            qc.invalidateQueries({ queryKey: ["inv-purchasing"] });
+          }}
+        />
+      )}
+    </section>
   );
 }
 
