@@ -46,6 +46,8 @@ type Row = {
   reconnFee: number;
   otherFees: number;
   total: number;
+  /** A cancelled O.R. — listed in its place, at zero. */
+  cancelled?: boolean;
 };
 
 type Report = {
@@ -190,7 +192,16 @@ export default function DailyCollectionPrint() {
                 </td>
               </tr>
             ) : (
-              data.rows.map((r, i) => (
+              data.rows.map((r, i) =>
+                r.cancelled ? (
+                  <tr key={i}>
+                    <td>{i + 1}</td>
+                    <td>{shortDate(r.date)}</td>
+                    <td>{r.orNumber}</td>
+                    <td colSpan={10} style={{ textAlign: "left", fontWeight: 700, letterSpacing: "0.5px" }}>CANCELLED</td>
+                    <td className="soa-amt">{peso.format(0)}</td>
+                  </tr>
+                ) : (
                 <tr key={i}>
                   <td>{i + 1}</td>
                   <td>{shortDate(r.date)}</td>
@@ -207,7 +218,8 @@ export default function DailyCollectionPrint() {
                   <td className="soa-amt">{r.otherFees ? peso.format(r.otherFees) : ""}</td>
                   <td className="soa-amt">{peso.format(r.total)}</td>
                 </tr>
-              ))
+                ),
+              )
             )}
           </tbody>
           <tfoot>
