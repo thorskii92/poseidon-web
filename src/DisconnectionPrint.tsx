@@ -137,6 +137,7 @@ export default function DisconnectionPrint() {
               <th>Account No.</th>
               <th>Name</th>
               <th>Meter Serial</th>
+              <th>Standpipe</th>
               <th>Address</th>
               <th>Period Covered</th>
               <th className="disc-amt">Balance</th>
@@ -151,6 +152,7 @@ export default function DisconnectionPrint() {
                 <td>{r.accountNo}</td>
                 <td>{r.name}</td>
                 <td>{r.meterNo}</td>
+                <td>{r.standpipe}</td>
                 <td>
                   {r.address}
                   {data.clustersEnabled && r.cluster ? `, ${r.cluster}` : ""}
@@ -163,7 +165,7 @@ export default function DisconnectionPrint() {
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={6} className="disc-total-label">
+              <td colSpan={7} className="disc-total-label">
                 Total
               </td>
               <td className="disc-amt">

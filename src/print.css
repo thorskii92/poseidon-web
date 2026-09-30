@@ -313,7 +313,7 @@
   padding: 0.4in 0.45in;
   background: #fff;
   font-family: Calibri, "Segoe UI", sans-serif;
-  font-size: 10pt;
+  font-size: 9pt;
   color: #000;
 }
 
@@ -335,7 +335,7 @@
 
 .disc-title {
   margin: 16px 0 2px;
-  font-size: 13pt;
+  font-size: 12pt;
   font-weight: 700;
   text-align: center;
   text-transform: uppercase;
@@ -344,13 +344,13 @@
 .disc-scope {
   margin: 0 0 12px;
   text-align: center;
-  font-size: 10pt;
+  font-size: 9pt;
 }
 
 .disc-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 9pt;
+  font-size: 8pt;
 }
 
 .disc-table th,
