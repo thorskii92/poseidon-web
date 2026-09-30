@@ -6,6 +6,7 @@ import {
 import { apiGet } from "./api";
 import ITBottlenecksPanel, { type Bottlenecks } from "./ITBottlenecksPanel";
 import ITMobileAppPanel, { type MobileAppStatus } from "./ITMobileAppPanel";
+import ITSecurityPanel from "./ITSecurityPanel";
 
 /**
  * IT Dashboard — the running server's own health, performance and
@@ -242,6 +243,8 @@ export default function ITDashboardPage() {
           </div>
 
           {data.bottlenecks && <ITBottlenecksPanel b={data.bottlenecks} />}
+
+          <ITSecurityPanel />
 
           {data.mobileApp && <ITMobileAppPanel m={data.mobileApp} now={dataUpdatedAt} />}
 
