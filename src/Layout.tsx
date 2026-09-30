@@ -11,7 +11,7 @@ import { IconReceipt, IconInvoice, IconUsers, IconWrench, IconDroplet, type Icon
 import {
   IconGrid, IconIdCard, IconWallet, IconClock, IconSliders, IconCheckCircle,
   IconPowerOff, IconCreditCard, IconChartBar, IconGear, IconGauge, IconLayers, IconListOrdered, IconBox,
-  IconRefresh, IconAlertTriangle, IconServer, IconLogout, IconSidebar, IconMegaphone, IconSupport,
+  IconRefresh, IconAlertTriangle, IconServer, IconLogout, IconSidebar, IconMegaphone, IconSupport, IconMap,
 } from "./NavIcons";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "./support";
 import { useMobileInbox, type InboxCounts } from "./mobileInbox";
@@ -121,18 +121,16 @@ const NAV: { label: string; to: string; perm: string | null; icon: IconComponent
   { label: "ECPay", to: "/ecpay", perm: "ecpay", icon: IconCreditCard, mainOnly: true },
   // Staff who can only file or approve supply requests get just the Requests tab.
   { label: "Inventory", to: "/inventory", perm: "inventory", icon: IconBox, mainOnly: true, alsoFor: ["invrequest", "invapprove"] },
+  { label: "Meter Manager", to: "/meters", perm: "meters", icon: IconGauge },
+  { label: "Cluster Manager", to: "/clusters", perm: "clusters", icon: IconLayers },
+  { label: "Sequencing", to: "/sequencing", perm: "sequencing", icon: IconListOrdered },
+  { label: "GIS Map", to: "/map", perm: "gis", icon: IconMap },
   { label: "Reports", to: "/reports", perm: "reports", icon: IconChartBar },
   { label: "User Management", to: "/users", perm: "users", icon: IconUsers },
   { label: "Settings", to: "/settings", perm: "settings", icon: IconGear },
   { label: "Synchronization", to: "/sync", perm: "sync", icon: IconRefresh, satelliteOnly: true },
   { label: "Sync Conflicts", to: "/sync-conflicts", perm: "sync", icon: IconAlertTriangle, mainOnly: true },
   { label: "IT Dashboard", to: "/it", perm: "it", icon: IconServer },
-];
-
-const SOON: { label: string; icon: IconComponent }[] = [
-  { label: "Meter Manager", icon: IconGauge },
-  { label: "Cluster Manager", icon: IconLayers },
-  { label: "Sequencing", icon: IconListOrdered },
 ];
 
 export default function Layout({ children }: { children: ReactNode }) {
@@ -286,16 +284,6 @@ export default function Layout({ children }: { children: ReactNode }) {
                   <span className="stage-count">{badges[item.label]}</span>
                 )}
               </NavLink>
-            </li>
-          ))}
-          {SOON.map((item) => (
-            <li key={item.label}>
-              <span className="nav-item disabled" {...tipProps(`${item.label} (coming soon)`)}>
-                <span className="nav-icon">
-                  <item.icon size={18} />
-                </span>
-                <span className="nav-label">{item.label}</span>
-              </span>
             </li>
           ))}
         </ul>

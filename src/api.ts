@@ -3,11 +3,14 @@
 
 export class ApiError extends Error {
   status: number;
+  /** The error response's JSON, for screens that need more than the message. */
+  body?: unknown;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, body?: unknown) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.body = body;
   }
 }
 
@@ -23,7 +26,7 @@ async function handle<T>(response: Response): Promise<T> {
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
-    throw new ApiError(body?.error ?? "Request failed", response.status);
+    throw new ApiError(body?.error ?? "Request failed", response.status, body ?? undefined);
   }
 
   const body = await response.json().catch(() => null);

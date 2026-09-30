@@ -224,3 +224,12 @@ export function IconAlertTriangle({ size = 20 }: IconProps) {
     </svg>
   );
 }
+
+export function IconMap({ size = 20 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...base}>
+      <path d="M9 4.5 3.5 6.5v13l5.5-2 6 2 5.5-2v-13l-5.5 2z" />
+      <path d="M9 4.5v13M15 6.5v13" />
+    </svg>
+  );
+}

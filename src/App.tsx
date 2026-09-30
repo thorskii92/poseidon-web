@@ -39,6 +39,10 @@ import SyncConflictsPage from "./SyncConflictsPage";
 import ITDashboardPage from "./ITDashboardPage";
 import IncidentReportsPage from "./IncidentReportsPage";
 import InventoryPage from "./InventoryPage";
+import ClusterManagerPage from "./ClusterManagerPage";
+import MeterManagerPage from "./MeterManagerPage";
+import SequencingPage from "./SequencingPage";
+import GisMapPage from "./GisMapPage";
 import IncidentRegisterPrint from "./IncidentRegisterPrint";
 import IncidentResponsePrint from "./IncidentResponsePrint";
 import MobileAdjustmentRequestsPrint from "./MobileAdjustmentRequestsPrint";
@@ -414,6 +418,10 @@ export default function App() {
                 <Route path="/it" element={<ITDashboardPage />} />
                 <Route path="/incidents" element={<IncidentReportsPage />} />
                 <Route path="/inventory" element={<InventoryPage />} />
+                <Route path="/clusters" element={<ClusterManagerPage />} />
+                <Route path="/meters" element={<MeterManagerPage />} />
+                <Route path="/sequencing" element={<SequencingPage />} />
+                <Route path="/map" element={<GisMapPage />} />
               </Routes>
             </Layout>
           }
