@@ -640,12 +640,12 @@ export default function EditBillsDialog({
                                 ).map(([key, label]) => (
                                   <label className="field-input" key={key}>
                                     <span>{label}</span>
-                                    <input
-                                      value={String(f[key] ?? 0)}
+                                    <MoneyInput
+                                      value={Number(f[key] ?? 0)}
                                       disabled={!manual}
-                                      onChange={(e) =>
+                                      onChange={(v) =>
                                         edit(r.billId, {
-                                          [key]: Number(e.target.value) || 0,
+                                          [key]: v,
                                         } as Partial<BillFields>)
                                       }
                                     />
@@ -786,6 +786,41 @@ export default function EditBillsDialog({
   );
 }
 
+/**
+ * A peso amount box. Keeps what was typed, not the number it parses to —
+ * otherwise "298." redraws as "298" and the decimal point can never be
+ * typed. A change from outside (e.g. "Fit WSF") still shows, because it no
+ * longer matches what was typed.
+ */
+function MoneyInput({
+  value, onChange, className, disabled,
+}: {
+  value: number;
+  onChange: (value: number) => void;
+  className?: string;
+  disabled?: boolean;
+}) {
+  const [text, setText] = useState(String(value ?? 0));
+  const shown = Number(text) === (value ?? 0) ? text : String(value ?? 0);
+  return (
+    <input
+      className={className}
+      inputMode="decimal"
+      disabled={disabled}
+      value={shown}
+      onChange={(e) => {
+        // Digits and one decimal point, up to centavos.
+        const raw = e.target.value
+          .replace(/[^0-9.]/g, "")
+          .replace(/(\..*)\./g, "$1")
+          .replace(/(\.\d{2})\d+$/, "$1");
+        setText(raw);
+        onChange(Number(raw) || 0);
+      }}
+    />
+  );
+}
+
 function MoneyCell({
   value,
   manual,
@@ -798,11 +833,7 @@ function MoneyCell({
   return (
     <td className="num">
       {manual ? (
-        <input
-          className="reading-input small"
-          value={String(value ?? 0)}
-          onChange={(e) => onChange(Number(e.target.value) || 0)}
-        />
+        <MoneyInput className="reading-input small" value={value} onChange={onChange} />
       ) : (
         peso.format(value ?? 0)
       )}
