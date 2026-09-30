@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import * as maplibregl from "maplibre-gl";
 import type { GeoJSONSource, LayerSpecification, StyleSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { Protocol } from "pmtiles";
 import { layers as protomapsLayers, namedFlavor } from "@protomaps/basemaps";
 import { apiGet, apiPut } from "./api";
@@ -31,6 +32,10 @@ type Base = "street" | "satellite";
 let pmtilesReady = false;
 function ensurePmtiles() {
   if (pmtilesReady) return;
+  // MapLibre 6 looks for its worker beside its own file, which isn't there
+  // once Vite has bundled the app — the map then stays grey ("Worker failed
+  // to load"). Vite bundles the worker separately and says where it is.
+  maplibregl.setWorkerUrl(maplibreWorkerUrl);
   maplibregl.addProtocol("pmtiles", new Protocol().tile);
   pmtilesReady = true;
 }
