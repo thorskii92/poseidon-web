@@ -20,7 +20,41 @@ export type FeatureProps = {
   status?: "existing" | "proposed" | "abandoned";
   state?: "open" | "closed";
   color?: string;
+  /** Stand pipes: the barangay of the accounts' stand pipe this marks. */
+  barangayId?: number | null;
 };
+
+/* ---------------- Stand pipes (from the accounts) ---------------- */
+
+type AccountLike = { id: number; standpipe: string; barangayId: number; barangay: string; cluster: string; lat: number | null; lng: number | null };
+export type StandpipeInfo = { key: string; name: string; barangayId: number; barangay: string; clusters: string[]; accountIds: number[] };
+
+export const spKey = (name: string, barangayId: number | null | undefined) => `${barangayId ?? 0}|${name.trim().toUpperCase()}`;
+
+/** Every stand pipe the accounts name (distinct per barangay), with its accounts. */
+export function standpipeIndex(accounts: AccountLike[]) {
+  const m = new Map<string, StandpipeInfo & { clusterSet: Set<string> }>();
+  for (const a of accounts) {
+    const name = a.standpipe.trim();
+    if (!name) continue;
+    const key = spKey(name, a.barangayId);
+    let e = m.get(key);
+    if (!e) {
+      e = { key, name, barangayId: a.barangayId, barangay: a.barangay, clusters: [], accountIds: [], clusterSet: new Set() };
+      m.set(key, e);
+    }
+    e.accountIds.push(a.id);
+    if (a.cluster) e.clusterSet.add(a.cluster);
+  }
+  return new Map([...m.entries()].map(([k, { clusterSet, ...e }]) => [k, { ...e, clusters: [...clusterSet].sort() }]));
+}
+
+/** The accounts on a stand pipe drawn on the map (its barangay, when it has one). */
+export function accountsOnStandpipe<A extends AccountLike>(f: Pick<MapFeature, "name" | "props">, accounts: A[]) {
+  const n = f.name.trim().toUpperCase();
+  if (!n) return [];
+  return accounts.filter((a) => a.standpipe.trim().toUpperCase() === n && (!f.props.barangayId || a.barangayId === f.props.barangayId));
+}
 
 export type MapFeature = { id: number; kind: FeatureKind; name: string; geometry: Geometry; props: FeatureProps; updatedMs: number; by: string };
 
@@ -249,6 +283,12 @@ export function addFeatureLayers(map: MlMap) {
   map.addLayer({
     id: "feat-pipe-abandoned", type: "line", source: "features", filter: ["all", kind("pipe"), ["==", ["get", "status"], "abandoned"]],
     layout: { "line-join": "round" }, paint: { "line-color": "#999", "line-width": ["get", "width"], "line-dasharray": [0.6, 1.4], "line-opacity": 0.8 },
+  });
+  // Lines from the selected stand pipe to its accounts (GisDrawing fills it).
+  map.addSource("sp-links", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+  map.addLayer({
+    id: "sp-links", type: "line", source: "sp-links",
+    paint: { "line-color": "#1f77b4", "line-width": 1.5, "line-dasharray": [2, 1.5], "line-opacity": 0.85 },
   });
   map.addLayer({
     id: "feat-selected-line", type: "line", source: "features", filter: ["==", ["get", "id"], -1],

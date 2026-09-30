@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from "react";
 import type { GeoJSONSource, Map as MlMap } from "maplibre-gl";
 import { TerraDraw, TerraDrawLineStringMode, TerraDrawPointMode, TerraDrawPolygonMode, TerraDrawSelectMode } from "terra-draw";
 import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter";
 import { apiDelete, apiPost, apiPut } from "./api";
 import {
-  GROUPS, KINDS, MATERIALS, areaM2, featureCollection, fmtArea, fmtLength, iconOf, iconUrl, lengthM, materialColor,
-  type FeatureGroup, type FeatureKind, type FeatureProps, type Geometry, type MapFeature,
+  GROUPS, KINDS, MATERIALS, accountsOnStandpipe, areaM2, featureCollection, fmtArea, fmtLength, iconOf, iconUrl, lengthM,
+  materialColor, spKey, standpipeIndex,
+  type FeatureGroup, type FeatureKind, type FeatureProps, type Geometry, type MapFeature, type StandpipeInfo,
 } from "./gisFeatures";
 import type { MapAccount } from "./gisShared";
 
@@ -22,6 +23,10 @@ type Tool =
   | { type: "measure"; what: "line" | "area" };
 
 type Pending = { kind: FeatureKind; geometry: Geometry };
+type Preset = { name: string; props: FeatureProps };
+
+/** What the page can ask the drawing tools to do (GisMapPage's stand pipe list). */
+export type GisDrawingHandle = { placeStandpipe: (sp: StandpipeInfo) => void };
 
 const MODE: Record<"point" | "linestring" | "polygon", string> = { point: "point", linestring: "linestring", polygon: "polygon" };
 const FEATURE_CLICK_LAYERS = ["feat-points", "feat-notes", "feat-pipe", "feat-pipe-proposed", "feat-pipe-abandoned", "feat-area-fill"];
@@ -42,8 +47,9 @@ function measureOf(g: Geometry | null | undefined) {
 }
 
 export default function GisDrawing({
-  map, canEdit, features, groups, accounts, selectedId, onSelect, onBusy, onChanged, onNotice, onError, onFilterStandpipe,
+  ref, map, canEdit, features, groups, accounts, selectedId, onSelect, onBusy, onChanged, onNotice, onError, onFilterStandpipe, onShowAccount,
 }: {
+  ref?: Ref<GisDrawingHandle>;
   map: MlMap | null;
   canEdit: boolean;
   features: MapFeature[];
@@ -55,9 +61,16 @@ export default function GisDrawing({
   onChanged: () => void;
   onNotice: (m: string) => void;
   onError: (m: string) => void;
-  onFilterStandpipe: (name: string) => void;
+  onFilterStandpipe: (sp: { name: string; barangayId: number | null }) => void;
+  onShowAccount: (id: number) => void;
 }) {
   const drawRef = useRef<TerraDraw | null>(null);
+  const [preset, setPreset] = useState<Preset | null>(null);
+  const spIndex = useMemo(() => standpipeIndex(accounts), [accounts]);
+  const placedKeys = useMemo(
+    () => new Set(features.filter((f) => f.kind === "standpipe").map((f) => spKey(f.name, f.props.barangayId))),
+    [features],
+  );
   const [tool, setTool] = useState<Tool | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
   const [measure, setMeasure] = useState("");
@@ -125,6 +138,24 @@ export default function GisDrawing({
     if (map.getLayer("feat-selected-point")) map.setFilter("feat-selected-point", ["all", sel, ["match", ["get", "kind"], ["pipe", "area"], false, true]]);
   }, [map, features, groups, reshapingId, selectedId]);
 
+  // A selected stand pipe: its accounts, and lines to the ones on the map.
+  const connected = useMemo(
+    () => (selected?.kind === "standpipe" ? accountsOnStandpipe(selected, accounts).sort((a, b) => a.name.localeCompare(b.name)) : []),
+    [selected, accounts],
+  );
+  useEffect(() => {
+    if (!map) return;
+    const from = selected?.kind === "standpipe" && selected.geometry.type === "Point" && groups.standpipes ? selected.geometry.coordinates : null;
+    (map.getSource("sp-links") as GeoJSONSource | undefined)?.setData({
+      type: "FeatureCollection",
+      features: from
+        ? connected.filter((a) => a.lat != null && a.lng != null).map((a) => ({
+          type: "Feature" as const, properties: {}, geometry: { type: "LineString" as const, coordinates: [from, [a.lng!, a.lat!]] },
+        }))
+        : [],
+    });
+  }, [map, selected, connected, groups.standpipes]);
+
   // Clicking a saved feature selects it — not while a tool is in use.
   const selectRef = useRef(onSelect);
   useEffect(() => {
@@ -175,6 +206,7 @@ export default function GisDrawing({
     }
     setTool(null);
     setPending(null);
+    setPreset(null);
     setMeasure("");
   }
 
@@ -201,7 +233,17 @@ export default function GisDrawing({
     else if (next.type === "measure") draw.setMode(next.what === "line" ? "linestring" : "polygon");
   }
 
-  const pickKind = (kind: FeatureKind) => start({ type: "new", kind });
+  const pickKind = (kind: FeatureKind) => {
+    setPreset(null);
+    start({ type: "new", kind });
+  };
+
+  useImperativeHandle(ref, () => ({
+    placeStandpipe(sp: StandpipeInfo) {
+      start({ type: "new", kind: "standpipe" });
+      setPreset({ name: sp.name, props: { barangayId: sp.barangayId } });
+    },
+  }));
 
   function reshape(f: MapFeature) {
     const draw = drawRef.current;
@@ -267,15 +309,13 @@ export default function GisDrawing({
     }
   }
 
-  const standpipeAccounts = (name: string) => {
-    const n = name.trim().toUpperCase();
-    return n ? accounts.filter((a) => a.standpipe.trim().toUpperCase() === n).length : 0;
-  };
+  const spOptions = useMemo(() => [...spIndex.values()].sort((a, b) => a.barangay.localeCompare(b.barangay) || a.name.localeCompare(b.name, undefined, { numeric: true })), [spIndex]);
+  const standpipe = { options: spOptions, index: spIndex, placed: placedKeys };
 
   const hint =
     tool?.type === "new"
       ? KINDS[tool.kind].geom === "point"
-        ? `Click where the ${KINDS[tool.kind].label.toLowerCase()} is.`
+        ? `Click where ${tool.kind === "standpipe" && preset ? `stand pipe ${preset.name}` : `the ${KINDS[tool.kind].label.toLowerCase()}`} is.`
         : KINDS[tool.kind].geom === "linestring"
           ? "Click along the pipe's route; click the last point again to finish."
           : "Click the area's corners; click the first corner again to finish."
@@ -318,11 +358,11 @@ export default function GisDrawing({
           <FeatureForm
             key={`new-${pending.kind}`}
             kind={pending.kind}
-            name=""
-            props={{}}
+            name={preset?.name ?? ""}
+            props={preset?.props ?? {}}
             geometry={pending.geometry}
             canEdit
-            standpipeAccounts={standpipeAccounts}
+            standpipe={standpipe}
             onSave={saveNew}
             onCancel={reset}
             onFilterStandpipe={onFilterStandpipe}
@@ -342,7 +382,9 @@ export default function GisDrawing({
             canEdit={canEdit}
             by={selected.by}
             updatedMs={selected.updatedMs}
-            standpipeAccounts={standpipeAccounts}
+            standpipe={standpipe}
+            connected={connected}
+            onShowAccount={onShowAccount}
             onSave={(name, props) => saveDetails(selected, name, props)}
             onCancel={() => onSelect(null)}
             onReshape={() => reshape(selected)}
@@ -384,13 +426,18 @@ function ToolIcon({ kind }: { kind: FeatureKind }) {
 }
 
 /** The details of one feature — new or saved — with its kind's own fields. */
+type StandpipeLists = { options: StandpipeInfo[]; index: Map<string, StandpipeInfo>; placed: Set<string> };
+
 function FeatureForm({
-  kind, name: name0, props: props0, geometry, canEdit, by, updatedMs, standpipeAccounts, onSave, onCancel, onReshape, onDelete, onFilterStandpipe,
+  kind, name: name0, props: props0, geometry, canEdit, by, updatedMs, standpipe, connected, onShowAccount,
+  onSave, onCancel, onReshape, onDelete, onFilterStandpipe,
 }: {
   kind: FeatureKind; name: string; props: FeatureProps; geometry: Geometry; canEdit: boolean; by?: string; updatedMs?: number;
-  standpipeAccounts: (name: string) => number;
+  standpipe: StandpipeLists;
+  connected?: MapAccount[];
+  onShowAccount?: (id: number) => void;
   onSave: (name: string, props: FeatureProps) => void; onCancel: () => void; onReshape?: () => void; onDelete?: () => void;
-  onFilterStandpipe: (name: string) => void;
+  onFilterStandpipe: (sp: { name: string; barangayId: number | null }) => void;
 }) {
   const [name, setName] = useState(name0);
   const [p, setP] = useState<FeatureProps>({
@@ -398,8 +445,17 @@ function FeatureForm({
   });
   const k = KINDS[kind];
   const set = (patch: Partial<FeatureProps>) => setP((x) => ({ ...x, ...patch }));
-  const onAccounts = kind === "standpipe" ? standpipeAccounts(name) : 0;
   const isNew = !onDelete;
+  // The accounts' stand pipe this names: by barangay when known, else by number alone.
+  const spMatch = kind === "standpipe" && name.trim()
+    ? (standpipe.index.get(spKey(name, p.barangayId)) ?? standpipe.options.find((o) => o.name.toUpperCase() === name.trim().toUpperCase()))
+    : undefined;
+  const spPlacedElsewhere = isNew && spMatch && standpipe.placed.has(spMatch.key);
+  const pickStandpipe = (v: string) => {
+    setName(v);
+    const hit = standpipe.options.find((o) => o.name.toUpperCase() === v.trim().toUpperCase());
+    set({ barangayId: hit?.barangayId ?? null });
+  };
   const ro = !canEdit;
 
   return (
@@ -414,15 +470,53 @@ function FeatureForm({
 
       <label className="field-input">
         <span>{k.nameLabel}</span>
-        {kind === "note"
-          ? <textarea rows={2} value={name} readOnly={ro} maxLength={120} onChange={(e) => setName(e.target.value)} />
-          : <input value={name} readOnly={ro} maxLength={120} onChange={(e) => setName(e.target.value)} />}
+        {kind === "note" ? (
+          <textarea rows={2} value={name} readOnly={ro} maxLength={120} onChange={(e) => setName(e.target.value)} />
+        ) : kind === "standpipe" ? (
+          <>
+            <input list="gis-standpipes" value={name} readOnly={ro} maxLength={120} placeholder="Type to search the accounts' stand pipes" onChange={(e) => pickStandpipe(e.target.value)} />
+            <datalist id="gis-standpipes">
+              {standpipe.options.map((o) => (
+                <option key={o.key} value={o.name}>{`${o.barangay} · ${o.accountIds.length} account${o.accountIds.length === 1 ? "" : "s"}${standpipe.placed.has(o.key) ? " · on the map" : ""}`}</option>
+              ))}
+            </datalist>
+          </>
+        ) : (
+          <input value={name} readOnly={ro} maxLength={120} onChange={(e) => setName(e.target.value)} />
+        )}
       </label>
       {kind === "standpipe" && name.trim() && (
         <p className="count" style={{ margin: "2px 0 6px" }}>
-          {onAccounts} account{onAccounts === 1 ? "" : "s"} have stand pipe “{name.trim()}”.
-          {onAccounts > 0 && <> <button className="clear-filters" onClick={() => onFilterStandpipe(name.trim())}>Show them</button></>}
+          {spMatch
+            ? <>{spMatch.barangay}{spMatch.clusters.length ? ` · ${spMatch.clusters.join(", ")}` : ""} · {spMatch.accountIds.length} account{spMatch.accountIds.length === 1 ? "" : "s"}</>
+            : "No account has this stand pipe — check the number."}
+          {spPlacedElsewhere && <><br /><b>This stand pipe is already on the map.</b></>}
         </p>
+      )}
+      {kind === "standpipe" && !isNew && connected && (
+        <div style={{ margin: "4px 0 8px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <strong>Connected accounts ({connected.length})</strong>
+            {connected.length > 0 && (
+              <button className="clear-filters" onClick={() => onFilterStandpipe({ name: name.trim(), barangayId: p.barangayId ?? null })}>Show only these</button>
+            )}
+          </div>
+          <div style={{ maxHeight: 180, overflowY: "auto", border: "1px solid var(--border, #eee)", borderRadius: 6, marginTop: 4 }}>
+            {connected.map((a) => (
+              <button
+                key={a.id}
+                className="clear-filters"
+                onClick={() => onShowAccount?.(a.id)}
+                style={{ display: "block", width: "100%", textAlign: "left", border: 0, borderBottom: "1px solid var(--border, #eee)", borderRadius: 0, padding: "4px 6px" }}
+                title={a.lat == null ? "Not placed on the map yet" : "Show on the map"}
+              >
+                {a.accountNo} — {a.name}
+                <div className="muted" style={{ fontSize: 11 }}>{a.status}{a.lat == null ? " · no location" : ""}</div>
+              </button>
+            ))}
+            {!connected.length && <div className="muted" style={{ padding: 6 }}>No account has this stand pipe.</div>}
+          </div>
+        </div>
       )}
 
       {kind === "pipe" && (

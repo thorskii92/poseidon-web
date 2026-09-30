@@ -13,8 +13,8 @@ import {
   BAND_ORDER, BGY_LINE, COLOR_BY, MASK_FILL, MUNI_LINE, NO_FILTERS, SAVED_FILTERS_KEY, activeFilterCount, legendOf, matches, toCsv,
   type BasemapStatus, type ColorBy, type Filters, type MapAccount, type MapArea,
 } from "./gisShared";
-import { GROUPS, addFeatureLayers, type FeatureGroup, type MapFeature } from "./gisFeatures";
-import GisDrawing, { FeatureLegend } from "./GisDrawing";
+import { GROUPS, addFeatureLayers, spKey, standpipeIndex, type FeatureGroup, type MapFeature } from "./gisFeatures";
+import GisDrawing, { FeatureLegend, type GisDrawingHandle } from "./GisDrawing";
 
 /**
  * GIS Map — every account's meter on a street map of the LGU, coloured by
@@ -106,6 +106,8 @@ function GisMap({ settings }: { settings: Settings }) {
   const [groups, setGroups] = useState<Record<FeatureGroup, boolean>>(ALL_GROUPS);
   const [featureId, setFeatureId] = useState<number | null>(null);
   const drawingRef = useRef(false);
+  const drawTools = useRef<GisDrawingHandle>(null);
+  const [spSearch, setSpSearch] = useState("");
 
   const [colorBy, setColorBy] = useState<ColorBy>("status");
   const [base, setBase] = useState<Base>("street");
@@ -138,6 +140,20 @@ function GisMap({ settings }: { settings: Settings }) {
     setFeatureId(id);
     if (id != null) setSelectedId(null);
   }, []);
+
+  // The stand pipes the accounts name (distinct per barangay), and which are on the map.
+  const spIndex = useMemo(() => standpipeIndex(all), [all]);
+  const spFeatures = useMemo(
+    () => new Map(features.filter((f) => f.kind === "standpipe").map((f) => [spKey(f.name, f.props.barangayId), f])),
+    [features],
+  );
+  const spList = useMemo(() => {
+    const q = spSearch.trim().toUpperCase();
+    return [...spIndex.values()]
+      .filter((sp) => (!filters.barangayId || sp.barangayId === filters.barangayId) && (!q || sp.name.toUpperCase().includes(q)))
+      .sort((a, b) => a.barangay.localeCompare(b.barangay) || a.name.localeCompare(b.name, undefined, { numeric: true }));
+  }, [spIndex, spSearch, filters.barangayId]);
+  const spPlacedCount = [...spIndex.keys()].filter((k) => spFeatures.has(k)).length;
 
   const classOrder = useMemo(() => [...new Set(all.map((a) => a.classId))].sort((x, y) => x - y), [all]);
   const matching = useMemo(() => all.filter((a) => matches(a, filters)), [all, filters]);
@@ -350,7 +366,13 @@ function GisMap({ settings }: { settings: Settings }) {
 
   function flyTo(a: MapAccount) {
     setSelectedId(a.id);
+    setFeatureId(null);
     if (a.lat != null && a.lng != null) mapRef.current?.flyTo({ center: [a.lng, a.lat], zoom: Math.max(mapRef.current.getZoom(), 17) });
+  }
+
+  function showFeature(f: MapFeature) {
+    selectFeature(f.id);
+    if (f.geometry.type === "Point") mapRef.current?.flyTo({ center: f.geometry.coordinates, zoom: Math.max(mapRef.current.getZoom(), 16) });
   }
 
   function exportCsv() {
@@ -573,6 +595,38 @@ function GisMap({ settings }: { settings: Settings }) {
           <button className="clear-filters" disabled={!matching.length} onClick={exportCsv}>Export list (CSV)</button>
         </div>
 
+        {spIndex.size > 0 && (
+          <details style={{ marginTop: 8 }}>
+            <summary style={{ cursor: "pointer", fontWeight: 600 }}>Stand pipes ({spPlacedCount} of {spIndex.size} on the map)</summary>
+            <p className="count">
+              From the accounts' stand pipe numbers{filters.barangayId ? " in the chosen barangay" : ""}.{settings.canEdit ? " Click Place, then click where it is on the map." : ""}
+            </p>
+            <input className="table-input" style={{ width: "100%", marginBottom: 6 }} value={spSearch} placeholder="Search a stand pipe no." onChange={(e) => setSpSearch(e.target.value)} />
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {spList.slice(0, 100).map((sp) => {
+                const placed = spFeatures.get(sp.key);
+                return (
+                  <li key={sp.key} style={{ display: "flex", justifyContent: "space-between", gap: 6, padding: "3px 0", borderBottom: "1px solid var(--border, #eee)" }}>
+                    <span style={{ minWidth: 0 }}>
+                      {sp.name}
+                      <div className="muted" style={{ fontSize: 11 }}>{sp.barangay} · {sp.accountIds.length} account{sp.accountIds.length === 1 ? "" : "s"}</div>
+                    </span>
+                    {placed ? (
+                      <button className="clear-filters" onClick={() => showFeature(placed)}>Show</button>
+                    ) : settings.canEdit ? (
+                      <button className="clear-filters" onClick={() => drawTools.current?.placeStandpipe(sp)}>Place</button>
+                    ) : (
+                      <span className="muted" style={{ fontSize: 11 }}>not on the map</span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+            {spList.length > 100 && <p className="count">Showing 100 of {spList.length} — search, or pick a barangay under Filters.</p>}
+            {!spList.length && <p className="count">No stand pipe matches.</p>}
+          </details>
+        )}
+
         {unlocated.length > 0 && (
           <details style={{ marginTop: 8 }}>
             <summary style={{ cursor: "pointer", fontWeight: 600 }}>Without a location ({unlocated.length})</summary>
@@ -591,8 +645,16 @@ function GisMap({ settings }: { settings: Settings }) {
           </details>
         )}
 
-        {can("settings") && (
-          <details style={{ marginTop: 12 }}>
+        {/* Set-up help only while something is missing; afterwards just the starting view. */}
+        {can("settings") && bm.installed && bm.boundaries && (
+          <div style={{ marginTop: 12 }}>
+            <button className="clear-filters" onClick={saveHomeView} title="The map will open at this position and zoom">
+              Use this view as the map's starting view
+            </button>
+          </div>
+        )}
+        {can("settings") && !(bm.installed && bm.boundaries) && (
+          <details open style={{ marginTop: 12 }}>
             <summary className="count" style={{ cursor: "pointer" }}>Map area & offline street map</summary>
             <p className="count">
               Offline street map: {bm.installed ? `installed (${(bm.sizeBytes / 1e6).toFixed(1)} MB${bm.updated ? `, ${new Date(bm.updated).toLocaleDateString()}` : ""})` : "not downloaded yet — using the online map"}.
@@ -666,6 +728,7 @@ function GisMap({ settings }: { settings: Settings }) {
         )}
 
         <GisDrawing
+          ref={drawTools}
           map={mapObj}
           canEdit={settings.canEdit}
           features={features}
@@ -677,7 +740,11 @@ function GisMap({ settings }: { settings: Settings }) {
           onChanged={() => qc.invalidateQueries({ queryKey: ["gis", "features"] })}
           onNotice={setNotice}
           onError={setErr}
-          onFilterStandpipe={(name) => setFilters({ ...NO_FILTERS, standpipe: name })}
+          onFilterStandpipe={({ name, barangayId }) => setFilters({ ...NO_FILTERS, standpipe: name, barangayId: barangayId ?? 0 })}
+          onShowAccount={(id) => {
+            const a = all.find((x) => x.id === id);
+            if (a) flyTo(a);
+          }}
         />
 
         {/* Selected account */}
