@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import * as maplibregl from "maplibre-gl";
-import type { GeoJSONSource, LayerSpecification, StyleSpecification } from "maplibre-gl";
+import type { GeoJSONSource } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
-import { Protocol } from "pmtiles";
-import { layers as protomapsLayers, namedFlavor } from "@protomaps/basemaps";
+import { buildStyle, ensureMapLibre } from "./gisMap";
 import { apiGet, apiPut } from "./api";
 import { useAuth } from "./AuthContext";
 import {
@@ -33,52 +31,6 @@ import GisDrawing, { FeatureLegend, type GisDrawingHandle } from "./GisDrawing";
 type Settings = { area: MapArea; basemap: BasemapStatus; canEdit: boolean };
 const ALL_GROUPS = Object.fromEntries(GROUPS.map((g) => [g.id, true])) as Record<FeatureGroup, boolean>;
 type Base = "street" | "satellite";
-
-let pmtilesReady = false;
-function ensurePmtiles() {
-  if (pmtilesReady) return;
-  // MapLibre 6 looks for its worker beside its own file, which isn't there
-  // once Vite has bundled the app — the map then stays grey ("Worker failed
-  // to load"). Vite bundles the worker separately and says where it is.
-  maplibregl.setWorkerUrl(maplibreWorkerUrl);
-  maplibregl.addProtocol("pmtiles", new Protocol().tile);
-  pmtilesReady = true;
-}
-
-const ONLINE_GLYPHS = "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf";
-
-function buildStyle(b: BasemapStatus): StyleSpecification {
-  const origin = window.location.origin;
-  const offline = b.installed;
-  const sources: StyleSpecification["sources"] = {
-    satellite: {
-      type: "raster",
-      tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
-      tileSize: 256, maxzoom: 19, attribution: "Imagery © Esri, Maxar, Earthstar Geographics",
-    },
-  };
-  let base: LayerSpecification[];
-  if (offline) {
-    sources.protomaps = {
-      type: "vector", url: `pmtiles://${origin}/map-data/basemap.pmtiles`,
-      attribution: '© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    };
-    base = protomapsLayers("protomaps", namedFlavor("light"), { lang: "en" }) as LayerSpecification[];
-  } else {
-    sources.osm = {
-      type: "raster", tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], tileSize: 256, maxzoom: 19,
-      attribution: '© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    };
-    base = [{ id: "osm", type: "raster", source: "osm" }];
-  }
-  return {
-    version: 8,
-    glyphs: offline && b.fonts ? `${origin}/map-data/fonts/{fontstack}/{range}.pbf` : ONLINE_GLYPHS,
-    ...(offline && b.sprites ? { sprite: `${origin}/map-data/sprites/v4/light` } : {}),
-    sources,
-    layers: [...base, { id: "satellite", type: "raster", source: "satellite", layout: { visibility: "none" } }],
-  };
-}
 
 function loadSaved(): Record<string, Filters> {
   try {
@@ -118,7 +70,10 @@ function GisMap({ settings }: { settings: Settings }) {
   const [showBarangays, setShowBarangays] = useState(true);
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [saved, setSaved] = useState<Record<string, Filters>>(loadSaved);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [searchParams] = useSearchParams();
+  const linkedAccount = Number(searchParams.get("account")) || null;
+  const [selectedId, setSelectedId] = useState<number | null>(linkedAccount);
+  const flownTo = useRef<number | null>(null);
   const [placing, setPlacing] = useState<MapAccount | null>(null);
   const [notice, setNotice] = useState("");
   const [err, setErr] = useState("");
@@ -212,7 +167,7 @@ function GisMap({ settings }: { settings: Settings }) {
 
   useEffect(() => {
     if (!holder.current || mapRef.current) return;
-    ensurePmtiles();
+    ensureMapLibre();
     const a = settings.area;
     const map = new maplibregl.Map({
       container: holder.current,
@@ -324,6 +279,16 @@ function GisMap({ settings }: { settings: Settings }) {
       mapRef.current = null;
     };
   }, [settings]);
+
+  // Opened from an account's page: go to its pin, once.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || !linkedAccount || flownTo.current === linkedAccount) return;
+    const a = all.find((x) => x.id === linkedAccount);
+    if (!a) return;
+    flownTo.current = linkedAccount;
+    if (a.lat != null && a.lng != null) map.flyTo({ center: [a.lng, a.lat], zoom: 17 });
+  }, [ready, all, linkedAccount]);
 
   // Pins, coloured by the chosen scheme.
   useEffect(() => {

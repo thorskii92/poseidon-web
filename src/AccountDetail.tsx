@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import AccountRecords from "./AccountRecords";
 import AccountNotes from "./AccountNotes";
 import AccountActions from "./AccountActions";
+import AccountLocation from "./AccountLocation";
 
 type AccountDetail = {
   id: number;
@@ -121,6 +122,8 @@ export default function AccountDetail() {
         <Field label="Latest reading" value={data.latestReading} />
         <Field label="Date connected" value={data.connectionDate} />
       </div>
+
+      <AccountLocation acctId={data.id} accountNo={data.accountNo} />
 
       <Remark
         id={id}
