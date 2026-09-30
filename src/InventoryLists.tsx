@@ -22,7 +22,7 @@ export default function InventoryLists({ onChanged }: { onChanged: (message: str
             hint="How items are grouped — e.g. Pipes & fittings, Office supplies."
             placeholder="e.g. Pipes & fittings"
             max={80}
-            rows={data.categories}
+            rows={data.categories ?? []}
             onChanged={onChanged}
           />
           <ListPanel
@@ -31,7 +31,7 @@ export default function InventoryLists({ onChanged }: { onChanged: (message: str
             hint="How items are counted — e.g. pc, m, gal. Keep them short; they print on every form."
             placeholder="e.g. pc"
             max={30}
-            rows={data.units}
+            rows={data.units ?? []}
             onChanged={onChanged}
           />
           <StorehousePanel rows={data.locations ?? []} onChanged={onChanged} />
