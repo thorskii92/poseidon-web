@@ -68,6 +68,7 @@ function GisMap({ settings }: { settings: Settings }) {
   const [showMuni, setShowMuni] = useState(true);
   const [fadeOutside, setFadeOutside] = useState(true);
   const [showBarangays, setShowBarangays] = useState(true);
+  const [showReaders, setShowReaders] = useState(true);
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [saved, setSaved] = useState<Record<string, Filters>>(loadSaved);
   const [searchParams] = useSearchParams();
@@ -88,6 +89,12 @@ function GisMap({ settings }: { settings: Settings }) {
     queryFn: () => apiGet("/api/gis/features"),
   });
   const features = useMemo(() => featureData?.rows ?? [], [featureData]);
+  // Meter readers' phones, while their app is open and online.
+  const { data: readerData } = useQuery<{ now: number; rows: { uid: number; name: string; lat: number; lng: number; accuracyM: number | null; seenMs: number; area: string }[] }>({
+    queryKey: ["gis", "readers"],
+    queryFn: () => apiGet("/api/gis/readers"),
+    refetchInterval: 30_000,
+  });
   const onBusy = useCallback((b: boolean) => {
     drawingRef.current = b;
   }, []);
@@ -247,6 +254,24 @@ function GisMap({ settings }: { settings: Settings }) {
         paint: { "text-color": "#222", "text-halo-color": "#fff", "text-halo-width": 1.5 },
       });
 
+      // Meter readers, on top of everything.
+      map.addSource("readers", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({
+        id: "readers-dot", type: "circle", source: "readers",
+        paint: {
+          "circle-radius": 9, "circle-stroke-color": "#fff", "circle-stroke-width": 3,
+          "circle-color": ["case", ["get", "live"], "#e6550d", "#9e9e9e"],
+        },
+      });
+      map.addLayer({
+        id: "readers-label", type: "symbol", source: "readers",
+        layout: {
+          "text-field": ["concat", ["get", "name"], "\n", ["get", "ago"]], "text-font": ["Noto Sans Medium"], "text-size": 12,
+          "text-offset": [0, 1.3], "text-anchor": "top", "text-allow-overlap": true,
+        },
+        paint: { "text-color": ["case", ["get", "live"], "#a33a06", "#666"], "text-halo-color": "#fff", "text-halo-width": 1.8 },
+      });
+
       map.on("click", "acct-clusters", async (e) => {
         const f = e.features?.[0];
         const id = f?.properties?.cluster_id;
@@ -289,6 +314,26 @@ function GisMap({ settings }: { settings: Settings }) {
     flownTo.current = linkedAccount;
     if (a.lat != null && a.lng != null) map.flyTo({ center: [a.lng, a.lat], zoom: 17 });
   }, [ready, all, linkedAccount]);
+
+  // Readers' positions ("live" = seen in the last 15 minutes).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || !readerData) return;
+    const ago = (ms: number) => {
+      const m = Math.round((readerData.now - ms) / 60_000);
+      return m < 1 ? "just now" : m < 60 ? `${m} min ago` : `${Math.round(m / 60)} h ago`;
+    };
+    (map.getSource("readers") as GeoJSONSource | undefined)?.setData({
+      type: "FeatureCollection",
+      features: showReaders
+        ? readerData.rows.map((r) => ({
+          type: "Feature" as const,
+          geometry: { type: "Point" as const, coordinates: [r.lng, r.lat] },
+          properties: { name: r.name, ago: ago(r.seenMs), live: readerData.now - r.seenMs < 15 * 60_000 },
+        }))
+        : [],
+    });
+  }, [ready, readerData, showReaders]);
 
   // Pins, coloured by the chosen scheme.
   useEffect(() => {
@@ -443,6 +488,10 @@ function GisMap({ settings }: { settings: Settings }) {
           ) : (
             <div className="count" style={{ marginTop: 6 }}>Boundaries: not downloaded yet</div>
           )}
+          <label style={{ display: "block", marginTop: 6 }}>
+            <input type="checkbox" checked={showReaders} onChange={(e) => setShowReaders(e.target.checked)} /> Meter readers
+            {readerData && <span className="muted"> ({readerData.rows.filter((r) => readerData.now - r.seenMs < 15 * 60_000).length} online)</span>}
+          </label>
           <div style={{ marginTop: 6 }}>
             {GROUPS.map((g) => (
               <label key={g.id} style={{ display: "block" }}>
@@ -659,7 +708,7 @@ function GisMap({ settings }: { settings: Settings }) {
         )}
 
         {/* Legend */}
-        {((showAccounts && legend.length > 0) || (bm.boundaries && (showMuni || showBarangays)) || features.length > 0) && (
+        {((showAccounts && legend.length > 0) || (bm.boundaries && (showMuni || showBarangays)) || features.length > 0 || (showReaders && !!readerData?.rows.length)) && (
           <div style={{ position: "absolute", left: 8, bottom: 28, zIndex: 2, background: "var(--surface, #fff)", color: "var(--text, #111)", borderRadius: 8, padding: "8px 10px", boxShadow: "0 1px 6px rgba(0,0,0,.2)", maxHeight: "45%", overflowY: "auto", fontSize: 13 }}>
             {showAccounts && legend.length > 0 && <div style={{ fontWeight: 600, marginBottom: 4 }}>{COLOR_BY.find((c) => c.id === colorBy)?.label}</div>}
             {showAccounts && legend.map((l) => (
@@ -689,6 +738,19 @@ function GisMap({ settings }: { settings: Settings }) {
               </div>
             )}
             <FeatureLegend features={features} groups={groups} />
+            {showReaders && !!readerData?.rows.length && (
+              <>
+                <div style={{ fontWeight: 600, margin: "8px 0 4px" }}>Meter readers</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ width: 12, height: 12, borderRadius: "50%", background: "#e6550d", border: "2px solid #fff", boxShadow: "0 0 0 1px rgba(0,0,0,.25)" }} />
+                  <span>Online (seen in the last 15 min)</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ width: 12, height: 12, borderRadius: "50%", background: "#9e9e9e", border: "2px solid #fff", boxShadow: "0 0 0 1px rgba(0,0,0,.25)" }} />
+                  <span>Last seen earlier today</span>
+                </div>
+              </>
+            )}
           </div>
         )}
 

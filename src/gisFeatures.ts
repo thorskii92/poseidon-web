@@ -22,6 +22,9 @@ export type FeatureProps = {
   color?: string;
   /** Stand pipes: the barangay of the accounts' stand pipe this marks. */
   barangayId?: number | null;
+  /** "reader" when a meter reader marked it with the phone's GPS (until the office edits it). */
+  source?: string;
+  accuracyM?: number | null;
 };
 
 /* ---------------- Stand pipes (from the accounts) ---------------- */
