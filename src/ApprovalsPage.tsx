@@ -28,7 +28,7 @@ type Row = {
   inspector: string;
 };
 
-type TabKey = "adjustments" | "temp-closure" | "inventory" | "purchase";
+type TabKey = "adjustments" | "temp-closure" | "inventory" | "purchase" | "routes";
 
 const TABS: { key: TabKey; label: string; perm: string }[] = [
   { key: "adjustments", label: "Bill Adjustments", perm: "approvals" },
@@ -36,6 +36,8 @@ const TABS: { key: TabKey; label: string; perm: string }[] = [
   // Its own right: a department head can approve supplies without seeing bills.
   { key: "inventory", label: "Inventory Requests", perm: "invapprove" },
   { key: "purchase", label: "Purchase Requests", perm: "invapprove" },
+  // Meter readers downloading a route over the internet (not the office Wi-Fi).
+  { key: "routes", label: "Route downloads", perm: "routeapprove" },
 ];
 
 export default function ApprovalsPage() {
@@ -52,6 +54,11 @@ export default function ApprovalsPage() {
     queryKey: ["inv-purchasing", "waiting"],
     queryFn: () => apiGet("/api/inventory/purchasing/waiting"),
     enabled: can("invapprove"),
+  });
+  const { data: routeWaiting } = useQuery<{ waiting: number }>({
+    queryKey: ["route-requests", "count"],
+    queryFn: () => apiGet("/api/route-requests/count"),
+    enabled: can("routeapprove"),
   });
 
   return (
@@ -73,6 +80,7 @@ export default function ApprovalsPage() {
             {t.label}
             {t.key === "inventory" && !!invWaiting?.toApprove && <span className="stage-count">{invWaiting.toApprove}</span>}
             {t.key === "purchase" && !!prWaiting?.toApprove && <span className="stage-count">{prWaiting.toApprove}</span>}
+            {t.key === "routes" && !!routeWaiting?.waiting && <span className="stage-count">{routeWaiting.waiting}</span>}
           </button>
         ))}
       </div>
@@ -81,7 +89,110 @@ export default function ApprovalsPage() {
       {tab === "temp-closure" && <TempClosureApprovals />}
       {tab === "inventory" && <InventoryRequestApprovals />}
       {tab === "purchase" && <PurchaseRequestApprovals />}
+      {tab === "routes" && <RouteDownloadApprovals />}
     </div>
+  );
+}
+
+type RouteRequest = {
+  id: number; status: string; reader: string; meterReader: string; device: string; period: string; area: string;
+  requestedMs: number; decidedMs: number | null; usedMs: number | null; decidedBy: string; note: string;
+};
+
+const ROUTE_STATUS: Record<string, { label: string; badge: string }> = {
+  pending: { label: "Waiting", badge: "act-orange" },
+  approved: { label: "Approved — not downloaded yet", badge: "act-blue" },
+  used: { label: "Downloaded", badge: "act-green" },
+  declined: { label: "Declined", badge: "act-red" },
+  lapsed: { label: "Lapsed", badge: "act-gray" },
+};
+
+/**
+ * Meter readers asking to download a route over the internet instead of the
+ * office Wi-Fi. Approving lets that reader download that route once, within
+ * 12 hours; the phone picks it up when the reader taps "Check again".
+ */
+function RouteDownloadApprovals() {
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState<number | null>(null);
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+  const { data, isLoading, error: loadError } = useQuery<{ rows: RouteRequest[] }>({
+    queryKey: ["route-requests", "list"],
+    queryFn: () => apiGet("/api/route-requests"),
+    refetchInterval: 30_000,
+  });
+  const when = (ms: number) => new Date(ms).toLocaleString("en-PH", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+
+  async function decide(r: RouteRequest, action: "approve" | "decline") {
+    let note = "";
+    if (action === "decline") {
+      const n = window.prompt(`Decline ${r.reader}'s request for ${r.area}? Reason (shown on the phone, optional):`);
+      if (n === null) return;
+      note = n.trim();
+    }
+    setBusy(r.id);
+    setError("");
+    try {
+      await apiPost(`/api/route-requests/${r.id}/${action}`, { note });
+      setNotice(action === "approve" ? `Approved — ${r.reader} can download ${r.area} now.` : `Declined ${r.reader}'s request.`);
+      qc.invalidateQueries({ queryKey: ["route-requests"] });
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <section className="record-section">
+      {notice && (
+        <div className="action-notice" onAnimationEnd={() => setNotice("")}>
+          {notice}
+        </div>
+      )}
+      <p className="count">
+        Routes are normally downloaded on the office Wi-Fi. These readers asked to download over the internet; an approval
+        lets them download that route once, within 12 hours.
+      </p>
+      {isLoading && <p className="count">Loading…</p>}
+      {loadError && <p className="form-error">{(loadError as Error).message}</p>}
+      {error && <p className="form-error">{error}</p>}
+      {data && data.rows.length === 0 && <p className="count">No requests this week.</p>}
+      {data && data.rows.length > 0 && (
+        <table>
+          <thead>
+            <tr><th>Requested</th><th>Reader</th><th>Route</th><th>Phone</th><th>Status</th><th /></tr>
+          </thead>
+          <tbody>
+            {data.rows.map((r) => {
+              const st = ROUTE_STATUS[r.status] ?? { label: r.status, badge: "act-gray" };
+              return (
+                <tr key={r.id}>
+                  <td style={{ whiteSpace: "nowrap" }}>{when(r.requestedMs)}</td>
+                  <td>{r.reader}{r.meterReader && r.meterReader !== r.reader && <div className="muted">for {r.meterReader}</div>}</td>
+                  <td>{r.area}<div className="muted">{r.period}</div></td>
+                  <td className="muted">{r.device || "—"}</td>
+                  <td>
+                    <span className={`badge setting-badge ${st.badge}`}>{st.label}</span>
+                    {r.decidedBy && <div className="muted" style={{ fontSize: 12 }}>{r.decidedBy}{r.decidedMs ? `, ${when(r.decidedMs)}` : ""}</div>}
+                    {r.note && <div className="muted" style={{ fontSize: 12 }}>“{r.note}”</div>}
+                  </td>
+                  <td style={{ whiteSpace: "nowrap" }}>
+                    {r.status === "pending" && (
+                      <>
+                        <button className="primary small" disabled={busy === r.id} onClick={() => decide(r, "approve")}>Approve</button>{" "}
+                        <button className="clear-filters" disabled={busy === r.id} onClick={() => decide(r, "decline")}>Decline</button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+    </section>
   );
 }
 

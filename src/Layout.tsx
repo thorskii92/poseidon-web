@@ -115,7 +115,7 @@ const NAV: { label: string; to: string; perm: string | null; icon: IconComponent
   { label: "Pendings", to: "/pendings", perm: "pendings", icon: IconClock },
   { label: "Job Orders", to: "/joborders", perm: "joborders", icon: IconWrench },
   { label: "Adjustments", to: "/adjustments", perm: "adjustments", icon: IconSliders },
-  { label: "Approvals", to: "/approvals", perm: "approvals", icon: IconCheckCircle, alsoFor: ["invapprove"] },
+  { label: "Approvals", to: "/approvals", perm: "approvals", icon: IconCheckCircle, alsoFor: ["invapprove", "routeapprove"] },
   { label: "Incident Reports", to: "/incidents", perm: "incidents", icon: IconMegaphone, mainOnly: true },
   { label: "Disconnection", to: "/disconnection", perm: "disconnection", icon: IconPowerOff },
   { label: "ECPay", to: "/ecpay", perm: "ecpay", icon: IconCreditCard, mainOnly: true },
@@ -210,7 +210,15 @@ export default function Layout({ children }: { children: ReactNode }) {
     refetchInterval: 60_000,
     enabled: can("invapprove"),
   });
-  const approvalsWaiting = (approvals?.length ?? 0) + (invWaiting?.toApprove ?? 0) + (prWaiting?.toApprove ?? 0);
+  // Readers asking to download a route over the internet (Approvals → Route downloads).
+  const { data: routeWaiting } = useQuery<{ waiting: number }>({
+    queryKey: ["route-requests", "count"],
+    queryFn: () => apiGet<{ waiting: number }>("/api/route-requests/count"),
+    retry: false,
+    refetchInterval: 30_000,
+    enabled: can("routeapprove"),
+  });
+  const approvalsWaiting = (approvals?.length ?? 0) + (invWaiting?.toApprove ?? 0) + (prWaiting?.toApprove ?? 0) + (routeWaiting?.waiting ?? 0);
 
   // Synchronization only makes sense on a satellite deployment — hidden on
   // the ordinary main server, where /api/sync/status still 200s (just with
