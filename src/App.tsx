@@ -43,6 +43,10 @@ import ClusterManagerPage from "./ClusterManagerPage";
 import MeterManagerPage from "./MeterManagerPage";
 import SequencingPage from "./SequencingPage";
 import GisMapPage from "./GisMapPage";
+import ForecastPage from "./ForecastPage";
+import ForecastPrint from "./ForecastPrint";
+import NonRevenueWaterPage from "./NonRevenueWaterPage";
+import NrwPrint from "./NrwPrint";
 import IncidentRegisterPrint from "./IncidentRegisterPrint";
 import IncidentResponsePrint from "./IncidentResponsePrint";
 import MobileAdjustmentRequestsPrint from "./MobileAdjustmentRequestsPrint";
@@ -187,6 +191,8 @@ export default function App() {
           element={<ECPaySeniorDiscountReportPrint />}
         />
         <Route path="/joborders/:joId/print" element={<JobOrderPrint />} />
+        <Route path="/forecast/print" element={<ForecastPrint />} />
+        <Route path="/nrw/print" element={<NrwPrint />} />
         <Route path="/reports/incident-register/print" element={<IncidentRegisterPrint />} />
         <Route path="/reports/incident-response/print" element={<IncidentResponsePrint />} />
         <Route path="/reports/mobile-adjustment-requests/print" element={<MobileAdjustmentRequestsPrint />} />
@@ -422,6 +428,8 @@ export default function App() {
                 <Route path="/meters" element={<MeterManagerPage />} />
                 <Route path="/sequencing" element={<SequencingPage />} />
                 <Route path="/map" element={<GisMapPage />} />
+                <Route path="/forecast" element={<ForecastPage />} />
+                <Route path="/nrw" element={<NonRevenueWaterPage />} />
               </Routes>
             </Layout>
           }

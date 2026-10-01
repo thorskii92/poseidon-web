@@ -12,6 +12,8 @@ import {
   IconGrid, IconIdCard, IconWallet, IconClock, IconSliders, IconCheckCircle,
   IconPowerOff, IconCreditCard, IconChartBar, IconGear, IconGauge, IconLayers, IconListOrdered, IconBox,
   IconRefresh, IconAlertTriangle, IconServer, IconLogout, IconSidebar, IconMegaphone, IconSupport, IconMap,
+  IconTrendUp,
+  IconDropLoss,
 } from "./NavIcons";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "./support";
 import { useMobileInbox, type InboxCounts } from "./mobileInbox";
@@ -100,7 +102,20 @@ function useInboxAlerts(inbox: InboxCounts | undefined) {
   };
 }
 
-const NAV: { label: string; to: string; perm: string | null; icon: IconComponent; satelliteOnly?: boolean; mainOnly?: boolean; satelliteAlwaysOn?: boolean; alsoFor?: string[] }[] = [
+type NavItem = { label: string; to: string; perm: string | null; icon: IconComponent; satelliteOnly?: boolean; mainOnly?: boolean; satelliteAlwaysOn?: boolean; alsoFor?: string[] };
+
+/** Pinned to the top and bottom of the sidebar, in this order; everything else is A–Z between them. */
+const NAV_FIRST = ["Dashboard"];
+const NAV_LAST = ["User Management", "Settings", "IT Dashboard"];
+
+function sortNav(items: NavItem[]) {
+  const rank = (label: string) =>
+    NAV_FIRST.includes(label) ? -100 + NAV_FIRST.indexOf(label) : NAV_LAST.includes(label) ? 100 + NAV_LAST.indexOf(label) : 0;
+  return [...items].sort((a, b) => rank(a.label) - rank(b.label) || a.label.localeCompare(b.label));
+}
+
+// Listed in any order — sortNav puts them in sidebar order, so a new page just gets added here.
+const NAV: NavItem[] = sortNav([
   { label: "Dashboard", to: "/", perm: null, icon: IconGrid },
   { label: "Accounts", to: "/accounts", perm: "accounts", icon: IconIdCard },
   { label: "Collection", to: "/collection", perm: "collection", icon: IconWallet },
@@ -125,13 +140,15 @@ const NAV: { label: string; to: string; perm: string | null; icon: IconComponent
   { label: "Cluster Manager", to: "/clusters", perm: "clusters", icon: IconLayers },
   { label: "Sequencing", to: "/sequencing", perm: "sequencing", icon: IconListOrdered },
   { label: "GIS Map", to: "/map", perm: "gis", icon: IconMap },
+  { label: "Demand Forecast", to: "/forecast", perm: "forecast", icon: IconTrendUp },
+  { label: "Non-Revenue Water", to: "/nrw", perm: "nrw", icon: IconDropLoss },
   { label: "Reports", to: "/reports", perm: "reports", icon: IconChartBar },
   { label: "User Management", to: "/users", perm: "users", icon: IconUsers },
   { label: "Settings", to: "/settings", perm: "settings", icon: IconGear },
   { label: "Synchronization", to: "/sync", perm: "sync", icon: IconRefresh, satelliteOnly: true },
   { label: "Sync Conflicts", to: "/sync-conflicts", perm: "sync", icon: IconAlertTriangle, mainOnly: true },
   { label: "IT Dashboard", to: "/it", perm: "it", icon: IconServer },
-];
+]);
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, signOut, can, avatarVersion } = useAuth();

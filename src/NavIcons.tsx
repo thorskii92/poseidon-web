@@ -225,6 +225,25 @@ export function IconAlertTriangle({ size = 20 }: IconProps) {
   );
 }
 
+export function IconDropLoss({ size = 20 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...base}>
+      <path d="M12 3.5c-3 3.6-5.5 6.9-5.5 10a5.5 5.5 0 0 0 9.4 3.9" strokeLinejoin="round" />
+      <path d="M17.5 13.5c0-1.4-.5-2.8-1.4-4.3" />
+      <path d="M16 18.5l4 2M18.5 15.5l3 1" />
+    </svg>
+  );
+}
+
+export function IconTrendUp({ size = 20 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...base}>
+      <path d="M3.5 17.5 9 12l3.5 3.5 8-8" strokeLinejoin="round" />
+      <path d="M15 7.5h5.5V13" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function IconMap({ size = 20 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" {...base}>
