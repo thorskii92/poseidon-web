@@ -53,6 +53,8 @@ type LoadedBill = {
   /** An adjusted bill (null otherwise): edits it has left since its adjustment. */
   editsLeftAfterAdjustment: number | null;
   maxEditsAfterAdjustment: number;
+  /** An adjusted bill's original penalty rate: its penalty follows the bill amount at this rate. */
+  penaltyRate: number | null;
   fields: BillFields;
 };
 
@@ -145,6 +147,12 @@ export default function EditBillsDialog({
               // adjustment away; an adjusted bill starts from its adjusted amounts.
               mode: b.repair || b.editsLeftAfterAdjustment != null ? ("Manual" as const) : ("Automatic" as const),
               original: { ...b.fields },
+              // The stored penalty of an adjusted bill can still be the one struck on its
+              // pre-adjustment amount; restrike it on the adjusted amount.
+              fields:
+                b.penaltyRate != null && b.fields.penalty > 0
+                  ? { ...b.fields, penalty: round2(b.fields.billAmount * b.penaltyRate) }
+                  : b.fields,
               updateMeterReference: false,
             })),
         );
@@ -218,7 +226,19 @@ export default function EditBillsDialog({
     if (recalc) dirty.current.add(billId);
     setRows((prev) =>
       prev.map((r) =>
-        r.billId === billId ? { ...r, fields: { ...r.fields, ...patch } } : r,
+        r.billId !== billId
+          ? r
+          : {
+              ...r,
+              fields: {
+                ...r.fields,
+                ...patch,
+                // On an adjusted bill the penalty follows a typed bill amount (it can still be typed over).
+                ...(patch.billAmount !== undefined && patch.penalty === undefined && r.penaltyRate != null && r.fields.penalty > 0
+                  ? { penalty: round2(patch.billAmount * r.penaltyRate) }
+                  : {}),
+              },
+            },
       ),
     );
   }
@@ -568,7 +588,9 @@ export default function EditBillsDialog({
                               )}
                               <span className="count">
                                 Was charging {peso.format(r.repair.charged)}
-                                {r.repair.penalty ? ` (penalty ${peso.format(r.repair.penalty)} — check it matches the adjusted amount)` : ""}
+                                {r.repair.penalty && r.repair.penalty !== f.penalty
+                                  ? ` (old penalty ${peso.format(r.repair.penalty)}, restruck to ${peso.format(f.penalty)} on the adjusted amount)`
+                                  : r.repair.penalty ? ` (penalty ${peso.format(r.repair.penalty)} — check it matches the adjusted amount)` : ""}
                               </span>
                             </td>
                           </tr>
