@@ -50,6 +50,9 @@ type LoadedBill = {
   /** Set for an adjusted bill whose figures don't add up — the only kind of
    *  adjusted bill this dialog lets through, to be repaired. */
   repair: { parts: number; charged: number; chargedAfterDue: number; penalty: number } | null;
+  /** An adjusted bill (null otherwise): edits it has left since its adjustment. */
+  editsLeftAfterAdjustment: number | null;
+  maxEditsAfterAdjustment: number;
   fields: BillFields;
 };
 
@@ -139,8 +142,8 @@ export default function EditBillsDialog({
             .map((b) => ({
               ...b,
               // Automatic would recompute from the readings and throw the
-              // adjustment away; a repair keeps the adjusted amount.
-              mode: b.repair ? ("Manual" as const) : ("Automatic" as const),
+              // adjustment away; an adjusted bill starts from its adjusted amounts.
+              mode: b.repair || b.editsLeftAfterAdjustment != null ? ("Manual" as const) : ("Automatic" as const),
               original: { ...b.fields },
               updateMeterReference: false,
             })),
@@ -396,9 +399,17 @@ export default function EditBillsDialog({
                             {r.repair && (
                               <span
                                 className="edited"
-                                title="An adjusted bill whose figures don't add up — editable only so it can be repaired"
+                                title="An adjusted bill whose figures don't add up — editable so it can be repaired"
                               >
                                 adjusted · doesn't add up
+                              </span>
+                            )}
+                            {!r.repair && r.editsLeftAfterAdjustment != null && (
+                              <span
+                                className="edited"
+                                title={`Adjusted bills can be edited up to ${r.maxEditsAfterAdjustment} times after the adjustment, while unpaid`}
+                              >
+                                adjusted · {r.editsLeftAfterAdjustment} of {r.maxEditsAfterAdjustment} edits left
                               </span>
                             )}
                             <span className="cell-sub">{r.accountNo}</span>
