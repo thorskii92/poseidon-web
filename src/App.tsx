@@ -1,114 +1,118 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./Layout";
-import AccountsPage from "./AccountsPage";
-import AccountDetail from "./AccountDetail";
-import NewApplication from "./NewApplication";
-import BillingPage from "./BillingPage";
-import ReadingPage from "./ReadingPage";
-import BillPrint from "./BillPrint";
-import CollectionPage from "./CollectionPage";
-import SettingsPage from "./SettingsPage";
-import DisconnectionPage from "./DisconnectionPage";
-import PendingPage from "./PendingPage";
-import DisconnectionPrint from "./DisconnectionPrint";
-import ReceiptPrint from "./ReceiptPrint";
-import SoaPrint from "./SoaPrint";
-import TransactionsPrint from "./TransactionsPrint";
-import AdjustmentsPage from "./AdjustmentsPage";
-import ApprovalsPage from "./ApprovalsPage";
-import ReceiptsManagerPage from "./ReceiptsManagerPage";
-import DailyCollectionPrint from "./DailyCollectionPrint";
-import CollectionsDepositReportPrint from "./CollectionsDepositReportPrint";
-import ECPayDailyCollectionReportPrint from "./ECPayDailyCollectionReportPrint";
-import ECPayMonthlyCollectionReportPrint from "./ECPayMonthlyCollectionReportPrint";
-import ECPayAnnualCollectionReportPrint from "./ECPayAnnualCollectionReportPrint";
-import CollectionEfficiencyReportPrint from "./CollectionEfficiencyReportPrint";
-import ECPayAdoptionReportPrint from "./ECPayAdoptionReportPrint";
-import ECPayPaymentTimingReportPrint from "./ECPayPaymentTimingReportPrint";
-import ECPaySeniorDiscountReportPrint from "./ECPaySeniorDiscountReportPrint";
-import JobOrdersPage from "./JobOrdersPage";
-import JobOrderPrint from "./JobOrderPrint";
-import AdjustmentPrint from "./AdjustmentPrint";
 import LoginPage from "./LoginPage";
-import ECPayPage from "./ECPayPage";
-import UserManagementPage from "./UserManagementPage";
-import DashboardPage from "./DashboardPage";
-import ReportsPage from "./ReportsPage";
-import SyncPage from "./SyncPage";
-import SyncConflictsPage from "./SyncConflictsPage";
-import ITDashboardPage from "./ITDashboardPage";
-import IncidentsPage from "./IncidentsPage";
-import NoticePrint from "./NoticePrint";
-import InterruptionReportPrint from "./InterruptionReportPrint";
-import InventoryPage from "./InventoryPage";
-import ClusterManagerPage from "./ClusterManagerPage";
-import MeterManagerPage from "./MeterManagerPage";
-import SequencingPage from "./SequencingPage";
-import GisMapPage from "./GisMapPage";
-import ForecastPage from "./ForecastPage";
-import ForecastPrint from "./ForecastPrint";
-import NonRevenueWaterPage from "./NonRevenueWaterPage";
-import NrwPrint from "./NrwPrint";
-import IncidentRegisterPrint from "./IncidentRegisterPrint";
-import IncidentResponsePrint from "./IncidentResponsePrint";
-import MobileAdjustmentRequestsPrint from "./MobileAdjustmentRequestsPrint";
-import MobileAppUsagePrint from "./MobileAppUsagePrint";
-import InventoryReportPrint from "./InventoryReportPrint";
-import InventoryFormPrint from "./InventoryFormPrint";
-import { ReaderExceptionsPrint, ReaderFieldReportPrint } from "./ReaderReportsPrint";
-import AbstractMonthlyCollectionPrint from "./AbstractMonthlyCollectionPrint";
-import MonthlyConsumptionPrint from "./MonthlyConsumptionPrint";
-import AnnualFinancialPerformancePrint from "./AnnualFinancialPerformancePrint";
-import AnnualCollectionPrint from "./AnnualCollectionPrint";
-import ORAccountabilityPrint from "./ORAccountabilityPrint";
-import PaymentTimingReportPrint from "./PaymentTimingReportPrint";
-import CollectionEfficiencyMainPrint from "./CollectionEfficiencyMainPrint";
-import ServiceTurnaroundPrint from "./ServiceTurnaroundPrint";
-import AccountStatusCensusPrint from "./AccountStatusCensusPrint";
-import ZeroConsumptionPrint from "./ZeroConsumptionPrint";
-import SeniorAccountsPrint from "./SeniorAccountsPrint";
-import AccountTenurePrint from "./AccountTenurePrint";
-import MeterReplacementReportPrint from "./MeterReplacementReportPrint";
-import TransferActivityReportPrint from "./TransferActivityReportPrint";
-import ServiceBacklogPrint from "./ServiceBacklogPrint";
-import MainMonthlyCollectionPrint from "./MainMonthlyCollectionPrint";
-import CollectionByNaturePrint from "./CollectionByNaturePrint";
-import PenaltyCollectionPrint from "./PenaltyCollectionPrint";
-import MainSeniorDiscountPrint from "./MainSeniorDiscountPrint";
-import ChannelSummaryPrint from "./ChannelSummaryPrint";
-import FieldCollectionPrint from "./FieldCollectionPrint";
-import CollectorAccountabilityPrint from "./CollectorAccountabilityPrint";
-import LongOutstandingPrint from "./LongOutstandingPrint";
-import ConsumptionBracketsPrint from "./ConsumptionBracketsPrint";
-import BillingCompletenessPrint from "./BillingCompletenessPrint";
-import EnvironmentalFeePrint from "./EnvironmentalFeePrint";
-import ConsumptionTrendPrint from "./ConsumptionTrendPrint";
-import FieldStaffActivityPrint from "./FieldStaffActivityPrint";
-import AdjustmentProcessingPrint from "./AdjustmentProcessingPrint";
-import UserRosterPrint from "./UserRosterPrint";
-import JobOrderRegisterPrint from "./JobOrderRegisterPrint";
-import JobOrderTurnaroundPrint from "./JobOrderTurnaroundPrint";
-import JobOrderCompletionDetailPrint from "./JobOrderCompletionDetailPrint";
-import IPAllocationPrint from "./IPAllocationPrint";
-import MonthlyBillingOverviewPrint from "./MonthlyBillingOverviewPrint";
-import AnnualBillingOverviewPrint from "./AnnualBillingOverviewPrint";
-import SCDSPrint from "./SCDSPrint";
-import RevenueFromConsumptionPrint from "./RevenueFromConsumptionPrint";
-import RevenueFromConsumptionClusterPrint from "./RevenueFromConsumptionClusterPrint";
-import AccountsReceivableSummaryPrint from "./AccountsReceivableSummaryPrint";
-import ReportOfClassificationPrint from "./ReportOfClassificationPrint";
-import ReadingListPrint from "./ReadingListPrint";
-import AccountsReceivablesPrint from "./AccountsReceivablesPrint";
-import AdjustedBillsReportPrint from "./AdjustedBillsReportPrint";
-import BillEditReportPrint from "./BillEditReportPrint";
-import LatestConsumerStatusPrint from "./LatestConsumerStatusPrint";
-import ConnectionReportPrint from "./ConnectionReportPrint";
-import AnnualConnectionReportPrint from "./AnnualConnectionReportPrint";
-import ServiceConnectionStatsPrint from "./ServiceConnectionStatsPrint";
 import ForcedPasswordChangeScreen from "./ForcedPasswordChangeScreen";
 import { useAuth } from "./AuthContext";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { apiGet } from "./api";
+
+// Every page loads on first use (its own chunk), so opening the app downloads
+// only the login, the layout and the page in front of you — not every report.
+const AccountsPage = lazy(() => import("./AccountsPage"));
+const AccountDetail = lazy(() => import("./AccountDetail"));
+const NewApplication = lazy(() => import("./NewApplication"));
+const BillingPage = lazy(() => import("./BillingPage"));
+const ReadingPage = lazy(() => import("./ReadingPage"));
+const BillPrint = lazy(() => import("./BillPrint"));
+const CollectionPage = lazy(() => import("./CollectionPage"));
+const SettingsPage = lazy(() => import("./SettingsPage"));
+const DisconnectionPage = lazy(() => import("./DisconnectionPage"));
+const PendingPage = lazy(() => import("./PendingPage"));
+const DisconnectionPrint = lazy(() => import("./DisconnectionPrint"));
+const ReceiptPrint = lazy(() => import("./ReceiptPrint"));
+const SoaPrint = lazy(() => import("./SoaPrint"));
+const TransactionsPrint = lazy(() => import("./TransactionsPrint"));
+const AdjustmentsPage = lazy(() => import("./AdjustmentsPage"));
+const ApprovalsPage = lazy(() => import("./ApprovalsPage"));
+const ReceiptsManagerPage = lazy(() => import("./ReceiptsManagerPage"));
+const DailyCollectionPrint = lazy(() => import("./DailyCollectionPrint"));
+const CollectionsDepositReportPrint = lazy(() => import("./CollectionsDepositReportPrint"));
+const ECPayDailyCollectionReportPrint = lazy(() => import("./ECPayDailyCollectionReportPrint"));
+const ECPayMonthlyCollectionReportPrint = lazy(() => import("./ECPayMonthlyCollectionReportPrint"));
+const ECPayAnnualCollectionReportPrint = lazy(() => import("./ECPayAnnualCollectionReportPrint"));
+const CollectionEfficiencyReportPrint = lazy(() => import("./CollectionEfficiencyReportPrint"));
+const ECPayAdoptionReportPrint = lazy(() => import("./ECPayAdoptionReportPrint"));
+const ECPayPaymentTimingReportPrint = lazy(() => import("./ECPayPaymentTimingReportPrint"));
+const ECPaySeniorDiscountReportPrint = lazy(() => import("./ECPaySeniorDiscountReportPrint"));
+const JobOrdersPage = lazy(() => import("./JobOrdersPage"));
+const JobOrderPrint = lazy(() => import("./JobOrderPrint"));
+const AdjustmentPrint = lazy(() => import("./AdjustmentPrint"));
+const ECPayPage = lazy(() => import("./ECPayPage"));
+const UserManagementPage = lazy(() => import("./UserManagementPage"));
+const DashboardPage = lazy(() => import("./DashboardPage"));
+const ReportsPage = lazy(() => import("./ReportsPage"));
+const SyncPage = lazy(() => import("./SyncPage"));
+const SyncConflictsPage = lazy(() => import("./SyncConflictsPage"));
+const ITDashboardPage = lazy(() => import("./ITDashboardPage"));
+const IncidentsPage = lazy(() => import("./IncidentsPage"));
+const NoticePrint = lazy(() => import("./NoticePrint"));
+const InterruptionReportPrint = lazy(() => import("./InterruptionReportPrint"));
+const InventoryPage = lazy(() => import("./InventoryPage"));
+const ClusterManagerPage = lazy(() => import("./ClusterManagerPage"));
+const MeterManagerPage = lazy(() => import("./MeterManagerPage"));
+const SequencingPage = lazy(() => import("./SequencingPage"));
+const GisMapPage = lazy(() => import("./GisMapPage"));
+const ForecastPage = lazy(() => import("./ForecastPage"));
+const ForecastPrint = lazy(() => import("./ForecastPrint"));
+const NonRevenueWaterPage = lazy(() => import("./NonRevenueWaterPage"));
+const NrwPrint = lazy(() => import("./NrwPrint"));
+const IncidentRegisterPrint = lazy(() => import("./IncidentRegisterPrint"));
+const IncidentResponsePrint = lazy(() => import("./IncidentResponsePrint"));
+const MobileAdjustmentRequestsPrint = lazy(() => import("./MobileAdjustmentRequestsPrint"));
+const MobileAppUsagePrint = lazy(() => import("./MobileAppUsagePrint"));
+const InventoryReportPrint = lazy(() => import("./InventoryReportPrint"));
+const InventoryFormPrint = lazy(() => import("./InventoryFormPrint"));
+const ReaderExceptionsPrint = lazy(() => import("./ReaderReportsPrint").then((m) => ({ default: m.ReaderExceptionsPrint })));
+const ReaderFieldReportPrint = lazy(() => import("./ReaderReportsPrint").then((m) => ({ default: m.ReaderFieldReportPrint })));
+const AbstractMonthlyCollectionPrint = lazy(() => import("./AbstractMonthlyCollectionPrint"));
+const MonthlyConsumptionPrint = lazy(() => import("./MonthlyConsumptionPrint"));
+const AnnualFinancialPerformancePrint = lazy(() => import("./AnnualFinancialPerformancePrint"));
+const AnnualCollectionPrint = lazy(() => import("./AnnualCollectionPrint"));
+const ORAccountabilityPrint = lazy(() => import("./ORAccountabilityPrint"));
+const PaymentTimingReportPrint = lazy(() => import("./PaymentTimingReportPrint"));
+const CollectionEfficiencyMainPrint = lazy(() => import("./CollectionEfficiencyMainPrint"));
+const ServiceTurnaroundPrint = lazy(() => import("./ServiceTurnaroundPrint"));
+const AccountStatusCensusPrint = lazy(() => import("./AccountStatusCensusPrint"));
+const ZeroConsumptionPrint = lazy(() => import("./ZeroConsumptionPrint"));
+const SeniorAccountsPrint = lazy(() => import("./SeniorAccountsPrint"));
+const AccountTenurePrint = lazy(() => import("./AccountTenurePrint"));
+const MeterReplacementReportPrint = lazy(() => import("./MeterReplacementReportPrint"));
+const TransferActivityReportPrint = lazy(() => import("./TransferActivityReportPrint"));
+const ServiceBacklogPrint = lazy(() => import("./ServiceBacklogPrint"));
+const MainMonthlyCollectionPrint = lazy(() => import("./MainMonthlyCollectionPrint"));
+const CollectionByNaturePrint = lazy(() => import("./CollectionByNaturePrint"));
+const PenaltyCollectionPrint = lazy(() => import("./PenaltyCollectionPrint"));
+const MainSeniorDiscountPrint = lazy(() => import("./MainSeniorDiscountPrint"));
+const ChannelSummaryPrint = lazy(() => import("./ChannelSummaryPrint"));
+const FieldCollectionPrint = lazy(() => import("./FieldCollectionPrint"));
+const CollectorAccountabilityPrint = lazy(() => import("./CollectorAccountabilityPrint"));
+const LongOutstandingPrint = lazy(() => import("./LongOutstandingPrint"));
+const ConsumptionBracketsPrint = lazy(() => import("./ConsumptionBracketsPrint"));
+const BillingCompletenessPrint = lazy(() => import("./BillingCompletenessPrint"));
+const EnvironmentalFeePrint = lazy(() => import("./EnvironmentalFeePrint"));
+const ConsumptionTrendPrint = lazy(() => import("./ConsumptionTrendPrint"));
+const FieldStaffActivityPrint = lazy(() => import("./FieldStaffActivityPrint"));
+const AdjustmentProcessingPrint = lazy(() => import("./AdjustmentProcessingPrint"));
+const UserRosterPrint = lazy(() => import("./UserRosterPrint"));
+const JobOrderRegisterPrint = lazy(() => import("./JobOrderRegisterPrint"));
+const JobOrderTurnaroundPrint = lazy(() => import("./JobOrderTurnaroundPrint"));
+const JobOrderCompletionDetailPrint = lazy(() => import("./JobOrderCompletionDetailPrint"));
+const IPAllocationPrint = lazy(() => import("./IPAllocationPrint"));
+const MonthlyBillingOverviewPrint = lazy(() => import("./MonthlyBillingOverviewPrint"));
+const AnnualBillingOverviewPrint = lazy(() => import("./AnnualBillingOverviewPrint"));
+const SCDSPrint = lazy(() => import("./SCDSPrint"));
+const RevenueFromConsumptionPrint = lazy(() => import("./RevenueFromConsumptionPrint"));
+const RevenueFromConsumptionClusterPrint = lazy(() => import("./RevenueFromConsumptionClusterPrint"));
+const AccountsReceivableSummaryPrint = lazy(() => import("./AccountsReceivableSummaryPrint"));
+const ReportOfClassificationPrint = lazy(() => import("./ReportOfClassificationPrint"));
+const ReadingListPrint = lazy(() => import("./ReadingListPrint"));
+const AccountsReceivablesPrint = lazy(() => import("./AccountsReceivablesPrint"));
+const AdjustedBillsReportPrint = lazy(() => import("./AdjustedBillsReportPrint"));
+const BillEditReportPrint = lazy(() => import("./BillEditReportPrint"));
+const LatestConsumerStatusPrint = lazy(() => import("./LatestConsumerStatusPrint"));
+const ConnectionReportPrint = lazy(() => import("./ConnectionReportPrint"));
+const AnnualConnectionReportPrint = lazy(() => import("./AnnualConnectionReportPrint"));
+const ServiceConnectionStatsPrint = lazy(() => import("./ServiceConnectionStatsPrint"));
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -146,6 +150,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <Suspense fallback={<PageLoading />}>
       <Routes>
         <Route path="/bills/print" element={<BillPrint />} />
         <Route path="/collection/receipt" element={<ReceiptPrint />} />
@@ -405,6 +410,7 @@ export default function App() {
           path="*"
           element={
             <Layout>
+              <Suspense fallback={<PageLoading />}>
               <Routes>
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/accounts" element={<AccountsPage />} />
@@ -435,10 +441,17 @@ export default function App() {
                 <Route path="/forecast" element={<ForecastPage />} />
                 <Route path="/nrw" element={<NonRevenueWaterPage />} />
               </Routes>
+              </Suspense>
             </Layout>
           }
         />
       </Routes>
+      </Suspense>
     </BrowserRouter>
   );
+}
+
+/** Shown for the moment a page's code is being fetched. */
+function PageLoading() {
+  return <p className="count" style={{ padding: 24 }}>Loading…</p>;
 }
