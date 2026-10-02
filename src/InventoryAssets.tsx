@@ -89,7 +89,7 @@ function Units({ kind, onChanged }: { kind: "equipment" | "meter"; onChanged: (m
   return (
     <>
       {pending.length > 0 && (
-        <div className="action-notice" style={{ animation: "none", marginBottom: 12 }}>
+        <div className="info-banner">
           {kind === "meter" ? "Meters" : "Equipment"} in stock without a {kind === "meter" ? "serial" : "property"} number yet:{" "}
           {pending.map((i, n) => (
             <span key={i.id}>

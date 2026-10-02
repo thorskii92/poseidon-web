@@ -468,7 +468,7 @@ function FeatureForm({
         {kind === "pipe" ? `Length ${measureOf(geometry)}` : kind === "area" ? measureOf(geometry) : measureOf(geometry)}
       </div>
       {props0.source === "reader" && (
-        <div className="action-notice" style={{ animation: "none", margin: "0 0 8px", fontSize: 12 }}>
+        <div className="info-banner" style={{ margin: "0 0 8px", fontSize: 12 }}>
           Marked by a meter reader with the phone's GPS{props0.accuracyM ? ` (±${props0.accuracyM} m)` : ""}. Check it; saving here confirms it.
         </div>
       )}

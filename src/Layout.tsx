@@ -54,9 +54,16 @@ function useInboxAlerts(inbox: InboxCounts | undefined) {
       const alerts: InboxAlert[] = [];
       const moreIncidents = (inbox.incidents ?? 0) - (seen.incidents ?? 0);
       const moreRequests = (inbox.adjustmentRequests ?? 0) - (seen.adjustmentRequests ?? 0);
+      const moreNotices = (inbox.pendingNotices ?? 0) - (seen.pendingNotices ?? 0);
       if (moreIncidents > 0) {
         alerts.push({
           message: moreIncidents === 1 ? "New incident report from the mobile app" : `${moreIncidents} new incident reports`,
+          to: "/incidents",
+        });
+      }
+      if (moreNotices > 0) {
+        alerts.push({
+          message: moreNotices === 1 ? "A public notice is waiting for your approval" : `${moreNotices} public notices are waiting for your approval`,
           to: "/incidents",
         });
       }
@@ -131,7 +138,7 @@ const NAV: NavItem[] = sortNav([
   { label: "Job Orders", to: "/joborders", perm: "joborders", icon: IconWrench },
   { label: "Adjustments", to: "/adjustments", perm: "adjustments", icon: IconSliders },
   { label: "Approvals", to: "/approvals", perm: "approvals", icon: IconCheckCircle, alsoFor: ["invapprove", "routeapprove"] },
-  { label: "Incident Reports", to: "/incidents", perm: "incidents", icon: IconMegaphone, mainOnly: true },
+  { label: "Incidents & Emergencies", to: "/incidents", perm: "incidents", icon: IconMegaphone, mainOnly: true },
   { label: "Disconnection", to: "/disconnection", perm: "disconnection", icon: IconPowerOff },
   { label: "ECPay", to: "/ecpay", perm: "ecpay", icon: IconCreditCard, mainOnly: true },
   // Staff who can only file or approve supply requests get just the Requests tab.
@@ -259,7 +266,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const badges: Record<string, number> = {
     Approvals: approvalsWaiting,
     Inventory: (invWaiting?.toRelease ?? 0) + (invWaiting?.mine?.updates ?? 0),
-    "Incident Reports": inbox?.incidents ?? 0,
+    "Incidents & Emergencies": (inbox?.incidents ?? 0) + (inbox?.pendingNotices ?? 0),
     Adjustments: inbox?.adjustmentRequests ?? 0,
   };
 

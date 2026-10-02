@@ -2591,6 +2591,18 @@ tr.row-detail td {
   color: #1d6b3f;
 }
 
+/* An inline heads-up inside a page or panel (not the floating .action-notice toast). */
+.info-banner {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--tint);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
 /* ---- Modal ---- */
 
 .modal-backdrop {

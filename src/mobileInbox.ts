@@ -9,7 +9,7 @@ import { apiGet } from "./api";
  * One query key shared by the sidebar (badges and the new-item alert) and
  * both pages, so handling an item on a page updates the badge at once.
  */
-export type InboxCounts = { incidents: number | null; adjustmentRequests: number | null };
+export type InboxCounts = { incidents: number | null; adjustmentRequests: number | null; pendingNotices?: number | null };
 
 export const INBOX_KEY = ["mobile-inbox"];
 

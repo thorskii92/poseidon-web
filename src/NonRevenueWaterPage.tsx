@@ -39,7 +39,7 @@ export default function NonRevenueWaterPage() {
       </div>
 
       {noSources && tab !== "Sources" && tab !== "Meter health" && (
-        <div className="action-notice" style={{ animation: "none", marginBottom: 12 }}>
+        <div className="info-banner">
           No production sources yet. Add each intake or well under{" "}
           <button className="link-button" onClick={() => setTab("Sources")}>Sources</button>, then log their meter readings
           (or pump hours) daily. Meter health works already — it reads billing only.
@@ -206,7 +206,7 @@ function AllowanceDialog({ row, onClose }: { row: BalanceRow; onClose: () => voi
         <button className="link-button" onClick={() => setItems((prev) => [...prev, { kind: ALLOWANCE_KINDS[0]!, m3: "", note: "" }])}>+ Add another</button>
         {error && <div className="form-error">{error}</div>}
         <div className="form-actions">
-          <button onClick={onClose}>Cancel</button>
+          <button className="clear-filters" onClick={onClose}>Cancel</button>
           <button className="primary" disabled={busy} onClick={save}>{busy ? "Saving…" : "Save"}</button>
         </div>
       </div>
@@ -593,7 +593,7 @@ function SourcesTab({ systems }: { systems?: Systems }) {
             </div>
             {error && <div className="form-error">{error}</div>}
             <div className="form-actions">
-              <button onClick={() => setForm(null)}>Cancel</button>
+              <button className="clear-filters" onClick={() => setForm(null)}>Cancel</button>
               <button className="primary" disabled={busy} onClick={save}>{busy ? "Saving…" : "Save"}</button>
             </div>
           </div>

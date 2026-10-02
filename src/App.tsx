@@ -37,7 +37,9 @@ import ReportsPage from "./ReportsPage";
 import SyncPage from "./SyncPage";
 import SyncConflictsPage from "./SyncConflictsPage";
 import ITDashboardPage from "./ITDashboardPage";
-import IncidentReportsPage from "./IncidentReportsPage";
+import IncidentsPage from "./IncidentsPage";
+import NoticePrint from "./NoticePrint";
+import InterruptionReportPrint from "./InterruptionReportPrint";
 import InventoryPage from "./InventoryPage";
 import ClusterManagerPage from "./ClusterManagerPage";
 import MeterManagerPage from "./MeterManagerPage";
@@ -193,6 +195,8 @@ export default function App() {
         <Route path="/joborders/:joId/print" element={<JobOrderPrint />} />
         <Route path="/forecast/print" element={<ForecastPrint />} />
         <Route path="/nrw/print" element={<NrwPrint />} />
+        <Route path="/incidents/notices/:id/print" element={<NoticePrint />} />
+        <Route path="/incidents/report/print" element={<InterruptionReportPrint />} />
         <Route path="/reports/incident-register/print" element={<IncidentRegisterPrint />} />
         <Route path="/reports/incident-response/print" element={<IncidentResponsePrint />} />
         <Route path="/reports/mobile-adjustment-requests/print" element={<MobileAdjustmentRequestsPrint />} />
@@ -422,7 +426,7 @@ export default function App() {
                 <Route path="/sync" element={<SyncPage />} />
                 <Route path="/sync-conflicts" element={<SyncConflictsPage />} />
                 <Route path="/it" element={<ITDashboardPage />} />
-                <Route path="/incidents" element={<IncidentReportsPage />} />
+                <Route path="/incidents" element={<IncidentsPage />} />
                 <Route path="/inventory" element={<InventoryPage />} />
                 <Route path="/clusters" element={<ClusterManagerPage />} />
                 <Route path="/meters" element={<MeterManagerPage />} />

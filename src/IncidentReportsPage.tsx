@@ -2,12 +2,15 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPost } from "./api";
 import { INBOX_KEY, whenMs } from "./mobileInbox";
+import type { EmergencyEvent } from "./emergencyData";
 
 /**
- * Incident Reports — what the public reports from the mobile app: a leak
+ * Residents' reports — what the public reports from the mobile app: a leak
  * on the street, pipes being stolen, an illegal connection. New reports
  * raise an alert in the sidebar (see Layout.tsx); acknowledging one clears
- * it from the New tab, and resolving or dismissing it closes it.
+ * it from the New tab, and resolving or dismissing it closes it. A report
+ * can be attached to an emergency event (IncidentsPage.tsx) when several
+ * people report the same burst main.
  */
 
 type Incident = {
@@ -25,6 +28,8 @@ type Incident = {
   handledBy: string;
   handledMs: number | null;
   notes: string;
+  eventId: number | null;
+  eventLabel: string;
 };
 
 type Tab = "New" | "Acknowledged" | "Resolved" | "Dismissed";
@@ -41,7 +46,7 @@ function mapUrl(i: Incident) {
   return `https://www.google.com/maps?q=${i.latitude},${i.longitude}`;
 }
 
-export default function IncidentReportsPage() {
+export function ResidentReports({ openEvents }: { openEvents: EmergencyEvent[] }) {
   const qc = useQueryClient();
   const [tab, setTab] = useState<Tab>("New");
   const [open, setOpen] = useState<Incident | null>(null);
@@ -69,22 +74,15 @@ export default function IncidentReportsPage() {
   }
 
   return (
-    <div className="settings-page">
-      <div className="detail-head">
-        <div>
-          <h1>Incident Reports</h1>
-          <p className="account-no">
-            Reported by the public from the mobile app — leaks, pipe theft, illegal connections.
-          </p>
-        </div>
-        <div className="detail-head-right">
-          {alertsAllowed === "default" && (
-            <button className="clear-filters" onClick={enableAlerts}>
-              Enable desktop alerts
-            </button>
-          )}
-        </div>
-      </div>
+    <>
+      <p className="count" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+        <span>Reported by the public from the mobile app — leaks, pipe theft, illegal connections.</span>
+        {alertsAllowed === "default" && (
+          <button className="clear-filters" onClick={enableAlerts}>
+            Enable desktop alerts
+          </button>
+        )}
+      </p>
 
       {notice && (
         <div className="action-notice" onAnimationEnd={() => setNotice("")}>
@@ -129,7 +127,10 @@ export default function IncidentReportsPage() {
               {data.rows.map((i) => (
                 <tr key={i.id} className="row-link" onClick={() => setOpen(i)}>
                   <td style={{ whiteSpace: "nowrap" }}>{whenMs(i.createdMs)}</td>
-                  <td>{i.category}</td>
+                  <td>
+                    {i.category}
+                    {i.eventLabel && <div className="muted">{i.eventLabel}</div>}
+                  </td>
                   <td>
                     {i.location}
                     {i.latitude !== null && (
@@ -161,19 +162,21 @@ export default function IncidentReportsPage() {
         )}
       </section>
 
-      {open && <IncidentDialog incident={open} onClose={() => setOpen(null)} onDone={done} />}
-    </div>
+      {open && <IncidentDialog incident={open} openEvents={openEvents} onClose={() => setOpen(null)} onDone={done} />}
+    </>
   );
 }
 
 function IncidentDialog({
-  incident: i, onClose, onDone,
+  incident: i, openEvents, onClose, onDone,
 }: {
   incident: Incident;
+  openEvents: EmergencyEvent[];
   onClose: () => void;
   onDone: (message: string) => void;
 }) {
   const [notes, setNotes] = useState(i.notes);
+  const [eventId, setEventId] = useState(i.eventId ?? 0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -189,6 +192,25 @@ function IncidentDialog({
       setBusy(false);
     }
   }
+
+  async function attach(id: number) {
+    setBusy(true);
+    setError("");
+    try {
+      await apiPost(`/api/emergencies/reports/${i.id}/event`, { eventId: id });
+      setEventId(id);
+      onDone(id ? `Report #${i.id} attached to the event.` : `Report #${i.id} detached.`);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // The current event stays in the list even once it has closed.
+  const choices = openEvents.some((e) => e.id === eventId) || !eventId
+    ? openEvents
+    : [...openEvents, { id: eventId, ref: "", title: i.eventLabel } as EmergencyEvent];
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -237,6 +259,16 @@ function IncidentDialog({
             Last updated by {i.handledBy} {whenMs(i.handledMs)}.
           </p>
         )}
+
+        <label className="field-input" style={{ margin: "12px 0 0" }} title="Several reports about the same problem can be gathered under one event">
+          <span>Part of an emergency event</span>
+          <select value={eventId} disabled={busy} onChange={(e) => attach(Number(e.target.value))}>
+            <option value={0}>— not attached —</option>
+            {choices.map((e) => (
+              <option key={e.id} value={e.id}>{e.ref ? `${e.ref} · ${e.title}` : e.title}</option>
+            ))}
+          </select>
+        </label>
 
         <label className="field-input" style={{ margin: "12px 0" }}>
           <span>Office notes (internal)</span>

@@ -136,7 +136,7 @@ export default function SequencingPage() {
           </div>
 
           {messy && (
-            <div className="action-notice" style={{ animation: "none", marginBottom: 10 }}>
+            <div className="info-banner">
               {[
                 data!.unsequenced && `${data!.unsequenced} without a number (listed last)`,
                 data!.duplicates && `${data!.duplicates} duplicate number(s)`,
