@@ -37,6 +37,7 @@ type Row = {
   cluster: string;
   balance: number;
   period: string;
+  payBy: string | null;
 };
 
 const LABELS = [
@@ -157,7 +158,14 @@ export default function DisconnectionPrint() {
                   {r.address}
                   {data.clustersEnabled && r.cluster ? `, ${r.cluster}` : ""}
                 </td>
-                <td>{r.period}</td>
+                <td>
+                  {r.period}
+                  {r.payBy && (
+                    <div style={{ fontSize: "0.85em" }}>
+                      Pay by {new Date(`${r.payBy}T00:00:00`).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
+                    </div>
+                  )}
+                </td>
                 <td className="disc-amt">{peso.format(r.balance)}</td>
                 <td className="disc-blank" />
               </tr>

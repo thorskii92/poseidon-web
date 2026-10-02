@@ -54,6 +54,7 @@ type Pending = {
   lastReading: number;
   period: string;
   listedOn: string | null;
+  payBy: string | null;
 };
 
 type Cut = {
@@ -85,6 +86,13 @@ const STAGES: { key: Stage; label: string }[] = [
   { key: "pending", label: "Pending" },
   { key: "disconnected", label: "Disconnected" },
 ];
+
+/** YYYY-MM-DD, n days from today (local). */
+function daysFromToday(n: number) {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 export default function DisconnectionPage() {
   const [stage, setStage] = useState<Stage>("candidates");
@@ -154,6 +162,9 @@ function Candidates({ ctx }: { ctx?: Context }) {
   const [rows, setRows] = useState<Candidate[] | null>(null);
   const [checked, setChecked] = useState<Set<number>>(new Set());
   const [busy, setBusy] = useState(false);
+  // The deadline the account holders are given, and whether their phones are told.
+  const [payBy, setPayBy] = useState(() => daysFromToday(3));
+  const [notify, setNotify] = useState(true);
   const [error, setError] = useState("");
   const [result, setResult] = useState<{ listed: number; skipped: { account: string; why: string }[] } | null>(null);
 
@@ -197,7 +208,9 @@ function Candidates({ ctx }: { ctx?: Context }) {
     if (checked.size === 0) return;
     if (
       !confirmDialog(
-        `Set ${checked.size} account(s) for disconnection? They move to "${ctx?.statuses.forDisconnection ?? "For Disconnection"}" and appear on the Pending list.`,
+        `Set ${checked.size} account(s) for disconnection? They move to "${ctx?.statuses.forDisconnection ?? "For Disconnection"}" and appear on the Pending list.` +
+          (payBy ? ` Pay by ${payBy}.` : "") +
+          (notify ? " Account holders with the mobile app are notified." : ""),
       )
     ) {
       return;
@@ -207,7 +220,7 @@ function Candidates({ ctx }: { ctx?: Context }) {
     try {
       const r = await apiPost<{ listed: number; skipped: { account: string; why: string }[] }>(
         "/api/disconnection/list",
-        { ids: [...checked] },
+        { ids: [...checked], payBy: payBy || null, notify },
       );
       setResult(r);
       queryClient.invalidateQueries({ queryKey: ["disconnection-pending"] });
@@ -352,6 +365,14 @@ function Candidates({ ctx }: { ctx?: Context }) {
               <button className="clear-filters" onClick={() => setChecked(new Set())}>
                 Clear
               </button>
+              <label className="field-input" style={{ margin: 0 }} title="The deadline in the notice, the app and the crew's list">
+                <span>Pay by</span>
+                <input type="date" value={payBy} onChange={(e) => setPayBy(e.target.value)} />
+              </label>
+              <label style={{ display: "inline-flex", gap: 6, alignItems: "center" }} title="Sends the disconnection notice to account holders who have the mobile app">
+                <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
+                Notify through the app
+              </label>
               <button
                 className="danger small"
                 disabled={checked.size === 0 || busy}
@@ -601,6 +622,11 @@ function PendingList({ ctx }: { ctx?: Context }) {
                     {r.listedOn ? new Date(r.listedOn).toLocaleDateString("en-PH", {
                       day: "numeric", month: "short", year: "numeric",
                     }) : <span className="muted">—</span>}
+                    {r.payBy && (
+                      <div className="setting-note">
+                        pay by {new Date(`${r.payBy}T00:00:00`).toLocaleDateString("en-PH", { day: "numeric", month: "short" })}
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -657,6 +683,7 @@ function CancelDialog({
   onDone: (n: number) => void;
 }) {
   const [reason, setReason] = useState("");
+  const [notify, setNotify] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -667,6 +694,7 @@ function CancelDialog({
       const r = await apiPost<{ cancelled: number }>("/api/disconnection/pending/cancel", {
         ids: rows.map((x) => x.id),
         reason,
+        notify,
       });
       onDone(r.cancelled);
     } catch (err) {
@@ -703,6 +731,11 @@ function CancelDialog({
           <span className="setting-note">
             Optional, but it goes on the account&apos;s log — worth a few words.
           </span>
+        </label>
+
+        <label style={{ display: "flex", gap: 6, alignItems: "center", margin: "8px 0" }}>
+          <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
+          Tell account holders with the mobile app that their service continues
         </label>
 
         {error && <div className="form-error">{error}</div>}
@@ -744,6 +777,7 @@ function ConfirmDialog({
   });
 
   const future = new Date(date) > new Date();
+  const [notify, setNotify] = useState(true);
 
   async function save() {
     setBusy(true);
@@ -754,6 +788,7 @@ function ConfirmDialog({
         date,
         by,
         readings,
+        notify,
       });
       onDone(r.confirmed);
     } catch (err) {
@@ -860,6 +895,11 @@ function ConfirmDialog({
         </div>
 
         {future && <div className="form-error">That date is in the future.</div>}
+        <label style={{ display: "flex", gap: 6, alignItems: "center", margin: "8px 0" }}>
+          <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
+          Tell account holders with the mobile app (balance and reconnection fee)
+        </label>
+
         {error && <div className="form-error">{error}</div>}
 
         <div className="form-notice">
