@@ -53,6 +53,9 @@ function GisMap({ settings }: { settings: Settings }) {
   const navigate = useNavigate();
   const holder = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  // The pointer's coordinates, written straight into this element on every
+  // mouse move — a state update per move would re-render the whole page.
+  const coordsRef = useRef<HTMLDivElement | null>(null);
   const [ready, setReady] = useState(false);
   const [mapObj, setMapObj] = useState<maplibregl.Map | null>(null);
   const [groups, setGroups] = useState<Record<FeatureGroup, boolean>>(ALL_GROUPS);
@@ -186,6 +189,24 @@ function GisMap({ settings }: { settings: Settings }) {
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl(), "top-right");
     map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-right");
+
+    // Where the pointer is (lat, lng — the order Google Maps and GPS apps use),
+    // and right-click to copy it: handy when drawing or checking a location.
+    const showCoords = (lngLat: maplibregl.LngLat | null) => {
+      const el = coordsRef.current;
+      if (!el) return;
+      el.style.visibility = lngLat ? "visible" : "hidden";
+      if (lngLat) el.firstChild!.textContent = formatLatLng(lngLat.lat, lngLat.lng);
+    };
+    map.on("mousemove", (e) => showCoords(e.lngLat));
+    map.on("mouseout", () => showCoords(null));
+    map.on("contextmenu", (e) => {
+      const text = `${e.lngLat.lat.toFixed(6)}, ${e.lngLat.lng.toFixed(6)}`;
+      navigator.clipboard?.writeText(text).then(
+        () => setNotice(`Copied ${text}`),
+        () => setNotice(text),
+      );
+    });
 
     map.on("load", () => {
       if (settings.basemap.boundaries) {
@@ -707,6 +728,20 @@ function GisMap({ settings }: { settings: Settings }) {
           </div>
         )}
 
+        {/* Pointer coordinates (hidden until the mouse is over the map). */}
+        <div
+          ref={coordsRef}
+          style={{
+            position: "absolute", bottom: 8, left: "50%", transform: "translateX(-50%)", zIndex: 2,
+            visibility: "hidden", pointerEvents: "none", whiteSpace: "nowrap",
+            background: "rgba(13, 31, 51, 0.82)", color: "#fff", borderRadius: 6, padding: "4px 10px",
+            fontSize: 12, fontVariantNumeric: "tabular-nums", boxShadow: "0 1px 4px rgba(0,0,0,.25)",
+          }}
+        >
+          <span />
+          <span style={{ opacity: 0.7, marginLeft: 8 }}>right-click to copy</span>
+        </div>
+
         {/* Legend */}
         {((showAccounts && legend.length > 0) || (bm.boundaries && (showMuni || showBarangays)) || features.length > 0 || (showReaders && !!readerData?.rows.length)) && (
           <div style={{ position: "absolute", left: 8, bottom: 28, zIndex: 2, background: "var(--surface, #fff)", color: "var(--text, #111)", borderRadius: 8, padding: "8px 10px", boxShadow: "0 1px 6px rgba(0,0,0,.2)", maxHeight: "45%", overflowY: "auto", fontSize: 13 }}>
@@ -804,4 +839,9 @@ function GisMap({ settings }: { settings: Settings }) {
       </div>
     </div>
   );
+}
+
+/** "8.712345° N, 117.423456° E" — six decimals is about 10 cm. */
+function formatLatLng(lat: number, lng: number) {
+  return `${Math.abs(lat).toFixed(6)}° ${lat >= 0 ? "N" : "S"}, ${Math.abs(lng).toFixed(6)}° ${lng >= 0 ? "E" : "W"}`;
 }
