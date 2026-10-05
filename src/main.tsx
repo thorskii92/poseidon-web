@@ -5,6 +5,9 @@ import { AuthProvider } from "./AuthContext";
 import { ApiError } from "./api";
 import App from "./App.tsx";
 import "./index.css";
+// Every report and printout uses it, and several never import it themselves —
+// load it with the app, not with whichever page happened to load first.
+import "./print.css";
 
 const queryClient = new QueryClient({
   defaultOptions: {
