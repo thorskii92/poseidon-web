@@ -6,8 +6,9 @@ import AdminGate, { type AdminCreds } from "./AdminGate";
 /**
  * Cluster Manager — the desktop's ClusterManager form. Pick a barangay
  * (then optionally a cluster and a stand pipe), and move accounts between
- * that barangay's clusters: one at a time from the Cluster column, or
- * several at once with the checkboxes. Clusters are added in Settings.
+ * that barangay's clusters or set the stand pipe they draw from: one at a
+ * time from the row, or several at once with the checkboxes. Clusters are
+ * added in Settings.
  * Opens only after an administrator signs off, like the desktop.
  */
 
@@ -25,7 +26,7 @@ export default function ClusterManagerPage() {
     return (
       <AdminGate
         title="Cluster Manager"
-        blurb="Move accounts between the clusters of their barangay."
+        blurb="Move accounts between the clusters of their barangay, and set their stand pipe."
         unlockUrl="/api/clusters/unlock"
         onUnlock={setAdmin}
       />
@@ -42,13 +43,14 @@ function ClusterManager({ admin }: { admin: AdminCreds }) {
   const [search, setSearch] = useState("");
   const [picked, setPicked] = useState<number[]>([]);
   const [target, setTarget] = useState(0);
+  const [pipeTarget, setPipeTarget] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
 
   const { data: areas } = useQuery<Areas>({ queryKey: [...KEY, "areas"], queryFn: () => apiGet("/api/clusters/areas") });
   const qs = new URLSearchParams({ barangayId: String(brgy), clusterId: String(cluster), standpipe, search }).toString();
-  const { data, isLoading, error: loadError } = useQuery<{ rows: Row[]; standpipes: string[] }>({
+  const { data, isLoading, error: loadError } = useQuery<{ rows: Row[]; standpipes: string[]; barangayStandpipes: string[] }>({
     queryKey: [...KEY, "accounts", qs],
     queryFn: () => apiGet(`/api/clusters/accounts?${qs}`),
     enabled: brgy > 0,
@@ -63,6 +65,7 @@ function ClusterManager({ admin }: { admin: AdminCreds }) {
     setStandpipe("");
     setPicked([]);
     setTarget(0);
+    setPipeTarget("");
   }
 
   async function move(ids: number[], clusterId: number) {
@@ -82,12 +85,36 @@ function ClusterManager({ admin }: { admin: AdminCreds }) {
     }
   }
 
+  /** Set the stand pipe of these accounts (blank clears it). True when it went through. */
+  async function setPipe(ids: number[], value: string) {
+    const clean = value.trim();
+    if (!clean && !confirm(`Remove the stand pipe from ${ids.length} account(s)?`)) return false;
+    setBusy(true);
+    setError("");
+    try {
+      const r = await apiPut<{ changed: number; standpipe: string }>("/api/clusters/standpipe", {
+        accountIds: ids, standpipe: clean, adminUsername: admin.adminUsername, adminPassword: admin.adminPassword,
+      });
+      const label = r.standpipe || "no stand pipe";
+      setNotice(r.changed ? `${r.changed} account(s) set to ${label}.` : `Already ${label} — nothing to change.`);
+      setPicked([]);
+      setPipeTarget("");
+      qc.invalidateQueries({ queryKey: KEY });
+      return true;
+    } catch (e) {
+      setError((e as Error).message);
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="settings-page">
       <div className="detail-head">
         <div>
           <h1>Cluster Manager</h1>
-          <p className="account-no">Move accounts between the clusters of their barangay. Every move is written to the account's log. Authorised by {admin.name}.</p>
+          <p className="account-no">Move accounts between the clusters of their barangay, or set their stand pipe. Every change is written to the account's log. Authorised by {admin.name}.</p>
         </div>
       </div>
 
@@ -154,12 +181,26 @@ function ClusterManager({ admin }: { admin: AdminCreds }) {
                 {clusters.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
               <button className="primary" disabled={busy || !target} onClick={() => move(picked, target)}>Move</button>
+              <strong style={{ marginLeft: 12 }}>or set stand pipe</strong>
+              <input
+                list="cm-standpipes"
+                value={pipeTarget}
+                onChange={(e) => setPipeTarget(e.target.value)}
+                placeholder="e.g. BN-32 (blank clears)"
+                maxLength={45}
+                style={{ width: 170 }}
+              />
+              <button className="primary" disabled={busy} onClick={() => setPipe(picked, pipeTarget)}>Set</button>
               <button className="clear-filters" onClick={() => setPicked([])}>Clear selection</button>
             </div>
           )}
           {error && <div className="form-error">{error}</div>}
           {loadError && <div className="form-error">{(loadError as Error).message}</div>}
           {data && rows.length === 0 && <p className="count">No accounts match.</p>}
+
+          <datalist id="cm-standpipes">
+            {(data?.barangayStandpipes ?? []).map((s) => <option key={s} value={s} />)}
+          </datalist>
 
           {rows.length > 0 && (
             <table>
@@ -193,7 +234,9 @@ function ClusterManager({ admin }: { admin: AdminCreds }) {
                     <td>{r.accountNo}</td>
                     <td>{r.name}</td>
                     <td>{r.street}</td>
-                    <td>{r.standpipe}</td>
+                    <td>
+                      <StandpipeCell value={r.standpipe} busy={busy} onSave={(v) => setPipe([r.id], v)} />
+                    </td>
                     <td>
                       <select
                         value={r.clusterId ?? 0}
@@ -212,5 +255,40 @@ function ClusterManager({ admin }: { admin: AdminCreds }) {
         </section>
       )}
     </div>
+  );
+}
+
+/** A row's stand pipe: shown as text, with a small Edit that turns it into a box. */
+function StandpipeCell({ value, busy, onSave }: { value: string; busy: boolean; onSave: (v: string) => Promise<boolean> }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  if (draft === null) {
+    return (
+      <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
+        {value || <span className="count">—</span>}
+        <button className="clear-filters" disabled={busy} onClick={() => setDraft(value)} title="Change the stand pipe">Edit</button>
+      </span>
+    );
+  }
+  const save = async () => {
+    if (draft.trim().toUpperCase() === value.trim().toUpperCase()) return setDraft(null);
+    if (await onSave(draft)) setDraft(null);
+  };
+  return (
+    <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+      <input
+        list="cm-standpipes"
+        value={draft}
+        autoFocus
+        maxLength={45}
+        style={{ width: 110 }}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") save();
+          if (e.key === "Escape") setDraft(null);
+        }}
+      />
+      <button className="primary" disabled={busy} onClick={save}>Save</button>
+      <button className="clear-filters" disabled={busy} onClick={() => setDraft(null)}>Cancel</button>
+    </span>
   );
 }
