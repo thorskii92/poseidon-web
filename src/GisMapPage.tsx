@@ -406,6 +406,37 @@ function GisMap({ settings }: { settings: Settings }) {
     if (f.geometry.type === "Point") mapRef.current?.flyTo({ center: f.geometry.coordinates, zoom: Math.max(mapRef.current.getZoom(), 16) });
   }
 
+  /**
+   * The selected account's stand pipe: click it to jump to the stand pipe on
+   * the map (selecting it), or place it if it isn't drawn yet. A stand pipe
+   * drawn without a barangay matches by its number alone.
+   */
+  function standpipeCell() {
+    const name = selected?.standpipe.trim() ?? "";
+    if (!selected || !name) return <>—</>;
+    const placed = spFeatures.get(spKey(name, selected.barangayId)) ?? spFeatures.get(spKey(name, 0));
+    if (placed) {
+      return (
+        <button className="link-button" title="Show this stand pipe on the map" onClick={() => showFeature(placed)}>
+          {name} ›
+        </button>
+      );
+    }
+    const sp = spIndex.get(spKey(name, selected.barangayId));
+    return (
+      <>
+        {name}{" "}
+        {settings.canEdit && sp ? (
+          <button className="link-button" title="Click Place, then click where it is on the map" onClick={() => drawTools.current?.placeStandpipe(sp)}>
+            Place it
+          </button>
+        ) : (
+          <span className="muted" style={{ fontSize: 11 }}>not on the map</span>
+        )}
+      </>
+    );
+  }
+
   function exportCsv() {
     const blob = new Blob(["﻿" + toCsv(matching)], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -823,7 +854,7 @@ function GisMap({ settings }: { settings: Settings }) {
                 <tr><td>Status</td><td>{selected.status}</td></tr>
                 <tr><td>Classification</td><td>{selected.classification}</td></tr>
                 <tr><td>Meter no.</td><td>{selected.meterNo || "—"}</td></tr>
-                <tr><td>Stand pipe</td><td>{selected.standpipe || "—"}</td></tr>
+                <tr><td>Stand pipe</td><td>{standpipeCell()}</td></tr>
                 <tr><td>Unpaid</td><td>₱{selected.balance.toLocaleString("en-PH", { minimumFractionDigits: 2 })}{selected.unpaidBills ? ` (${selected.unpaidBills} bill${selected.unpaidBills > 1 ? "s" : ""})` : ""}</td></tr>
                 <tr><td>Last consumption</td><td>{selected.lastConsumption == null ? "—" : `${selected.lastConsumption} m³`}{selected.readLatest ? "" : " · not in the latest billing"}</td></tr>
                 <tr><td>Location</td><td>{selected.lat == null ? "not placed" : `${selected.lat.toFixed(5)}, ${selected.lng!.toFixed(5)}${selected.locSource === "reader" ? " (reader GPS)" : ""}`}</td></tr>
