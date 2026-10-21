@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { apiGet } from "./api";
 import { IconDroplet, IconReceipt } from "./ReportIcons";
 import { IconRefresh } from "./NavIcons";
+import LoginTide from "./LoginTide";
 
 /**
  * The left panel's copy and the animated wave/bubble backdrop are the same
@@ -109,6 +110,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const { signIn } = useAuth();
+  const shellRef = useRef<HTMLDivElement>(null);
 
   // No session exists yet on the login screen, so this can't use
   // AuthContext or /api/sync/status (both need one) — a tiny unauthenticated
@@ -138,8 +140,14 @@ export default function LoginPage() {
   const copy = isSatellite ? COPY.satellite : COPY.main;
 
   return (
-    <div className="login-screen">
-      <div className="login-shell">
+    <div className={isSatellite ? "login-screen login-screen-satellite" : "login-screen"}>
+      {/* Same deep-blue/cyan as vivito.tech's tide; OSCARS gets its green/gold. */}
+      <LoginTide
+        deep={isSatellite ? "#1f5a45" : "#123a8a"}
+        crest={isSatellite ? "#e8c766" : "#7fe3ff"}
+        frameRef={shellRef}
+      />
+      <div className="login-shell" ref={shellRef}>
         <div className="login-visual">
           <Waves />
           <div className="login-bubbles" aria-hidden="true">
