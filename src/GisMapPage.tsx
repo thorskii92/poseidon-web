@@ -509,6 +509,106 @@ function GisMap({ settings }: { settings: Settings }) {
     URL.revokeObjectURL(link.href);
   }
 
+  /**
+   * The map exactly as it is on screen — drawings, area labels and all — as a
+   * PNG, with a title and date above it, the accounts' legend in the corner
+   * and the map credits below. MapLibre clears its canvas after each frame,
+   * so the picture is taken inside a render, while the frame is still there.
+   */
+  function saveImage() {
+    const map = mapRef.current;
+    if (!map) return;
+    map.once("render", () => {
+      const src = map.getCanvas();
+      const k = src.width / Math.max(1, src.clientWidth); // device pixels per CSS pixel
+      const head = Math.round(46 * k);
+      const foot = Math.round(22 * k);
+      const out = document.createElement("canvas");
+      out.width = src.width;
+      out.height = src.height + head + foot;
+      const c = out.getContext("2d");
+      if (!c) return;
+      const font = (size: number, weight = 400) => `${weight} ${Math.round(size * k)}px "Segoe UI", system-ui, sans-serif`;
+
+      c.fillStyle = "#ffffff";
+      c.fillRect(0, 0, out.width, out.height);
+      c.drawImage(src, 0, head);
+
+      // Title and when.
+      const now = new Date();
+      c.fillStyle = "#0d3b66";
+      c.font = font(17, 700);
+      c.textBaseline = "middle";
+      c.fillText("POSEIDON — GIS Map", 14 * k, head / 2 - 6 * k);
+      c.fillStyle = "#555";
+      c.font = font(11.5);
+      const n = activeFilterCount(filters);
+      c.fillText(
+        `${showAccounts ? `${located.length.toLocaleString()} account${located.length === 1 ? "" : "s"} shown` : "Accounts hidden"}` +
+          `${n ? ` · ${n} filter${n === 1 ? "" : "s"} on` : ""} · coloured by ${COLOR_BY.find((x) => x.id === colorBy)?.label.toLowerCase() ?? colorBy}`,
+        14 * k, head / 2 + 11 * k,
+      );
+      c.textAlign = "right";
+      c.fillText(now.toLocaleString("en-PH", { dateStyle: "long", timeStyle: "short" }), out.width - 14 * k, head / 2 - 6 * k);
+      c.textAlign = "left";
+
+      // The accounts' legend, bottom-left over the map.
+      if (showAccounts && legend.length) {
+        const rows = legend.slice(0, 14);
+        const lh = 17 * k;
+        c.font = font(12);
+        const w = Math.max(...rows.map((l) => c.measureText(`${l.label}  ${l.count}`).width)) + 44 * k;
+        const h = (rows.length + 1) * lh + 12 * k;
+        const x = 10 * k;
+        const y = head + src.height - h - 10 * k;
+        c.fillStyle = "rgba(255,255,255,0.92)";
+        c.beginPath();
+        c.roundRect(x, y, w, h, 7 * k);
+        c.fill();
+        c.fillStyle = "#111";
+        c.font = font(12, 600);
+        c.fillText(COLOR_BY.find((x2) => x2.id === colorBy)?.label ?? "", x + 10 * k, y + 6 * k + lh / 2);
+        c.font = font(12);
+        rows.forEach((l, i) => {
+          const cy = y + 6 * k + lh * (i + 1) + lh / 2;
+          c.fillStyle = l.color;
+          c.beginPath();
+          c.arc(x + 16 * k, cy, 5.5 * k, 0, Math.PI * 2);
+          c.fill();
+          c.fillStyle = "#111";
+          c.fillText(l.label, x + 28 * k, cy);
+          c.fillStyle = "#777";
+          c.textAlign = "right";
+          c.fillText(String(l.count), x + w - 10 * k, cy);
+          c.textAlign = "left";
+        });
+      }
+
+      // Credits the map's sources require.
+      c.fillStyle = "#666";
+      c.font = font(10.5);
+      c.fillText(
+        "© OpenStreetMap contributors" + (base === "satellite" ? " · Imagery © Esri, Maxar, Earthstar Geographics" : ""),
+        14 * k, head + src.height + foot / 2,
+      );
+
+      try {
+        out.toBlob((blob) => {
+          if (!blob) return setErr("Could not make the image.");
+          const a = document.createElement("a");
+          const stamp = now.toISOString().slice(0, 16).replace("T", "-").replace(":", "");
+          a.href = URL.createObjectURL(blob);
+          a.download = `gis-map-${stamp}.png`;
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+        }, "image/png");
+      } catch {
+        setErr("The browser blocked saving this view as an image (a map layer came from a site that doesn't allow it).");
+      }
+    });
+    map.triggerRepaint();
+  }
+
   function exportCsv() {
     const blob = new Blob(["﻿" + toCsv(matching)], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -731,6 +831,7 @@ function GisMap({ settings }: { settings: Settings }) {
         <div className="form-actions">
           <button className="clear-filters" disabled={!located.length} onClick={zoomToShown}>Zoom to shown</button>
           <button className="clear-filters" disabled={!matching.length} onClick={exportCsv}>Export list (CSV)</button>
+          <button className="clear-filters" onClick={saveImage} title="Download what the map is showing right now as a picture">Save map image</button>
         </div>
 
         {spIndex.size > 0 && (

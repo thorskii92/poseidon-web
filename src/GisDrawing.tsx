@@ -4,9 +4,9 @@ import { TerraDraw, TerraDrawLineStringMode, TerraDrawPointMode, TerraDrawPolygo
 import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter";
 import { apiDelete, apiPost, apiPut } from "./api";
 import {
-  GROUPS, KINDS, MATERIALS, accountsOnStandpipe, areaM2, featureCollection, fmtArea, fmtLength, iconOf, iconUrl, lengthM,
-  materialColor, spKey, standpipeIndex,
-  type FeatureGroup, type FeatureKind, type FeatureProps, type Geometry, type MapFeature, type StandpipeInfo,
+  GROUPS, KINDS, MATERIALS, accountsOnStandpipe, areaLabel, areaM2, countInside, featureCollection, fmtAccounts, fmtArea, fmtLength,
+  fmtStandpipes, iconOf, iconUrl, lengthM, materialColor, spKey, standpipeIndex,
+  type AreaCount, type FeatureGroup, type FeatureKind, type FeatureProps, type Geometry, type MapFeature, type StandpipeInfo,
 } from "./gisFeatures";
 import type { MapAccount } from "./gisShared";
 
@@ -74,6 +74,12 @@ export default function GisDrawing({
   const [tool, setTool] = useState<Tool | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
   const [measure, setMeasure] = useState("");
+  // What's inside the shape being drawn (measuring an area, a new area).
+  const [drawnInside, setDrawnInside] = useState<AreaCount | null>(null);
+  const insideRef = useRef<(g: Geometry | undefined) => void>(() => {});
+  useEffect(() => {
+    insideRef.current = (g) => setDrawnInside(countInside(g, accounts, features));
+  }, [accounts, features]);
   const toolRef = useRef<Tool | null>(null);
   const busyRef = useRef(false);
   const selected = features.find((f) => f.id === selectedId) ?? null;
@@ -103,6 +109,7 @@ export default function GisDrawing({
       const snap = draw.getSnapshot();
       const last = t.type === "reshape" ? snap.find((f) => f.id === t.drawId) : snap[snap.length - 1];
       setMeasure(measureOf(last?.geometry as Geometry | undefined));
+      insideRef.current(last?.geometry as Geometry | undefined);
     });
     draw.on("finish", (id) => {
       const t = toolRef.current;
@@ -114,6 +121,7 @@ export default function GisDrawing({
         draw.setMode("static");
       } else if (t?.type === "measure") {
         setMeasure(measureOf(f.geometry as Geometry));
+        insideRef.current(f.geometry as Geometry);
         draw.setMode("static");
       }
     });
@@ -128,15 +136,23 @@ export default function GisDrawing({
     };
   }, [map]);
 
+  // What's inside each saved area, for its label and its details panel.
+  const areaCounts = useMemo(() => {
+    const m = new Map<number, AreaCount | null>();
+    for (const f of features) if (f.kind === "area") m.set(f.id, countInside(f.geometry, accounts, features));
+    return m;
+  }, [features, accounts]);
+
   // Saved features on the map (the one being reshaped is left to Terra Draw).
   const reshapingId = tool?.type === "reshape" ? tool.feature.id : null;
   useEffect(() => {
     if (!map) return;
-    (map.getSource("features") as GeoJSONSource | undefined)?.setData(featureCollection(features, reshapingId, groups));
+    const labelOf = (f: MapFeature) => (f.kind === "area" ? areaLabel(f, areaCounts.get(f.id) ?? null) : f.name);
+    (map.getSource("features") as GeoJSONSource | undefined)?.setData(featureCollection(features, reshapingId, groups, labelOf));
     const sel = ["==", ["get", "id"], selectedId ?? -1] as ["==", ["get", string], number];
     if (map.getLayer("feat-selected-line")) map.setFilter("feat-selected-line", ["all", sel, ["match", ["get", "kind"], ["pipe", "area"], true, false]]);
     if (map.getLayer("feat-selected-point")) map.setFilter("feat-selected-point", ["all", sel, ["match", ["get", "kind"], ["pipe", "area"], false, true]]);
-  }, [map, features, groups, reshapingId, selectedId]);
+  }, [map, features, groups, reshapingId, selectedId, areaCounts]);
 
   // A selected stand pipe: its accounts, and lines to the ones on the map.
   const connected = useMemo(
@@ -208,6 +224,7 @@ export default function GisDrawing({
     setPending(null);
     setPreset(null);
     setMeasure("");
+    setDrawnInside(null);
   }
 
   // Esc cancels whatever is being drawn.
@@ -227,6 +244,7 @@ export default function GisDrawing({
     draw.clear();
     setPending(null);
     setMeasure("");
+    setDrawnInside(null);
     onSelect(null);
     setTool(next);
     if (next.type === "new") draw.setMode(MODE[KINDS[next.kind].geom]);
@@ -346,6 +364,11 @@ export default function GisDrawing({
         <div style={{ ...panel, position: "absolute", bottom: 40, left: "50%", transform: "translateX(-50%)", zIndex: 3, padding: "8px 12px", display: "flex", gap: 10, alignItems: "center", maxWidth: "80%" }}>
           <span>{pending ? "Fill in the details on the right." : hint}</span>
           {measure && <strong style={{ whiteSpace: "nowrap" }}>{measure}</strong>}
+          {drawnInside && (
+            <span style={{ whiteSpace: "nowrap" }}>
+              Inside: {fmtAccounts(drawnInside)} · {fmtStandpipes(drawnInside)}
+            </span>
+          )}
           {tool?.type === "reshape" && <button className="primary small" onClick={saveReshape}>Save</button>}
           {tool?.type === "measure" && <button className="clear-filters" onClick={() => start(tool)}>Again</button>}
           <button className="clear-filters" onClick={reset}>{tool?.type === "measure" ? "Done" : "Cancel"}</button>
@@ -361,6 +384,7 @@ export default function GisDrawing({
             name={preset?.name ?? ""}
             props={preset?.props ?? {}}
             geometry={pending.geometry}
+            inside={pending.kind === "area" ? countInside(pending.geometry, accounts, features) : null}
             canEdit
             standpipe={standpipe}
             onSave={saveNew}
@@ -379,6 +403,7 @@ export default function GisDrawing({
             name={selected.name}
             props={selected.props}
             geometry={selected.geometry}
+            inside={selected.kind === "area" ? (areaCounts.get(selected.id) ?? null) : null}
             canEdit={canEdit}
             by={selected.by}
             updatedMs={selected.updatedMs}
@@ -429,10 +454,12 @@ function ToolIcon({ kind }: { kind: FeatureKind }) {
 type StandpipeLists = { options: StandpipeInfo[]; index: Map<string, StandpipeInfo>; placed: Set<string> };
 
 function FeatureForm({
-  kind, name: name0, props: props0, geometry, canEdit, by, updatedMs, standpipe, connected, onShowAccount,
+  kind, name: name0, props: props0, geometry, inside, canEdit, by, updatedMs, standpipe, connected, onShowAccount,
   onSave, onCancel, onReshape, onDelete, onFilterStandpipe,
 }: {
   kind: FeatureKind; name: string; props: FeatureProps; geometry: Geometry; canEdit: boolean; by?: string; updatedMs?: number;
+  /** Areas: the accounts and stand pipes inside. */
+  inside?: AreaCount | null;
   standpipe: StandpipeLists;
   connected?: MapAccount[];
   onShowAccount?: (id: number) => void;
@@ -560,6 +587,23 @@ function FeatureForm({
           <label className="field-input" style={{ flex: 1 }}>
             <span>Size (mm)</span>
             <input type="number" min={1} value={p.sizeMm ?? ""} readOnly={ro} onChange={(e) => set({ sizeMm: e.target.value === "" ? null : Number(e.target.value) })} />
+          </label>
+        </div>
+      )}
+      {kind === "area" && inside && (
+        <div style={{ margin: "2px 0 8px" }}>
+          <div className="count" style={{ margin: "0 0 4px" }}>
+            Inside: <b>{fmtAccounts(inside)}</b> · <b>{fmtStandpipes(inside)}</b>
+            <div className="muted" style={{ fontSize: 11 }}>Only accounts and stand pipes placed on the map are counted.</div>
+          </div>
+          <div style={{ fontWeight: 600, fontSize: 12, margin: "6px 0 2px" }}>Show on the map</div>
+          <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <input type="checkbox" checked={!!p.labelAccounts} disabled={ro} onChange={(e) => set({ labelAccounts: e.target.checked })} />
+            Number of accounts
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <input type="checkbox" checked={!!p.labelStandpipes} disabled={ro} onChange={(e) => set({ labelStandpipes: e.target.checked })} />
+            Number of stand pipes
           </label>
         </div>
       )}

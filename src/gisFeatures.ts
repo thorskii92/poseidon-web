@@ -25,6 +25,9 @@ export type FeatureProps = {
   /** "reader" when a meter reader marked it with the phone's GPS (until the office edits it). */
   source?: string;
   accuracyM?: number | null;
+  /** Areas: label the area on the map with how many accounts / stand pipes are inside. */
+  labelAccounts?: boolean;
+  labelStandpipes?: boolean;
 };
 
 /* ---------------- Stand pipes (from the accounts) ---------------- */
@@ -238,10 +241,69 @@ export function areaM2(ring: [number, number][]) {
 export const fmtLength = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(2)} km` : `${Math.round(m)} m`);
 export const fmtArea = (m2: number) => (m2 >= 10000 ? `${(m2 / 10000).toFixed(2)} ha` : `${Math.round(m2).toLocaleString()} m²`);
 
+/* ---------------- What is inside an area ---------------- */
+
+/** Ray casting; the first ring is the outline, any others are holes. */
+export function insidePolygon(lng: number, lat: number, rings: [number, number][][]) {
+  const inRing = (ring: [number, number][]) => {
+    let hit = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i]!;
+      const [xj, yj] = ring[j]!;
+      if (yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) hit = !hit;
+    }
+    return hit;
+  };
+  return rings.length > 0 && inRing(rings[0]!) && !rings.slice(1).some(inRing);
+}
+
+export type AreaCount = { accounts: number; connected: number; standpipes: number };
+
+/**
+ * The accounts pinned inside an area (and how many of them are connected) and
+ * the stand pipes placed inside it. Accounts with no pin yet can't be counted.
+ */
+export function countInside(
+  g: Geometry | null | undefined,
+  accounts: { lat: number | null; lng: number | null; statusId: number }[],
+  features: MapFeature[],
+): AreaCount | null {
+  if (g?.type !== "Polygon") return null;
+  const rings = g.coordinates;
+  let n = 0;
+  let connected = 0;
+  for (const a of accounts) {
+    if (a.lat == null || a.lng == null || !insidePolygon(a.lng, a.lat, rings)) continue;
+    n++;
+    if (a.statusId === 1) connected++;
+  }
+  const standpipes = features.filter(
+    (f) => f.kind === "standpipe" && f.geometry.type === "Point" && insidePolygon(f.geometry.coordinates[0], f.geometry.coordinates[1], rings),
+  ).length;
+  return { accounts: n, connected, standpipes };
+}
+
+const plural = (n: number, one: string, many = one + "s") => `${n.toLocaleString()} ${n === 1 ? one : many}`;
+export const fmtAccounts = (c: AreaCount) => `${plural(c.accounts, "account")}${c.accounts ? ` (${c.connected.toLocaleString()} connected)` : ""}`;
+export const fmtStandpipes = (c: AreaCount) => plural(c.standpipes, "stand pipe");
+
+/** An area's label: its name, then the counts it has switched on. */
+export function areaLabel(f: MapFeature, c: AreaCount | null) {
+  const lines = [f.name.trim()];
+  if (c && f.props.labelAccounts) lines.push(fmtAccounts(c));
+  if (c && f.props.labelStandpipes) lines.push(fmtStandpipes(c));
+  return lines.filter(Boolean).join("\n");
+}
+
 /* ---------------- Map layers ---------------- */
 
 /** The map's GeoJSON for the saved features in the switched-on groups (minus the one being reshaped). */
-export function featureCollection(rows: MapFeature[], hiddenId: number | null, visible: Record<FeatureGroup, boolean>) {
+export function featureCollection(
+  rows: MapFeature[],
+  hiddenId: number | null,
+  visible: Record<FeatureGroup, boolean>,
+  labelOf: (f: MapFeature) => string = (f) => f.name,
+) {
   return {
     type: "FeatureCollection" as const,
     features: rows
@@ -254,6 +316,7 @@ export function featureCollection(rows: MapFeature[], hiddenId: number | null, v
           kind: f.kind,
           group: KINDS[f.kind].group,
           name: f.name,
+          label: labelOf(f),
           icon: iconOf(f),
           color: f.kind === "pipe" ? materialColor(f.props.material) : (f.props.color ?? "#e67e22"),
           width: pipeWidth(f.props.sizeMm),
@@ -318,7 +381,7 @@ export function addFeatureLayers(map: MlMap) {
   });
   map.addLayer({
     id: "feat-area-label", type: "symbol", source: "features", filter: kind("area"),
-    layout: { "text-field": ["get", "name"], "text-font": ["Noto Sans Medium"], "text-size": 12 },
+    layout: { "text-field": ["get", "label"], "text-font": ["Noto Sans Medium"], "text-size": 12, "text-max-width": 16, "text-line-height": 1.3 },
     paint: { "text-color": ["get", "color"], "text-halo-color": "#fff", "text-halo-width": 1.8 },
   });
 }
