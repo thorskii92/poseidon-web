@@ -5623,3 +5623,32 @@ button.primary.big {
 }
 .sp-warning strong { color: #5a3d00; }
 .sp-far { color: #a82b23; font-weight: 600; }
+
+/* Delete bills: admin override of the time limit (DeleteBillsDialog). */
+.delete-override {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border: 1px solid #e5c97a;
+  background: #fdf8ea;
+  border-radius: 6px;
+  font-size: 14px;
+}
+.delete-override-check {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  cursor: pointer;
+}
+.delete-override-check input { margin-top: 3px; }
+.delete-override .field-input { margin-top: 10px; }
+.delete-override .count { margin: 8px 0 0; }
+.delete-reading {
+  margin: 12px 0;
+  padding: 10px 14px;
+  border: 1px solid #dbe3ea;
+  border-radius: 6px;
+  font-size: 14px;
+}
+.delete-reading legend { padding: 0 4px; font-weight: 600; color: #0b3a5b; }
+.delete-reading label { display: flex; gap: 8px; align-items: flex-start; margin: 6px 0; cursor: pointer; }
+.delete-reading input { margin-top: 3px; }
