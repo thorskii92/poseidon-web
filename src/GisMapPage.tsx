@@ -124,6 +124,29 @@ function GisMap({ settings }: { settings: Settings }) {
   const matching = useMemo(() => all.filter((a) => matches(a, filters)), [all, filters]);
   const located = useMemo(() => matching.filter((a) => a.lat != null && a.lng != null), [matching]);
   const unlocated = useMemo(() => matching.filter((a) => a.lat == null || a.lng == null), [matching]);
+
+  // Mapped accounts whose pin is far from the stand pipe they're tagged with —
+  // a wrong stand pipe number, or a pin dropped in the wrong place.
+  const [farMeters, setFarMeters] = useState(100);
+  const [showFarLines, setShowFarLines] = useState(true);
+  const farCheck = useMemo(() => {
+    const far: { a: MapAccount; sp: MapFeature; meters: number }[] = [];
+    let unchecked = 0;
+    for (const a of located) {
+      const name = a.standpipe.trim();
+      if (!name) continue;
+      const sp = spFeatures.get(spKey(name, a.barangayId)) ?? spFeatures.get(spKey(name, 0));
+      if (!sp || sp.geometry.type !== "Point") {
+        unchecked++;
+        continue;
+      }
+      const [lng, lat] = sp.geometry.coordinates as [number, number];
+      const meters = distanceM(a.lat!, a.lng!, lat, lng);
+      if (meters > farMeters) far.push({ a, sp, meters });
+    }
+    far.sort((x, y) => y.meters - x.meters);
+    return { far, unchecked };
+  }, [located, spFeatures, farMeters]);
   const selected = all.find((a) => a.id === selectedId) ?? null;
 
   const legend = useMemo(() => {
@@ -239,6 +262,15 @@ function GisMap({ settings }: { settings: Settings }) {
         });
       }
       addFeatureLayers(map);
+      // Account → its stand pipe, for accounts far from it (under the pins).
+      map.addSource("sp-far", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({
+        id: "sp-far-lines", type: "line", source: "sp-far",
+        paint: {
+          "line-color": "#d7301f", "line-dasharray": [2, 1.5], "line-opacity": 0.85,
+          "line-width": ["case", ["get", "sel"], 4, 2],
+        },
+      });
       map.addSource("accounts", {
         type: "geojson", data: { type: "FeatureCollection", features: [] },
         cluster: true, clusterMaxZoom: 15, clusterRadius: 40,
@@ -356,6 +388,22 @@ function GisMap({ settings }: { settings: Settings }) {
     });
   }, [ready, readerData, showReaders]);
 
+  // Lines from far-off accounts to their stand pipe.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    (map.getSource("sp-far") as GeoJSONSource | undefined)?.setData({
+      type: "FeatureCollection",
+      features: showFarLines
+        ? farCheck.far.map(({ a, sp }) => ({
+          type: "Feature" as const,
+          geometry: { type: "LineString" as const, coordinates: [[a.lng!, a.lat!], sp.geometry.coordinates as [number, number]] },
+          properties: { id: a.id, sel: a.id === selectedId },
+        }))
+        : [],
+    });
+  }, [ready, farCheck, showFarLines, selectedId]);
+
   // Pins, coloured by the chosen scheme.
   useEffect(() => {
     const map = mapRef.current;
@@ -435,6 +483,30 @@ function GisMap({ settings }: { settings: Settings }) {
         )}
       </>
     );
+  }
+
+  /** Selects the account and frames it with its stand pipe. */
+  function showFar(a: MapAccount, sp: MapFeature) {
+    setSelectedId(a.id);
+    setFeatureId(null);
+    const [lng, lat] = sp.geometry.coordinates as [number, number];
+    mapRef.current?.fitBounds(new maplibregl.LngLatBounds([a.lng!, a.lat!], [a.lng!, a.lat!]).extend([lng, lat]), { padding: 80, maxZoom: 18 });
+  }
+
+  function exportFarCsv() {
+    const q = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const lines = [
+      ["Account no.", "Name", "Barangay", "Cluster", "Stand pipe", "Metres from stand pipe", "Pin from", "Latitude", "Longitude"].map(q).join(","),
+      ...farCheck.far.map(({ a, meters }) =>
+        [a.accountNo, a.name, a.barangay, a.cluster, a.standpipe.trim(), Math.round(meters), a.locSource === "reader" ? "reader GPS" : "office", a.lat, a.lng].map(q).join(","),
+      ),
+    ];
+    const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `far-from-stand-pipe-${farMeters}m.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
   }
 
   function exportCsv() {
@@ -693,6 +765,45 @@ function GisMap({ settings }: { settings: Settings }) {
           </details>
         )}
 
+        {spFeatures.size > 0 && (
+          <details style={{ marginTop: 8 }}>
+            <summary style={{ cursor: "pointer", fontWeight: 600 }}>Far from their stand pipe ({farCheck.far.length})</summary>
+            <p className="count">
+              Mapped accounts more than
+              <select value={farMeters} onChange={(e) => setFarMeters(Number(e.target.value))} style={{ margin: "0 4px" }} aria-label="Distance">
+                {[50, 100, 200, 300, 500, 1000].map((m) => <option key={m} value={m}>{m} m</option>)}
+              </select>
+              from the stand pipe they're tagged with — the stand pipe number or the pin may be wrong.
+              {farCheck.unchecked > 0 && ` ${farCheck.unchecked} more can't be checked until their stand pipe is placed on the map.`}
+            </p>
+            <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 13, marginBottom: 6 }}>
+              <input type="checkbox" checked={showFarLines} onChange={(e) => setShowFarLines(e.target.checked)} />
+              Show red lines to their stand pipe
+            </label>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {farCheck.far.slice(0, 100).map(({ a, sp, meters }) => (
+                <li key={a.id} style={{ display: "flex", justifyContent: "space-between", gap: 6, padding: "3px 0", borderBottom: "1px solid var(--border, #eee)" }}>
+                  <span style={{ minWidth: 0 }}>
+                    {a.accountNo}
+                    <div className="muted" style={{ fontSize: 11 }}>
+                      {a.standpipe.trim()} · {meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${Math.round(meters)} m`} away
+                      {a.locSource === "reader" ? " · reader GPS" : ""}
+                    </div>
+                  </span>
+                  <button className="clear-filters" onClick={() => showFar(a, sp)}>Show</button>
+                </li>
+              ))}
+            </ul>
+            {farCheck.far.length > 100 && <p className="count">Showing the 100 farthest of {farCheck.far.length} — pick a barangay under Filters to narrow it.</p>}
+            {!farCheck.far.length && <p className="count">None — every checked account is within {farMeters} m of its stand pipe.</p>}
+            {farCheck.far.length > 0 && (
+              <div className="form-actions">
+                <button className="clear-filters" onClick={exportFarCsv}>Export list (CSV)</button>
+              </div>
+            )}
+          </details>
+        )}
+
         {unlocated.length > 0 && (
           <details style={{ marginTop: 8 }}>
             <summary style={{ cursor: "pointer", fontWeight: 600 }}>Without a location ({unlocated.length})</summary>
@@ -870,6 +981,15 @@ function GisMap({ settings }: { settings: Settings }) {
       </div>
     </div>
   );
+}
+
+/** Straight-line distance in metres between two points (haversine). */
+function distanceM(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const rad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * rad;
+  const dLng = (lng2 - lng1) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6_371_000 * Math.asin(Math.sqrt(h));
 }
 
 /** "8.712345° N, 117.423456° E" — six decimals is about 10 cm. */

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "./api";
+import { STANDPIPE_FILTERS } from "./standpipeCheck";
 
 export type Filters = {
   barangay: number;
@@ -10,6 +11,8 @@ export type Filters = {
   senior: string;
   minUnpaid: number;
   minAmount: string;
+  /** Stand pipe check (see standpipeCheck.ts); filters saved before it existed lack it. */
+  spDist?: string;
 };
 
 export const EMPTY_FILTERS: Filters = {
@@ -21,6 +24,7 @@ export const EMPTY_FILTERS: Filters = {
   senior: "",
   minUnpaid: 0,
   minAmount: "",
+  spDist: "",
 };
 
 type Options = {
@@ -57,7 +61,8 @@ export default function AccountFilters({
     filters.consumerType ||
     filters.senior !== "" ||
     filters.minUnpaid ||
-    filters.minAmount !== "";
+    filters.minAmount !== "" ||
+    !!filters.spDist;
 
   function set(key: keyof Filters, value: number | string) {
     const next = { ...filters, [key]: value };
@@ -180,6 +185,17 @@ export default function AccountFilters({
           onChange={(e) => set("minAmount", e.target.value)}
           placeholder="Any"
         />
+      </label>
+
+      <label className="filter" title="How far the meter is from the stand pipe it is tagged with, on the GIS map">
+        <span>Stand pipe check</span>
+        <select value={filters.spDist ?? ""} onChange={(e) => set("spDist", e.target.value)}>
+          {STANDPIPE_FILTERS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
       </label>
 
       {active ? (

@@ -7,6 +7,7 @@ import AccountRecords from "./AccountRecords";
 import AccountNotes from "./AccountNotes";
 import AccountActions from "./AccountActions";
 import AccountLocation from "./AccountLocation";
+import { STANDPIPE_FAR_M, formatDistance } from "./standpipeCheck";
 
 type AccountDetail = {
   id: number;
@@ -30,6 +31,10 @@ type AccountDetail = {
   billBalance: number;
   appFeeBalance: number;
   monthlyApp: number;
+  /** Metres from the meter pin to its stand pipe on the GIS map; null when either isn't placed. */
+  standpipeDistanceM: number | null;
+  meterPinned: boolean;
+  standpipePlaced: boolean;
 };
 
 const peso = new Intl.NumberFormat("en-PH", {
@@ -108,11 +113,43 @@ export default function AccountDetail() {
         </div>
       </div>
 
+      {data.standpipe && data.standpipeDistanceM != null && data.standpipeDistanceM > STANDPIPE_FAR_M && (
+        <div className="sp-warning" role="status">
+          <span aria-hidden="true">⚠</span>
+          <span>
+            <strong>
+              The meter is {formatDistance(data.standpipeDistanceM)} from stand pipe {data.standpipe.trim()}.
+            </strong>{" "}
+            The stand pipe number or the meter's pin on the map may be wrong — check them on the GIS Map
+            and correct whichever is off.
+          </span>
+        </div>
+      )}
+
       <div className="fields">
         <Field label="Barangay" value={data.barangay} />
         <Field label="Cluster" value={data.cluster} />
         <Field label="Street address" value={data.streetAddress} />
-        <Field label="Standpipe" value={data.standpipe} />
+        <Field
+          label="Standpipe"
+          value={
+            data.standpipe ? (
+              <>
+                {data.standpipe}
+                {data.standpipeDistanceM != null ? (
+                  <span className={data.standpipeDistanceM > STANDPIPE_FAR_M ? "sp-far" : "muted"}>
+                    {" "}
+                    · {formatDistance(data.standpipeDistanceM)} from the meter
+                  </span>
+                ) : !data.meterPinned ? (
+                  <span className="muted"> · meter not on the map</span>
+                ) : !data.standpipePlaced ? (
+                  <span className="muted"> · stand pipe not on the map</span>
+                ) : null}
+              </>
+            ) : null
+          }
+        />
         <Field label="Consumer type" value={data.consumerType} />
         <Field label="Classification" value={data.classification} />
         <Field label="SC/PWD" value={data.isSenior} />

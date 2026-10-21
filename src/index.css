@@ -5607,3 +5607,19 @@ button.primary.big {
   margin-top: 4px;
   color: #a82b23;
 }
+
+/* Account page: the meter is far from the stand pipe it's tagged with (standpipeCheck.ts). */
+.sp-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  margin: 0 0 16px;
+  font-size: 14px;
+  background: #fdf3dc;
+  color: #6b4a00;
+  border-left: 4px solid #d99a1e;
+  border-radius: 6px;
+}
+.sp-warning strong { color: #5a3d00; }
+.sp-far { color: #a82b23; font-weight: 600; }

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "./api";
 import { useNavigate } from "react-router-dom";
 import type { Filters } from "./AccountFilters";
+import { STANDPIPE_FAR_M, formatDistance } from "./standpipeCheck";
 
 type Account = {
   id: number;
@@ -16,6 +17,10 @@ type Account = {
   unpaidCount: number;
   firstPeriod: number | null;
   lastPeriod: number | null;
+  standpipe: string | null;
+  standpipeDistanceM: number | null;
+  meterPinned: boolean;
+  standpipePlaced: boolean;
 };
 
 type AccountsResponse = {
@@ -91,6 +96,7 @@ export default function AccountList({
   if (filters.senior) params.set("senior", filters.senior);
   if (filters.minUnpaid) params.set("minUnpaid", String(filters.minUnpaid));
   if (filters.minAmount) params.set("minAmount", filters.minAmount);
+  if (filters.spDist) params.set("spDist", filters.spDist);
 
   const { data, isLoading, error } = useQuery<AccountsResponse>({
     queryKey: ["accounts", search, page, filters],
@@ -115,6 +121,7 @@ export default function AccountList({
             <th>Name</th>
             <th>Barangay</th>
             <th>Cluster</th>
+            <th>Stand pipe</th>
             <th className="num">Balance</th>
             <th className="num">Unpaid</th>
             <th>Status</th>
@@ -133,6 +140,24 @@ export default function AccountList({
               </td>
               <td>{a.barangay ?? <span className="muted">-</span>}</td>
               <td>{a.cluster ?? <span className="muted">-</span>}</td>
+              <td>
+                {a.standpipe ? (
+                  <>
+                    <span className="cell-name">{a.standpipe}</span>
+                    <span className="cell-sub" style={a.standpipeDistanceM != null && a.standpipeDistanceM > STANDPIPE_FAR_M ? { color: "#a82b23", fontWeight: 600 } : undefined}>
+                      {a.standpipeDistanceM != null
+                        ? `${formatDistance(a.standpipeDistanceM)} from the meter`
+                        : !a.meterPinned
+                          ? "meter not on the map"
+                          : !a.standpipePlaced
+                            ? "stand pipe not on the map"
+                            : ""}
+                    </span>
+                  </>
+                ) : (
+                  <span className="muted">-</span>
+                )}
+              </td>
               <td className="num">
                 {a.balance > 0 ? (
                   peso.format(a.balance)
