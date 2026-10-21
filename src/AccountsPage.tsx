@@ -34,6 +34,13 @@ export default function AccountsPage() {
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Search name, meter, or account no"
           />
+          <Link
+            to="/accounts/new?existing=1"
+            className="clear-filters"
+            title="An account that has had water for years but was never encoded — added Connected, no fee, admin-authorised"
+          >
+            Add existing account
+          </Link>
           <Link to="/accounts/new" className="primary">
             New application
           </Link>

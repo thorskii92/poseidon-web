@@ -21,6 +21,7 @@ type Account = {
   standpipeDistanceM: number | null;
   meterPinned: boolean;
   standpipePlaced: boolean;
+  category: string | null;
 };
 
 type AccountsResponse = {
@@ -97,6 +98,7 @@ export default function AccountList({
   if (filters.minUnpaid) params.set("minUnpaid", String(filters.minUnpaid));
   if (filters.minAmount) params.set("minAmount", filters.minAmount);
   if (filters.spDist) params.set("spDist", filters.spDist);
+  if (filters.category) params.set("category", filters.category);
 
   const { data, isLoading, error } = useQuery<AccountsResponse>({
     queryKey: ["accounts", search, page, filters],
@@ -135,7 +137,10 @@ export default function AccountList({
               onClick={() => navigate(`/accounts/${a.id}`)}
             >
               <td>
-                <span className="cell-name">{a.name.trim()}</span>
+                <span className="cell-name">
+                  {a.name.trim()}
+                  {a.category === "special" && <span className="tag-special" title="Special account: penalty billed inside the WSF">Special</span>}
+                </span>
                 <span className="cell-sub">{a.accountNo}</span>
               </td>
               <td>{a.barangay ?? <span className="muted">-</span>}</td>

@@ -332,6 +332,50 @@ thead th:last-child {
   border-radius: 999px;
 }
 
+/* Special account (accountCategory.ts on the API): penalty billed in the WSF. */
+.badge.special {
+  background: #ece6fb;
+  color: #4b2d9a;
+}
+
+.tag-special {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: 1px;
+  color: #4b2d9a;
+  background: #ece6fb;
+  border-radius: 999px;
+}
+
+/* New account page: application vs. an existing account added directly. */
+.mode-tabs {
+  display: inline-flex;
+  gap: 4px;
+  margin: 8px 0 4px;
+  padding: 4px;
+  background: #eef2f7;
+  border-radius: 10px;
+}
+.mode-tab {
+  padding: 6px 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.mode-tab.active {
+  color: var(--navy);
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
 .badge.connected {
   background: #e3f4e9;
   color: #1d6b3f;

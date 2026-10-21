@@ -31,11 +31,13 @@ type Actions = {
   appFeeBalance: number;
   monthlyApp: number;
   clustersEnabled: boolean;
+  /** null = a regular account. */
+  category: "special" | null;
   can: Record<string, Gate>;
 };
 
 type Key =
-  | "details" | "meter" | "appFee" | "classification" | "location"
+  | "details" | "meter" | "appFee" | "classification" | "category" | "location"
   | "transferMeter" | "transferOwner" | "meterReplacement" | "tempCloseRequest"
   | "temporaryClose" | "forceDisconnect" | "forceConnect" | "cancelApply";
 
@@ -48,6 +50,7 @@ const GROUPS: { title: string; note: string; items: { key: Key; label: string; a
       { key: "meter", label: "Update meter", admin: true },
       { key: "appFee", label: "Update application fee", admin: true },
       { key: "classification", label: "Change classification", admin: true },
+      { key: "category", label: "Change account category", admin: true },
       { key: "location", label: "Change location", admin: true },
     ],
   },
@@ -189,6 +192,7 @@ function ActionDialog({
     case "meter": return <MeterForm {...props} />;
     case "appFee": return <AppFeeForm {...props} />;
     case "classification": return <ClassificationForm {...props} />;
+    case "category": return <CategoryForm {...props} />;
     case "location": return <LocationForm {...props} kind="location" />;
     case "transferMeter": return <LocationForm {...props} kind="transfer" />;
     case "transferOwner": return <OwnerForm {...props} />;
@@ -752,6 +756,82 @@ function ClassificationForm({ info, onClose, onDone }: FormProps) {
       </div>
 
       <Reason value={auth.reason} onChange={auth.setReason} hint="This changes what the account is charged." />
+      <AdminAuth
+        username={auth.adminUser}
+        password={auth.adminPass}
+        onUsername={auth.setAdminUser}
+        onPassword={auth.setAdminPass}
+        disabled={busy}
+      />
+    </Shell>
+  );
+}
+
+/* ---- 4b. Account category ------------------------------------------ */
+
+const CATEGORY_LABEL = { regular: "Regular account", special: "Special account" } as const;
+
+function CategoryForm({ info, onClose, onDone }: FormProps) {
+  const current = info.category ?? "regular";
+  const [category, setCategory] = useState<keyof typeof CATEGORY_LABEL>(
+    current === "special" ? "regular" : "special",
+  );
+  const auth = useAuth();
+  const { busy, error, send } = useSave(onDone);
+
+  return (
+    <Shell
+      title="Change account category"
+      info={info}
+      error={error}
+      busy={busy}
+      onClose={onClose}
+      canSave={auth.ready && category !== current}
+      saveLabel="Save"
+      onSave={() =>
+        send(
+          `/api/account-actions/${info.id}/category`,
+          {
+            category,
+            reason: auth.reason,
+            adminUser: auth.adminUser,
+            adminPass: auth.adminPass,
+          },
+          (r) => (r.changed ? `Now a ${String(r.to).toLowerCase()}.` : "Nothing changed."),
+        )
+      }
+    >
+      <div className="or-current">
+        <div>
+          <span className="field-label">Category</span>
+          <strong>{CATEGORY_LABEL[current]}</strong>
+        </div>
+      </div>
+
+      <label className="field-input" style={{ marginBottom: 12 }}>
+        <span>New category</span>
+        <select
+          value={category}
+          autoFocus
+          onChange={(e) => setCategory(e.target.value as keyof typeof CATEGORY_LABEL)}
+        >
+          {(Object.keys(CATEGORY_LABEL) as (keyof typeof CATEGORY_LABEL)[]).map((k) => (
+            <option key={k} value={k}>{CATEGORY_LABEL[k]}</option>
+          ))}
+        </select>
+        <span className="setting-note">
+          Separate from the classification, which still sets the tariff.
+        </span>
+      </label>
+
+      <div className="form-notice">
+        {category === "special"
+          ? "For accounts that always pay late because payment goes through a check request first. From the next bill on, the penalty is added to the water service fee and the penalty shows as zero — one amount, the same before and after the due date."
+          : "From the next bill on, the penalty is billed separately again and only applies after the due date."}{" "}
+        Bills already issued keep the amounts they were billed at.
+      </div>
+
+      <Reason value={auth.reason} onChange={auth.setReason} hint="This changes how the account is billed." />
       <AdminAuth
         username={auth.adminUser}
         password={auth.adminPass}

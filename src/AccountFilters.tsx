@@ -13,6 +13,8 @@ export type Filters = {
   minAmount: string;
   /** Stand pipe check (see standpipeCheck.ts); filters saved before it existed lack it. */
   spDist?: string;
+  /** Account category: "special" / "regular" / "" (any). */
+  category?: string;
 };
 
 export const EMPTY_FILTERS: Filters = {
@@ -25,6 +27,7 @@ export const EMPTY_FILTERS: Filters = {
   minUnpaid: 0,
   minAmount: "",
   spDist: "",
+  category: "",
 };
 
 type Options = {
@@ -62,7 +65,8 @@ export default function AccountFilters({
     filters.senior !== "" ||
     filters.minUnpaid ||
     filters.minAmount !== "" ||
-    !!filters.spDist;
+    !!filters.spDist ||
+    !!filters.category;
 
   function set(key: keyof Filters, value: number | string) {
     const next = { ...filters, [key]: value };
@@ -195,6 +199,15 @@ export default function AccountFilters({
               {o.label}
             </option>
           ))}
+        </select>
+      </label>
+
+      <label className="filter" title="Special accounts always pay late by check; their penalty is billed inside the WSF">
+        <span>Category</span>
+        <select value={filters.category ?? ""} onChange={(e) => set("category", e.target.value)}>
+          <option value="">Any</option>
+          <option value="special">Special accounts</option>
+          <option value="regular">Regular accounts</option>
         </select>
       </label>
 

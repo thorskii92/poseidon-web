@@ -35,6 +35,7 @@ type AccountDetail = {
   standpipeDistanceM: number | null;
   meterPinned: boolean;
   standpipePlaced: boolean;
+  category: string | null;
 };
 
 const peso = new Intl.NumberFormat("en-PH", {
@@ -89,6 +90,14 @@ export default function AccountDetail() {
           <p className="account-no">{data.accountNo}</p>
         </div>
         <div className="detail-head-right">
+          {data.category === "special" && (
+            <span
+              className="badge special"
+              title="Always pays late by check: at billing the penalty is added to the water service fee and shows as zero."
+            >
+              Special account
+            </span>
+          )}
           <span className={`badge ${statusClass(data.statusId)}`}>
             {data.status}
           </span>

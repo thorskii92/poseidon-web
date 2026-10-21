@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { apiGet, apiPost } from "./api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
+import AdminAuth from "./AdminAuth";
 
 type Options = {
   barangays: { id: number; name: string }[];
@@ -30,11 +31,31 @@ const EMPTY = {
   householdMembers: "",
   seniorCount: "",
   applicationOption: "pay",
+  // Existing account only (see existingAccount.ts on the API).
+  accountNo: "",
+  meterNo: "",
+  meterBrand: "",
+  meterReference: "",
+  standpipe: "",
+  connectionDate: "",
+  reason: "",
 };
 
+/**
+ * Two modes on one form. A new application is created Pending Payment (or
+ * Installation) and goes the usual road. With ?existing=1 an administrator
+ * adds an account that has had water for years but was never encoded: it is
+ * created Connected with its meter, present reading and real connection
+ * date, owes no application fee, and the addition is logged.
+ */
+
 export default function NewApplication() {
+  const [params, setParams] = useSearchParams();
+  const existing = params.get("existing") === "1";
   const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState("");
+  const [adminUser, setAdminUser] = useState("");
+  const [adminPass, setAdminPass] = useState("");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -50,7 +71,7 @@ export default function NewApplication() {
       form.clusterId,
       form.classificationId,
     ],
-    enabled: form.barangayId > 0 && form.classificationId > 0,
+    enabled: form.barangayId > 0 && form.classificationId > 0 && !(existing && form.accountNo.trim()),
     queryFn: () =>
       apiGet<{ accountNo: string }>(
         `/api/accounts/next-number?barangay=${form.barangayId}&cluster=${form.clusterId}&classification=${form.classificationId}`,
@@ -59,11 +80,19 @@ export default function NewApplication() {
 
   const createAccount = useMutation({
     mutationFn: async () => {
-      return apiPost<{ id: number; accountNo: string }>("/api/accounts", {
+      const body = {
         ...form,
         householdMembers: Number(form.householdMembers) || 0,
         seniorCount: Number(form.seniorCount) || 0,
-      });
+      };
+      return existing
+        ? apiPost<{ id: number; accountNo: string }>("/api/accounts/existing", {
+            ...body,
+            meterReference: form.meterReference === "" ? null : Number(form.meterReference),
+            adminUser,
+            adminPass,
+          })
+        : apiPost<{ id: number; accountNo: string }>("/api/accounts", body);
     },
     onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
@@ -83,7 +112,8 @@ export default function NewApplication() {
   // other types either need no application fee at all or have their own
   // fixed pending status (see server.ts's POST /api/accounts).
   const selectedType = options.consumerTypes.find((t) => t.id === form.consumerTypeId);
-  const showApplicationOption = selectedType?.needsCollection === 1 && options.downpaymentEnabled;
+  const showApplicationOption =
+    !existing && selectedType?.needsCollection === 1 && options.downpaymentEnabled;
 
   function set(key: keyof typeof form, value: string | number) {
     setError("");
@@ -99,7 +129,14 @@ export default function NewApplication() {
     form.barangayId > 0 &&
     form.classificationId > 0 &&
     form.consumerTypeId > 0 &&
-    form.meterSizeId > 0;
+    form.meterSizeId > 0 &&
+    (!existing ||
+      (form.meterNo.trim() !== "" &&
+        form.meterReference !== "" &&
+        form.connectionDate !== "" &&
+        form.reason.trim().length >= 10 &&
+        adminUser.trim() !== "" &&
+        adminPass !== ""));
 
   return (
     <div>
@@ -107,13 +144,42 @@ export default function NewApplication() {
         ← All accounts
       </Link>
 
-      <h1>New account application</h1>
-      <p className="count">
-        Most account types are created as Pending Payment and move to
-        Installation once the application fee is collected. Some types need
-        no fee at all and go straight to Installation, and Fire Hydrant has
-        its own pending status.
-      </p>
+      <div className="mode-tabs" role="tablist">
+        <button
+          role="tab"
+          aria-selected={!existing}
+          className={!existing ? "mode-tab active" : "mode-tab"}
+          onClick={() => setParams({})}
+        >
+          New application
+        </button>
+        <button
+          role="tab"
+          aria-selected={existing}
+          className={existing ? "mode-tab active" : "mode-tab"}
+          onClick={() => setParams({ existing: "1" })}
+        >
+          Existing account (admin)
+        </button>
+      </div>
+
+      <h1>{existing ? "Add an existing account" : "New account application"}</h1>
+      {existing ? (
+        <p className="count">
+          For an account that has had water for a long time but was never put
+          in the system. It is added straight as <strong>Connected</strong> —
+          no application fee, no Collection, no Installation — with its meter,
+          present reading and real connection date. An administrator must
+          authorise it, and it is written to the account&apos;s log.
+        </p>
+      ) : (
+        <p className="count">
+          Most account types are created as Pending Payment and move to
+          Installation once the application fee is collected. Some types need
+          no fee at all and go straight to Installation, and Fire Hydrant has
+          its own pending status.
+        </p>
+      )}
 
       <div className="form-section">
         <h2>Applicant</h2>
@@ -338,10 +404,79 @@ export default function NewApplication() {
         </div>
       </div>
 
-      {preview?.accountNo && (
+      {existing && (
+        <div className="form-section">
+          <h2>Connection</h2>
+          <div className="form-grid">
+            <label className="field-input">
+              <span>Meter number</span>
+              <input value={form.meterNo} onChange={(e) => set("meterNo", e.target.value)} />
+            </label>
+            <label className="field-input">
+              <span>Meter brand (optional)</span>
+              <input value={form.meterBrand} onChange={(e) => set("meterBrand", e.target.value)} />
+            </label>
+            <label className="field-input">
+              <span>Present meter reading</span>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={form.meterReference}
+                onChange={(e) => set("meterReference", e.target.value)}
+              />
+              <span className="setting-note">The first bill is read from here.</span>
+            </label>
+            <label className="field-input">
+              <span>Stand pipe (optional)</span>
+              <input value={form.standpipe} onChange={(e) => set("standpipe", e.target.value)} />
+            </label>
+            <label className="field-input">
+              <span>Connected since</span>
+              <input
+                type="date"
+                max={new Date().toISOString().slice(0, 10)}
+                value={form.connectionDate}
+                onChange={(e) => set("connectionDate", e.target.value)}
+              />
+            </label>
+            <label className="field-input">
+              <span>Account number (optional)</span>
+              <input
+                value={form.accountNo}
+                onChange={(e) => set("accountNo", e.target.value)}
+                placeholder="Leave blank for the next in the series"
+              />
+              <span className="setting-note">Only if the old records already give it one.</span>
+            </label>
+          </div>
+        </div>
+      )}
+
+      {preview?.accountNo && !(existing && form.accountNo.trim()) && (
         <div className="preview">
           <span className="field-label">Account number will be</span>
           <span className="preview-value">{preview.accountNo}</span>
+        </div>
+      )}
+
+      {existing && (
+        <div className="form-section">
+          <label className="field-input wide" style={{ marginBottom: 12 }}>
+            <span>Reason</span>
+            <input
+              value={form.reason}
+              onChange={(e) => set("reason", e.target.value)}
+              placeholder="e.g. Connected since 2015 per the old ledger, never encoded"
+            />
+          </label>
+          <AdminAuth
+            username={adminUser}
+            password={adminPass}
+            onUsername={setAdminUser}
+            onPassword={setAdminPass}
+            disabled={createAccount.isPending}
+          />
         </div>
       )}
 
@@ -353,7 +488,7 @@ export default function NewApplication() {
           disabled={!canSubmit || createAccount.isPending}
           onClick={() => createAccount.mutate()}
         >
-          {createAccount.isPending ? "Saving…" : "Create application"}
+          {createAccount.isPending ? "Saving…" : existing ? "Add account" : "Create application"}
         </button>
         <Link to="/accounts" className="back-button">
           Cancel
