@@ -14,6 +14,7 @@ import {
   IconRefresh, IconAlertTriangle, IconServer, IconLogout, IconSidebar, IconMegaphone, IconSupport, IconMap,
   IconTrendUp,
   IconDropLoss,
+  IconGlobe,
 } from "./NavIcons";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "./support";
 import { useMobileInbox, type InboxCounts } from "./mobileInbox";
@@ -125,6 +126,8 @@ function sortNav(items: NavItem[]) {
 const NAV: NavItem[] = sortNav([
   { label: "Dashboard", to: "/", perm: null, icon: IconGrid },
   { label: "Accounts", to: "/accounts", perm: "accounts", icon: IconIdCard },
+  // Applications sent in from the official website (partner API).
+  { label: "Online Applications", to: "/online-applications", perm: "accounts", icon: IconGlobe, mainOnly: true },
   { label: "Collection", to: "/collection", perm: "collection", icon: IconWallet },
   // A field collector needs to see the O.R. list regardless of their main-
   // office role grant — the module is already safe there on its own terms
@@ -242,6 +245,14 @@ export default function Layout({ children }: { children: ReactNode }) {
     refetchInterval: 30_000,
     enabled: can("routeapprove"),
   });
+  // Online applications waiting for review (OnlineApplicationsPage).
+  const { data: onlineWaiting } = useQuery<{ pending: number }>({
+    queryKey: ["online-applications", "count"],
+    queryFn: () => apiGet<{ pending: number }>("/api/online-applications/count"),
+    retry: false,
+    refetchInterval: 60_000,
+    enabled: can("accounts"),
+  });
   const approvalsWaiting = (approvals?.length ?? 0) + (invWaiting?.toApprove ?? 0) + (prWaiting?.toApprove ?? 0) + (routeWaiting?.waiting ?? 0);
 
   // Synchronization only makes sense on a satellite deployment — hidden on
@@ -268,6 +279,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     Inventory: (invWaiting?.toRelease ?? 0) + (invWaiting?.mine?.updates ?? 0),
     "Incidents & Emergencies": (inbox?.incidents ?? 0) + (inbox?.pendingNotices ?? 0),
     Adjustments: inbox?.adjustmentRequests ?? 0,
+    "Online Applications": onlineWaiting?.pending ?? 0,
   };
 
   const visibleNav = NAV.filter((item) => {

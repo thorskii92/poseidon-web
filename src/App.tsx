@@ -16,6 +16,7 @@ const ReadingPage = lazy(() => import("./ReadingPage"));
 const BillPrint = lazy(() => import("./BillPrint"));
 const CollectionPage = lazy(() => import("./CollectionPage"));
 const SettingsPage = lazy(() => import("./SettingsPage"));
+const OnlineApplicationsPage = lazy(() => import("./OnlineApplicationsPage"));
 const DisconnectionPage = lazy(() => import("./DisconnectionPage"));
 const PendingPage = lazy(() => import("./PendingPage"));
 const DisconnectionPrint = lazy(() => import("./DisconnectionPrint"));
@@ -415,6 +416,7 @@ export default function App() {
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/accounts" element={<AccountsPage />} />
                 <Route path="/accounts/new" element={<NewApplication />} />
+                <Route path="/online-applications" element={<OnlineApplicationsPage />} />
                 <Route path="/accounts/:id" element={<AccountDetail />} />
                 <Route path="/billing" element={<BillingPage />} />
                 <Route path="/reading" element={<ReadingPage />} />

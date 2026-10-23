@@ -4,6 +4,7 @@ import { apiGet, apiPost } from "./api";
 import DOMPurify from "dompurify";
 import { peso } from "./collectionTypes";
 import ReportHeaderEditor from "./ReportHeaderEditor";
+import PartnerKeysPanel from "./PartnerKeysPanel";
 
 /**
  * Settings, laid out in the same groups as the desktop's Settings dialog so an
@@ -31,7 +32,7 @@ type Panel =
   | "fees" | "people" | "classification" | "bulk" | "sizes"
   | "consumer-types" | "addresses" | "readers" | "or-counter"
   | "batch-reading" | "notice" | "batch-bills" | "account-series" | "backup"
-  | "report-header";
+  | "report-header" | "api-keys";
 
 /** What a change on this row reaches. */
 type Tag =
@@ -204,6 +205,12 @@ const AREAS: Area[] = [
         panel: "schema",
       },
       {
+        label: "API keys",
+        note: "Keys for partner systems — the official website sending new applications",
+        tag: "access",
+        panel: "api-keys",
+      },
+      {
         label: "Back up now",
         note: "An on-the-spot copy of the whole database, on top of the nightly one",
         tag: "job",
@@ -304,6 +311,7 @@ export default function SettingsPage() {
               {panel === "account-series" && <AccountSeriesPanel onClose={close} />}
               {panel === "backup" && <BackupPanel onClose={close} />}
               {panel === "report-header" && <ReportHeaderEditor onClose={close} />}
+              {panel === "api-keys" && <PartnerKeysPanel onClose={close} />}
             </>
           ) : (
             <div className={area === "overview" ? "area-grid" : "area-grid single"}>
