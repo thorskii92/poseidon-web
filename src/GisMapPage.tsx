@@ -13,6 +13,7 @@ import {
 } from "./gisShared";
 import { GROUPS, addFeatureLayers, spKey, standpipeIndex, type FeatureGroup, type MapFeature } from "./gisFeatures";
 import GisDrawing, { FeatureLegend, type GisDrawingHandle } from "./GisDrawing";
+import GisPurokOutlines from "./GisPurokOutlines";
 
 /**
  * GIS Map — every account's meter on a street map of the LGU, coloured by
@@ -833,6 +834,16 @@ function GisMap({ settings }: { settings: Settings }) {
           <button className="clear-filters" disabled={!matching.length} onClick={exportCsv}>Export list (CSV)</button>
           <button className="clear-filters" onClick={saveImage} title="Download what the map is showing right now as a picture">Save map image</button>
         </div>
+
+        <GisPurokOutlines
+          map={mapObj}
+          accounts={all}
+          features={features}
+          canEdit={settings.canEdit}
+          onChanged={() => qc.invalidateQueries({ queryKey: ["gis", "features"] })}
+          onNotice={setNotice}
+          onError={setErr}
+        />
 
         {spIndex.size > 0 && (
           <details style={{ marginTop: 8 }}>
