@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { apiGet, apiPost } from "./api";
 import { peso, today } from "./collectionTypes";
 import AdminAuth from "./AdminAuth";
@@ -39,7 +40,7 @@ type Actions = {
 type Key =
   | "details" | "meter" | "appFee" | "classification" | "category" | "location"
   | "transferMeter" | "transferOwner" | "meterReplacement" | "tempCloseRequest"
-  | "temporaryClose" | "forceDisconnect" | "forceConnect" | "cancelApply";
+  | "temporaryClose" | "forceDisconnect" | "forceConnect" | "cancelApply" | "deleteAccount";
 
 const GROUPS: { title: string; note: string; items: { key: Key; label: string; admin?: boolean }[] }[] = [
   {
@@ -71,6 +72,7 @@ const GROUPS: { title: string; note: string; items: { key: Key; label: string; a
       { key: "temporaryClose", label: "Temporary closure (skip approval)", admin: true },
       { key: "forceDisconnect", label: "Force disconnect", admin: true },
       { key: "forceConnect", label: "Force connect", admin: true },
+      { key: "deleteAccount", label: "Delete account (no records)", admin: true },
     ],
   },
 ];
@@ -202,6 +204,7 @@ function ActionDialog({
     case "forceDisconnect": return <ForceForm {...props} to="disconnect" />;
     case "forceConnect": return <ForceForm {...props} to="connect" />;
     case "cancelApply": return <CancelApplyForm {...props} />;
+    case "deleteAccount": return <DeleteAccountForm {...props} />;
   }
 }
 
@@ -832,6 +835,62 @@ function CategoryForm({ info, onClose, onDone }: FormProps) {
       </div>
 
       <Reason value={auth.reason} onChange={auth.setReason} hint="This changes how the account is billed." />
+      <AdminAuth
+        username={auth.adminUser}
+        password={auth.adminPass}
+        onUsername={auth.setAdminUser}
+        onPassword={auth.setAdminPass}
+        disabled={busy}
+      />
+    </Shell>
+  );
+}
+
+/* ---- Delete an account that never did anything ---------------------- */
+
+function DeleteAccountForm({ info, onClose, onDone }: FormProps) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const auth = useAuth();
+  // The account is gone afterwards, so leave its page for the list.
+  const { busy, error, send } = useSave((m) => {
+    onDone(m);
+    queryClient.invalidateQueries({ queryKey: ["accounts"] });
+    navigate("/accounts");
+  });
+
+  return (
+    <Shell
+      title="Delete account"
+      info={info}
+      error={error}
+      busy={busy}
+      onClose={onClose}
+      canSave={auth.ready && auth.reason.trim().length >= 10}
+      saveLabel="Delete the account"
+      onSave={() =>
+        send(
+          `/api/account-actions/${info.id}/delete`,
+          { reason: auth.reason, adminUser: auth.adminUser, adminPass: auth.adminPass },
+          (r) => `Account ${r.accountNo} deleted.`,
+          "POST",
+        )
+      }
+    >
+      <div className="form-notice">
+        For an account that never did anything — carried over from the old system, disconnected, and never
+        billed or paid. It disappears from every list. Its own small leftovers (log entries such as a stand pipe
+        or meter number change, a map pin, notes) go with it.
+        <br />
+        <br />
+        A copy of all of it is kept in the deleted-accounts archive, with who deleted it, who authorised it and
+        why, in case it has to be put back.
+      </div>
+      <Reason
+        value={auth.reason}
+        onChange={auth.setReason}
+        hint="At least 10 characters — e.g. Migrated from the legacy app, never had a bill or a payment."
+      />
       <AdminAuth
         username={auth.adminUser}
         password={auth.adminPass}

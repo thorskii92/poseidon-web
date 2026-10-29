@@ -5,6 +5,8 @@ import type { Filters } from "./AccountFilters";
 import { useDebounce } from "./useDebounce";
 import { useViewState } from "./useViewState";
 import { Link } from "react-router-dom";
+import { useState } from "react";
+import BulkDeleteAccountsDialog from "./BulkDeleteAccountsDialog";
 
 export default function AccountsPage() {
   // Remembered until sign-out or the browser closes (see useViewState).
@@ -12,6 +14,7 @@ export default function AccountsPage() {
   const [page, setPage] = useViewState("accounts.page", 1);
   const [filters, setFilters] = useViewState<Filters>("accounts.filters", EMPTY_FILTERS);
   const debouncedSearch = useDebounce(search);
+  const [cleanup, setCleanup] = useState(false);
 
   function handleSearchChange(value: string) {
     setSearch(value);
@@ -34,6 +37,13 @@ export default function AccountsPage() {
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Search name, meter, or account no"
           />
+          <button
+            className="clear-filters"
+            title="Disconnected accounts with no bills, payments or any other history — delete several at once (admin)"
+            onClick={() => setCleanup(true)}
+          >
+            Delete unused accounts
+          </button>
           <Link
             to="/accounts/new?existing=1"
             className="clear-filters"
@@ -54,6 +64,7 @@ export default function AccountsPage() {
         onPageChange={setPage}
       />
       <StatStrip />
+      {cleanup && <BulkDeleteAccountsDialog onClose={() => setCleanup(false)} />}
     </>
   );
 }
