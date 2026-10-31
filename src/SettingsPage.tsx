@@ -5,6 +5,8 @@ import DOMPurify from "dompurify";
 import { peso } from "./collectionTypes";
 import ReportHeaderEditor from "./ReportHeaderEditor";
 import PartnerKeysPanel from "./PartnerKeysPanel";
+import OfficeSchedulePanel from "./OfficeSchedulePanel";
+import ResidentsAppPanel from "./ResidentsAppPanel";
 
 /**
  * Settings, laid out in the same groups as the desktop's Settings dialog so an
@@ -32,11 +34,11 @@ type Panel =
   | "fees" | "people" | "classification" | "bulk" | "sizes"
   | "consumer-types" | "addresses" | "readers" | "or-counter"
   | "batch-reading" | "notice" | "batch-bills" | "account-series" | "backup"
-  | "report-header" | "api-keys";
+  | "report-header" | "api-keys" | "office-schedule" | "residents-app";
 
 /** What a change on this row reaches. */
 type Tag =
-  | "future-bills" | "new-charges" | "print" | "lists" | "access" | "job" | "todo";
+  | "future-bills" | "new-charges" | "print" | "lists" | "access" | "job" | "app" | "todo";
 
 const TAG_LABEL: Record<Tag, string> = {
   "future-bills": "Future bills",
@@ -45,6 +47,7 @@ const TAG_LABEL: Record<Tag, string> = {
   lists: "Lists",
   access: "Access",
   job: "Job",
+  app: "Residents' app",
   todo: "Not built",
 };
 
@@ -68,6 +71,18 @@ const AREAS: Area[] = [
         note: "The municipal seal and the waterworks seal, as the bill prints them",
         tag: "print",
         panel: "logos",
+      },
+      {
+        label: "Office hours and closures",
+        note: "When residents can come to the office, holidays and closed days, email and map location — shown in the residents' app",
+        tag: "app",
+        panel: "office-schedule",
+      },
+      {
+        label: "Residents' app",
+        note: "How many months of bills and payments the app's statement shows",
+        tag: "app",
+        panel: "residents-app",
       },
       {
         label: "Report header",
@@ -312,6 +327,8 @@ export default function SettingsPage() {
               {panel === "backup" && <BackupPanel onClose={close} />}
               {panel === "report-header" && <ReportHeaderEditor onClose={close} />}
               {panel === "api-keys" && <PartnerKeysPanel onClose={close} />}
+              {panel === "office-schedule" && <OfficeSchedulePanel onClose={close} />}
+              {panel === "residents-app" && <ResidentsAppPanel onClose={close} />}
             </>
           ) : (
             <div className={area === "overview" ? "area-grid" : "area-grid single"}>

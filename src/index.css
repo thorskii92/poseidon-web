@@ -3853,6 +3853,10 @@ button.primary.big {
   background: #f1f3f5;
   color: #6b7885;
 }
+.tag-app {
+  background: #e3f5ec;
+  color: #1e6e48;
+}
 .tag-todo {
   background: none;
   color: var(--text-faint);
